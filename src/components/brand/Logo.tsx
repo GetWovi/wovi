@@ -3,27 +3,27 @@ import type { CSSProperties } from "react";
 /**
  * The one place the logo files are named. Every logo on the site goes through
  * <Logo />, so replacing these files in public/brand/ swaps the logo everywhere.
- * The files there are stand-ins drawn from src/brand/placeholder.tsx until
- * Funkai's final art is cropped in.
+ * The files there are cut from Funkai's art (WOWI-banner.png); the w alone is its
+ * left half mirrored, so it stands clean without the O.
  */
 export const LOGO_FILES = {
   wordmark: {
     /** Blaze letters, cream face: for night grounds. */
-    night: "/brand/wovi-wordmark.svg",
+    night: "/brand/wovi-wordmark.png",
     /** Blaze letters, night face: for cream and white grounds. */
-    light: "/brand/wovi-wordmark-on-light.svg",
+    light: "/brand/wovi-wordmark-on-light.png",
     /** Night letters: for a Blaze ground. */
-    "on-blaze": "/brand/wovi-wordmark-night.svg",
+    "on-blaze": "/brand/wovi-wordmark-night.png",
     /** Cream letters: for a Cobalt ground. */
-    "on-cobalt": "/brand/wovi-wordmark-cream.svg",
+    "on-cobalt": "/brand/wovi-wordmark-cream.png",
   },
   mark: {
-    night: "/brand/wovi-mark.svg",
-    light: "/brand/wovi-mark-on-light.svg",
-    "on-blaze": "/brand/wovi-mark-night.svg",
-    "on-cobalt": "/brand/wovi-mark-cream.svg",
+    night: "/brand/wovi-mark.png",
+    light: "/brand/wovi-mark-on-light.png",
+    "on-blaze": "/brand/wovi-mark-night.png",
+    "on-cobalt": "/brand/wovi-mark-cream.png",
   },
-  favicon: "/brand/favicon.svg",
+  favicon: "/brand/favicon-48.png",
   ico: "/favicon.ico",
   appIcon192: "/brand/app-icon-192.png",
   appIcon512: "/brand/app-icon-512.png",

@@ -160,7 +160,7 @@ export default function DesignPage() {
               ))}
               <div className={styles.markCell}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/app-icon.svg" alt="App icon" width={96} height={96} className={styles.appIcon} />
+                <img src="/brand/app-icon-512.png" alt="App icon" width={96} height={96} className={styles.appIcon} />
                 <span className={styles.caption}>App icon</span>
               </div>
               <div className={styles.markCell}>
@@ -173,16 +173,16 @@ export default function DesignPage() {
           <Sub title="Files" note="The site shows the logo only through the Logo component, which reads these files. Replace them to swap the logo everywhere.">
             <ul className={styles.rules}>
               <li>
-                <code>public/brand/wovi-wordmark.svg</code> blaze letters for night grounds, and <code>wovi-wordmark-on-light.svg</code> for cream
+                <code>public/brand/wovi-wordmark.png</code> blaze letters for night grounds, and <code>wovi-wordmark-on-light.png</code> for cream
               </li>
               <li>
-                <code>wovi-wordmark-night.svg</code> for a Blaze ground, <code>wovi-wordmark-cream.svg</code> for a Cobalt ground
+                <code>wovi-wordmark-night.png</code> for a Blaze ground, <code>wovi-wordmark-cream.png</code> for a Cobalt ground
               </li>
               <li>
-                <code>wovi-mark.svg</code> and the same three variants for the w alone
+                <code>wovi-mark.png</code> and the same three variants for the w alone
               </li>
               <li>
-                <code>public/favicon.ico</code>, <code>public/brand/favicon.svg</code>, <code>app-icon-192.png</code>, <code>app-icon-512.png</code>,{" "}
+                <code>public/favicon.ico</code>, <code>public/brand/favicon-48.png</code>, <code>app-icon-192.png</code>, <code>app-icon-512.png</code>,{" "}
                 <code>og-banner.png</code>
               </li>
             </ul>

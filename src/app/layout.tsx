@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description: "AI agents for content. One agent, one job. Each agent reads your Brand Brain first and hands you work that sounds like you.",
   icons: {
     icon: [
-      { url: LOGO_FILES.favicon, type: "image/svg+xml" },
+      { url: LOGO_FILES.favicon, type: "image/png", sizes: "48x48" },
       { url: LOGO_FILES.ico, sizes: "32x32 16x16" },
     ],
     apple: [{ url: LOGO_FILES.appIcon192, sizes: "192x192" }],
