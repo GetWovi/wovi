@@ -1,0 +1,29 @@
+{
+  "name": "wovi",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3900",
+    "build": "next build",
+    "start": "next start -p 3900",
+    "lint": "eslint",
+    "brand:svg": "tsx scripts/export-brand.tsx",
+    "brand:png": "node scripts/rasterize.mjs",
+    "brand": "npm run brand:svg && npm run brand:png",
+    "check:contrast": "tsx scripts/contrast.mjs"
+  },
+  "dependencies": {
+    "next": "16.4.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}
