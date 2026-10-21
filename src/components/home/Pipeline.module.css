@@ -1,0 +1,141 @@
+.section {
+  position: relative;
+  padding: clamp(72px, 9vw, 120px) 0 clamp(72px, 9vw, 110px);
+  overflow: hidden;
+}
+@media (min-width: 900px) {
+  .section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 0;
+  }
+}
+.inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+.head {
+  margin-bottom: 0;
+}
+
+.rail {
+  position: relative;
+  height: 96px;
+  display: none;
+}
+@media (min-width: 900px) {
+  .rail {
+    display: block;
+  }
+}
+.line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10px;
+  height: 3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  overflow: hidden;
+}
+.lineFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cobalt), var(--blaze));
+  transform-origin: left;
+}
+.walker {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  width: 96px;
+  display: flex;
+  justify-content: center;
+}
+
+.track {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  will-change: transform;
+}
+@media (min-width: 900px) {
+  .track {
+    flex-direction: row;
+    gap: var(--s-5);
+    width: max-content;
+  }
+}
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, transparent), color-mix(in srgb, var(--surface) 70%, transparent));
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 8%, transparent), var(--shadow-md);
+}
+@media (min-width: 900px) {
+  .stage {
+    width: 380px;
+    min-height: 300px;
+  }
+}
+.stageNext {
+  border-style: dashed;
+}
+.stageTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.num {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.stageIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--blaze);
+  color: var(--on-blaze);
+  box-shadow: 0 10px 24px rgb(255 90 31 / 0.3);
+}
+.stageNext .stageIcon {
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+  box-shadow: 0 10px 24px rgb(31 77 255 / 0.3);
+}
+.stageTitle {
+  font-size: var(--fs-2xl);
+  letter-spacing: -0.02em;
+}
+.stageText {
+  color: var(--text-muted);
+  flex: 1;
+}
+.stageAgent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.agentDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cobalt-glow);
+  box-shadow: 0 0 10px var(--cobalt-glow);
+}

@@ -1,0 +1,170 @@
+/* Shared homepage layout and surfaces. */
+
+.section {
+  position: relative;
+  padding: clamp(72px, 10vw, 140px) 0;
+}
+.sectionTight {
+  position: relative;
+  padding: clamp(56px, 7vw, 96px) 0;
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  max-width: 760px;
+  margin-bottom: clamp(32px, 5vw, 64px);
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  height: 30px;
+  padding: 0 12px 0 8px;
+  border-radius: var(--r-pill);
+  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  backdrop-filter: blur(10px);
+}
+.eyebrow::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blaze);
+  box-shadow: 0 0 12px var(--blaze);
+}
+.title {
+  font-size: clamp(34px, 4.6vw, 60px);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  font-weight: var(--fw-bold);
+  text-wrap: balance;
+}
+.title em {
+  font-style: normal;
+  color: var(--blaze-text);
+}
+.lead {
+  font-size: clamp(17px, 1.4vw, 20px);
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 58ch;
+  text-wrap: pretty;
+}
+
+/* Glass: a real border, a soft inner light, and a blurred ground. */
+.glass {
+  position: relative;
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 82%, transparent), color-mix(in srgb, var(--surface) 62%, transparent));
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--text) 10%, transparent),
+    0 30px 80px rgb(0 0 0 / 0.35);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+:global([data-theme="light"]) .glass {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.8),
+    0 30px 80px rgb(11 18 48 / 0.12);
+}
+
+/* Grain: a static noise layer that keeps gradients from banding. */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+/* Soft colour wash behind a section */
+.wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
+}
+.wash::before,
+.wash::after {
+  content: "";
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  max-width: 900px;
+  max-height: 900px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.35;
+}
+.wash::before {
+  left: -20vw;
+  top: -10%;
+  background: var(--cobalt);
+}
+.wash::after {
+  right: -25vw;
+  bottom: -20%;
+  background: var(--blaze);
+  opacity: 0.22;
+}
+:global([data-theme="light"]) .wash::before,
+:global([data-theme="light"]) .wash::after {
+  opacity: 0.16;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.chipBlaze {
+  background: var(--blaze-tint);
+  color: var(--blaze-text);
+}
+.chipCobalt {
+  background: var(--cobalt-tint);
+  color: var(--cobalt-glow);
+}
+
+/* Score ring */
+.ring {
+  display: inline-grid;
+  place-items: center;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex: none;
+}
+.ring svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.ring span {
+  font-size: 13px;
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}

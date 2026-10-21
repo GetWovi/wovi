@@ -1,0 +1,109 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-4);
+  perspective: 1200px;
+}
+@media (min-width: 600px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1000px) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.card {
+  --rx: 0deg;
+  --ry: 0deg;
+  --mx: 50%;
+  --my: 50%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 95%, transparent), color-mix(in srgb, var(--surface) 80%, transparent));
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 8%, transparent), var(--shadow-md);
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  transition: transform 0.25s var(--ease), border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  overflow: hidden;
+}
+.card:hover {
+  border-color: color-mix(in srgb, var(--blaze) 60%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 8%, transparent), 0 30px 60px rgb(0 0 0 / 0.35);
+}
+.light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(220px circle at var(--mx) var(--my), color-mix(in srgb, var(--blaze) 22%, transparent), transparent 60%);
+  transition: opacity 0.3s var(--ease);
+}
+.card:hover .light {
+  opacity: 1;
+}
+.next {
+  border-style: dashed;
+}
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.icon {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--blaze);
+  color: var(--on-blaze);
+  box-shadow: 0 10px 24px rgb(255 90 31 / 0.3);
+}
+.next .icon {
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+  box-shadow: 0 10px 24px rgb(31 77 255 / 0.3);
+}
+.name {
+  font-size: var(--fs-xl);
+  letter-spacing: -0.01em;
+}
+.job {
+  color: var(--text-muted);
+  flex: 1;
+}
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--s-2);
+}
+.run {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  color: var(--blaze-text);
+}
+.sleep {
+  display: inline-flex;
+}
+.note {
+  margin-top: var(--s-5);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transform: none;
+    transition: none;
+  }
+}

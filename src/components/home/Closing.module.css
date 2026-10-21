@@ -1,0 +1,108 @@
+.closing {
+  position: relative;
+  overflow: hidden;
+  padding-top: clamp(80px, 10vw, 140px);
+}
+.cta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s-4);
+  padding-bottom: clamp(80px, 10vw, 140px);
+}
+.ctaWovi {
+  margin-bottom: var(--s-2);
+  filter: drop-shadow(0 20px 40px rgb(0 0 0 / 0.4));
+}
+.ctaTitle {
+  font-size: clamp(36px, 5.6vw, 76px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  max-width: 14ch;
+  text-wrap: balance;
+}
+.ctaTitle em {
+  font-style: normal;
+  color: var(--blaze-text);
+}
+.ctaLead {
+  text-align: center;
+  max-width: 52ch;
+}
+.ctaActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+
+.footer {
+  position: relative;
+  border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--surface) 50%, transparent));
+}
+.footerInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  padding-top: var(--s-7);
+  padding-bottom: var(--s-6);
+}
+.big {
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  filter: drop-shadow(0 30px 80px rgb(255 90 31 / 0.3));
+}
+.big svg {
+  width: 100%;
+  max-width: 1100px;
+  height: auto;
+}
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-5);
+}
+@media (min-width: 720px) {
+  .cols {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.col a {
+  color: var(--text);
+  font-weight: var(--fw-medium);
+  width: fit-content;
+}
+.col a:hover {
+  color: var(--blaze-text);
+  text-decoration: none;
+}
+.colTitle {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.muted {
+  color: var(--text-muted);
+}
+.fine {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: var(--s-5);
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}

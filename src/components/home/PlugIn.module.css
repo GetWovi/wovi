@@ -1,0 +1,129 @@
+.inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-6);
+  align-items: center;
+}
+@media (min-width: 1000px) {
+  .inner {
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: var(--s-8);
+  }
+}
+.head {
+  margin-bottom: 0;
+}
+.points {
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-weight: var(--fw-medium);
+}
+.points li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.points svg {
+  color: var(--blaze);
+  flex: none;
+}
+.panel {
+  padding: 0;
+  overflow: hidden;
+  --surface: #141d44;
+  --text: #fff4dc;
+  --text-muted: #a9b3d9;
+  color: #fff4dc;
+}
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgb(255 244 220 / 0.1);
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: rgb(11 18 48 / 0.6);
+}
+.tab {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: #a9b3d9;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.tab:focus-visible {
+  border-radius: var(--r-pill);
+}
+.tabOn {
+  background: #ff5a1f;
+  color: #0b1230;
+}
+.copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgb(255 244 220 / 0.14);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: #fff4dc;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.copy:hover {
+  background: rgb(255 244 220 / 0.08);
+}
+.code {
+  margin: 0;
+  padding: 18px 20px 22px;
+  min-height: 330px;
+  overflow-x: auto;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #e4e9ff;
+  white-space: pre;
+  tab-size: 2;
+}
+.code code {
+  font-family: inherit;
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+.caret {
+  display: inline-block;
+  width: 8px;
+  height: 1.1em;
+  vertical-align: -0.2em;
+  background: #ff5a1f;
+  animation: blink 0.8s steps(2) infinite;
+}
+@keyframes blink {
+  to {
+    opacity: 0;
+  }
+}
+@media (max-width: 600px) {
+  .code {
+    font-size: 12px;
+    min-height: 280px;
+  }
+}

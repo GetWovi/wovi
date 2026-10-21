@@ -1,0 +1,121 @@
+.inner {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-6);
+  align-items: center;
+}
+@media (min-width: 1000px) {
+  .inner {
+    grid-template-columns: 1fr 1.1fr;
+    gap: var(--s-8);
+  }
+}
+.head {
+  margin-bottom: 0;
+}
+.panel {
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.panelTitle {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+}
+.text {
+  font-size: clamp(20px, 2vw, 26px);
+  line-height: 1.45;
+  font-weight: var(--fw-medium);
+  letter-spacing: -0.01em;
+}
+.slop {
+  --strike: 0;
+  position: relative;
+  color: var(--text-muted);
+}
+.slop::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 55%;
+  height: 3px;
+  width: calc(var(--strike) * 100%);
+  border-radius: 2px;
+  background: var(--blaze);
+}
+.keep {
+  color: var(--text);
+  background: linear-gradient(transparent 60%, var(--cobalt-tint) 60%);
+  border-radius: 4px;
+  font-weight: var(--fw-semibold);
+}
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: var(--s-3);
+  border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+.meterTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+}
+.meterValue {
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.03em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.meterValue small {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+.meterTrack {
+  height: 10px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  overflow: hidden;
+}
+.meterFill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0.31);
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--cobalt), var(--blaze));
+}
+.meterFoot {
+  display: flex;
+  gap: var(--s-4);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+}
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend i {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+.legendSlop {
+  background: var(--blaze);
+}
+.legendKeep {
+  background: var(--cobalt-glow);
+}

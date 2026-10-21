@@ -3,17 +3,26 @@ import { Wordmark } from "@/components/brand/Wordmark";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import styles from "./Site.module.css";
 
-export function SiteHeader({ active }: { active?: "home" | "design" }) {
+export type NavLink = { href: string; label: string };
+
+export function SiteHeader({ active, links = [], overlay = false }: { active?: "home" | "design"; links?: NavLink[]; overlay?: boolean }) {
   return (
-    <header className={styles.header}>
+    <header className={[styles.header, overlay ? styles.overlay : ""].filter(Boolean).join(" ")}>
       <div className={["container", styles.headerInner].join(" ")}>
         <Link href="/" className={styles.logo} aria-label="WOVI home">
-          <Wordmark variant="theme" height={34} />
+          <Wordmark variant="theme" height={30} />
         </Link>
         <nav className={styles.nav} aria-label="Main">
-          <Link href="/design" className={styles.navLink} aria-current={active === "design" ? "page" : undefined}>
-            Design system
-          </Link>
+          <div className={styles.links}>
+            {links.map((l) => (
+              <a key={l.href} href={l.href} className={styles.navLink}>
+                {l.label}
+              </a>
+            ))}
+            <Link href="/design" className={styles.navLink} aria-current={active === "design" ? "page" : undefined}>
+              Design system
+            </Link>
+          </div>
           <ThemeToggle />
         </nav>
       </div>

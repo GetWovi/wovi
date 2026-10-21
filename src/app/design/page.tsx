@@ -123,7 +123,7 @@ export default function DesignPage() {
           </nav>
         </header>
 
-        <Section id="logo" title="Logo" intro="The wordmark reads wovI: the mascot w tucks into the o, the o touches the v, the v touches a tall capital I. One flowing line.">
+        <Section id="logo" title="Logo" intro="One stroke draws the whole word. The w tucks into the o, the o touches the v, the v touches a tall capital I with slab terminals so it never reads as an l. The w is the same letter Wovi is drawn from.">
           <div className={styles.logoGrid}>
             {(Object.keys(WORDMARK_VARIANTS) as WordmarkVariant[])
               .filter((v) => v !== "theme")
@@ -137,7 +137,7 @@ export default function DesignPage() {
                 </figure>
               ))}
           </div>
-          <Sub title="Mascot only" note="Below 80px wide, and for avatars, app icon and favicon, the w stands alone.">
+          <Sub title="Mascot only" note="Below 80px wide, and for avatars, app icon and favicon, the w stands alone: a clean letter under 32px, the face from 32px up.">
             <div className={styles.markRow}>
               {[16, 24, 32, 48, 64, 80].map((s) => (
                 <div key={s} className={styles.markCell}>
@@ -145,6 +145,10 @@ export default function DesignPage() {
                   <span className={styles.caption}>{s}px</span>
                 </div>
               ))}
+              <div className={styles.markCell}>
+                <Mark size={80} face={false} />
+                <span className={styles.caption}>Letter only</span>
+              </div>
               <div className={styles.markCell}>
                 <AppIcon size={96} />
                 <span className={styles.caption}>App icon</span>
@@ -164,13 +168,13 @@ export default function DesignPage() {
               <li>Keep the height of the o free on every side of the wordmark.</li>
               <li>Never respace, outline, stretch or recolour the letters.</li>
               <li>Primary is Blaze on Night. On light surfaces use Blaze on Cream. Night on Blaze and Cream on Cobalt are the colour variants.</li>
-              <li>The face follows the surface: Cream where the ground is dark, Night where it is light.</li>
-              <li>Below 28px the face is dropped and the w stays a clean letter.</li>
+              <li>The wordmark is always the clean letters. The face, limbs and outline of Wovi follow the surface: Cream where the ground is dark, Night where it is light.</li>
+              <li>Under 32px the mark is the letter alone; the face only appears where it can be seen.</li>
             </ul>
           </Sub>
         </Section>
 
-        <Section id="mascot" title="Mascot" intro="Wovi is the w: a closed-eye smile, cheeks, and thin arms and legs that appear in poses. Each pose is a product state.">
+        <Section id="mascot" title="Mascot" intro="Wovi is the w from the wordmark with a face, a sticker outline, and thin arms and legs that appear in poses. Each pose is a product state.">
           <div className={styles.poseGrid}>
             {POSES.map((p) => (
               <figure key={p.pose} className={styles.poseTile}>
@@ -192,7 +196,7 @@ export default function DesignPage() {
               ))}
             </div>
           </Sub>
-          <Sub title="On either ground" note="Limbs, face and outlines use Cream on night and Night on light. Pass ink when the surface differs from the theme.">
+          <Sub title="On either ground" note="Limbs, face lines and the outline use Cream on night and Night on light. Pass ink when the surface differs from the theme.">
             <div className={styles.groundRow}>
               <div className={styles.groundNight}>
                 <Mascot pose="celebrating" size={120} ink="cream" />
