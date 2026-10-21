@@ -1,0 +1,136 @@
+.hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: var(--s-6);
+  padding-top: var(--s-7);
+  padding-bottom: var(--s-7);
+  min-height: calc(100svh - var(--header-h));
+}
+@media (min-width: 900px) {
+  .hero {
+    grid-template-columns: 1.3fr 1fr;
+    gap: var(--s-8);
+    padding-top: var(--s-8);
+    padding-bottom: var(--s-8);
+  }
+}
+.heroText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-5);
+}
+.heroWordmark {
+  max-width: 100%;
+  height: auto;
+}
+.title {
+  font-size: var(--fs-5xl);
+  max-width: 14ch;
+}
+.lead {
+  font-size: var(--fs-lg);
+  color: var(--text-muted);
+  max-width: 52ch;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+.actions a {
+  text-decoration: none;
+}
+.heroMascot {
+  display: flex;
+  justify-content: center;
+  order: -1;
+}
+.heroMascot svg {
+  width: min(320px, 60vw);
+  height: auto;
+}
+@media (min-width: 900px) {
+  .heroMascot {
+    order: 0;
+    justify-content: flex-end;
+  }
+}
+
+.sectionHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-bottom: var(--s-5);
+}
+.agents {
+  padding-top: var(--s-7);
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-4);
+}
+@media (min-width: 600px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 960px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.agentCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+.agentIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--blaze);
+  color: var(--on-blaze);
+}
+.agentName {
+  font-size: var(--fs-xl);
+}
+.agentDoes {
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.promise {
+  padding-top: var(--s-8);
+}
+.promiseCard {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--s-5);
+  align-items: center;
+}
+@media (min-width: 800px) {
+  .promiseCard {
+    grid-template-columns: 1.4fr 1fr;
+  }
+}
+.promiseText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.promiseText h2 {
+  max-width: 18ch;
+}
+.promiseMascots {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-6);
+}
