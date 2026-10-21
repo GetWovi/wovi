@@ -51,6 +51,87 @@ export type BoardItem = {
   createdAt: string;
 };
 
+/* ---------- The test bench (phase 6) ---------- */
+
+export const BENCH_KINDS = ["samples", "adhoc", "batch"] as const;
+export type BenchKind = (typeof BENCH_KINDS)[number];
+
+/** One line of a bench: a sample (or an ad-hoc form) and the engine run it became. */
+export type BenchItem = {
+  sampleId: string | null;
+  title: string;
+  label: SampleLabel | null;
+  inputs: RunInputs;
+  idealOutput: string | null;
+  /** The engine run, or null when the engine refused the request. */
+  runId: string | null;
+  /** Why the engine refused it, in one line. */
+  error: string | null;
+};
+
+/**
+ * One bench run: an agent version against a set of samples (or one ad-hoc
+ * form) through the engine. The runs themselves live in the run store; the
+ * bench keeps the list and what each run was compared against.
+ */
+export type Bench = {
+  id: string;
+  workspaceId: string;
+  agentId: string;
+  version: string;
+  kind: BenchKind;
+  /** Set when the bench is one agent of a batch. */
+  batchId: string | null;
+  items: BenchItem[];
+  status: "running" | "done" | "cancelled";
+  /** The sum of the first-call estimates, and the sum of the spend caps, in micro-dollars. */
+  estimateMicroUsd: number;
+  capMicroUsd: number;
+  createdBy: string;
+  createdAt: string;
+  finishedAt: string | null;
+};
+
+export const RATINGS = ["good", "ok", "bad"] as const;
+export type RatingValue = (typeof RATINGS)[number];
+
+/** The builder's rating of one run. One per run; rating again replaces it. */
+export type Rating = {
+  id: string;
+  workspaceId: string;
+  agentId: string;
+  version: string;
+  runId: string;
+  rating: RatingValue;
+  note: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+/** A batch: every sample of a set of agents, one bench per agent. */
+export type Batch = {
+  id: string;
+  workspaceId: string;
+  agentIds: string[];
+  benchIds: string[];
+  status: "running" | "done" | "cancelled";
+  estimateMicroUsd: number;
+  capMicroUsd: number;
+  createdBy: string;
+  createdAt: string;
+  finishedAt: string | null;
+};
+
+export const BENCH_LIMITS = {
+  /** Runs one bench may start. */
+  runsPerBench: 50,
+  /** Runs one batch may start, across its agents. */
+  runsPerBatch: 400,
+  /** Above this estimate a batch needs the builder's confirmation, in US dollars. */
+  batchConfirmUsd: 0.5,
+  ratingNote: 300,
+} as const;
+
 export const BUILDER_LIMITS = {
   samplesPerAgent: 50,
   sampleTitle: 80,

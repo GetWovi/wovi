@@ -7,7 +7,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { localRegistry } from "@/lib/agents/registry";
 import { localBrandBrains } from "@/lib/builder/local";
-import { localEngine } from "@/lib/runs/engine";
+import { localEngine, type RunEngine } from "@/lib/runs/engine";
 import type { Accounts } from "./accounts";
 import { CSRF_FIELD, checkCsrfToken, csrfTokenFor, sameOrigin } from "./csrf";
 import { AccountError } from "./errors";
@@ -20,7 +20,7 @@ const secure = process.env.NODE_ENV === "production";
 /** `__Host-` pins the cookie to this host, over HTTPS, on every path. */
 export const SESSION_COOKIE = secure ? "__Host-wovi_session" : "wovi_session";
 
-const g = globalThis as { __wovi?: { accounts?: Accounts; agents?: GuardedAgents; runs?: GuardedRuns } };
+const g = globalThis as { __wovi?: { accounts?: Accounts; agents?: GuardedAgents; engine?: RunEngine; runs?: GuardedRuns } };
 const cache = (g.__wovi ??= {});
 
 export function accounts(): Accounts {
@@ -32,9 +32,23 @@ export function appAgents(): GuardedAgents {
   return (cache.agents ??= new GuardedAgents(localRegistry(), accounts()));
 }
 
-/** The run engine as the app may use it: every call names its caller. Reads each agent's mood board next to the Brand Brain. */
+/**
+ * The one run engine of this process, with each agent's mood board next to
+ * the Brand Brain. The builder's bench and the guarded runs share it, so
+ * there is one queue. Runs left queued or running by a previous process are
+ * picked up again on the first use.
+ */
+export function appEngine(): RunEngine {
+  if (!cache.engine) {
+    cache.engine = localEngine({ brandBrains: localBrandBrains() });
+    void cache.engine.recover().catch((err) => console.error("Could not recover runs:", err));
+  }
+  return cache.engine;
+}
+
+/** The run engine as the app may use it: every call names its caller. */
 export function appRuns(): GuardedRuns {
-  return (cache.runs ??= new GuardedRuns(localEngine({ brandBrains: localBrandBrains() }), accounts()));
+  return (cache.runs ??= new GuardedRuns(appEngine(), accounts()));
 }
 
 export async function requestMeta() {

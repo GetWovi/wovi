@@ -78,6 +78,23 @@ describe("agent registry", () => {
       ]);
     });
 
+    it("remembers who saved each version, and writes quality without a new version", async () => {
+      const reg = registry();
+      await reg.create(WS, goodSpec(), { by: "usr_seed" });
+      await reg.update(WS, "test-agent", { name: "Two" }, { by: "usr_funkai", note: "Rename" });
+      expect((await reg.versions(WS, "test-agent")).map((v) => v.by)).toEqual(["usr_seed", "usr_funkai"]);
+
+      const before = (await reg.rows(WS))[0];
+      const scored = await reg.setQuality(WS, "test-agent", { score: 86, runs: 4, lastScoredAt: "2026-10-21T12:00:00.000Z" });
+      expect(scored.quality).toEqual({ score: 86, runs: 4, lastScoredAt: "2026-10-21T12:00:00.000Z" });
+      expect(scored.version).toBe("1.0.1");
+      expect((await reg.versions(WS, "test-agent")).length).toBe(2);
+      // A score is not an edit: "last edited" stays where it was.
+      expect((await reg.rows(WS))[0].updatedAt).toBe(before.updatedAt);
+      await rejects(reg.setQuality(WS, "test-agent", { score: 120, runs: 0, lastScoredAt: null }), "invalid_spec");
+      await rejects(reg.setQuality(WS, "nope", { score: null, runs: 0, lastScoredAt: null }), "not_found");
+    });
+
     it("takes an explicit version only when it is higher than every existing one", async () => {
       const reg = registry();
       await reg.create(WS, goodSpec());

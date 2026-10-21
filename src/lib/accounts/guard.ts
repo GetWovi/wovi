@@ -27,6 +27,11 @@ export type PublicRun = ReturnType<typeof publicRunView>;
 
 const isPublicLive = (s: AgentSpec) => s.visibility === "public" && s.status === "live";
 
+/** Who a version row names as its author. */
+export function savedBy(caller: Principal): string {
+  return caller.kind === "user" ? caller.userId : `key:${caller.keyId}`;
+}
+
 export class GuardedAgents {
   constructor(
     private readonly registry: AgentRegistry,
@@ -63,20 +68,27 @@ export class GuardedAgents {
     return this.registry.rows(workspaceId);
   }
 
+  /** Every version remembers who saved it: the user, or the key that was used. */
   async create(caller: Principal, workspaceId: string, input: CreateInput, opts: { note?: string } = {}): Promise<AgentSpec> {
     await this.accounts.authorize(caller, workspaceId, "edit_agents");
     await this.checkOwner(workspaceId, input.owner);
-    return this.registry.create(workspaceId, input, opts);
+    return this.registry.create(workspaceId, input, { ...opts, by: savedBy(caller) });
   }
 
   async update(caller: Principal, workspaceId: string, id: string, changes: UpdateInput, opts: { bump?: Bump; note?: string } = {}): Promise<AgentSpec> {
     await this.accounts.authorize(caller, workspaceId, "edit_agents");
-    return this.registry.update(workspaceId, id, changes, opts);
+    return this.registry.update(workspaceId, id, changes, { ...opts, by: savedBy(caller) });
   }
 
   async rollback(caller: Principal, workspaceId: string, id: string, version: string): Promise<AgentSpec> {
     await this.accounts.authorize(caller, workspaceId, "edit_agents");
     return this.registry.rollback(workspaceId, id, version);
+  }
+
+  /** The scorecard's write: quality fields only, never a new version. */
+  async setQuality(caller: Principal, workspaceId: string, id: string, quality: AgentSpec["quality"]): Promise<AgentSpec> {
+    await this.accounts.authorize(caller, workspaceId, "edit_agents");
+    return this.registry.setQuality(workspaceId, id, quality);
   }
 
   async setStatus(caller: Principal, workspaceId: string, id: string, status: Exclude<AgentStatus, "hidden">): Promise<AgentSpec> {

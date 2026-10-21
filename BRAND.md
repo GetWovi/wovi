@@ -104,7 +104,7 @@ All in `src/components/ui/`, styled with CSS modules on the tokens. Button (prim
 - `npm run brand:png` renders the PNG and ICO files from the SVGs with headless Chrome
 - `npm run check:contrast` measures the contrast pairs
 - `node scripts/screenshots.mjs` takes screen-sized screenshots of the running site with headless Chrome
-- `npm run builder:code` makes a one-time code for the hidden Agent Builder; `node scripts/builder-screens.mjs` screenshots the builder (see `docs/builder.md`)
+- `npm run builder:code` makes a one-time code for the hidden Agent Builder; `npm run builder:samples` adds example samples for its test bench; `node scripts/builder-screens.mjs` and `node scripts/builder2-screens.mjs` screenshot the builder (see `docs/builder.md`)
 
 ## Copy rules
 

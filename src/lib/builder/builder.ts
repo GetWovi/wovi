@@ -1,14 +1,14 @@
 /**
- * The Agent Builder, part 1: where WOVI's own agents are made. Everything
- * here is scoped to the platform workspace ws_wovi and open only to builders.
- * Anyone else gets not_found from every call, so the builder does not exist
- * for them.
+ * The Agent Builder: where WOVI's own agents are made. Everything here is
+ * scoped to the platform workspace ws_wovi and open only to builders. Anyone
+ * else gets not_found from every call, so the builder does not exist for them.
  *
  * The registry work goes through GuardedAgents (phase 4), so every save is a
  * new immutable version made under the same policy as any workspace edit.
  * Drafting goes through the SpecDrafter on the phase 3 provider layer.
  * Samples and the mood board are the builder's own rows, with files behind
- * the FileStorage interface.
+ * the FileStorage interface. Part 2 (phase 6) adds the test bench, scoring,
+ * tuning and batches in `bench`, and the version tools in `versions`.
  */
 import type { Accounts, Principal } from "@/lib/accounts/accounts";
 import { newId } from "@/lib/accounts/crypto";
@@ -20,12 +20,15 @@ import { PLATFORM_CREATOR_ID, PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
 import type { Bump } from "@/lib/agents/semver";
 import type { AgentSpec, AgentStatus } from "@/lib/agents/spec";
 import type { AgentRow } from "@/lib/agents/store";
+import type { RunEngine } from "@/lib/runs/engine";
 import { validateRunInputs } from "@/lib/runs/inputs";
+import { AgentBench } from "./bench";
 import type { BoardSource } from "./board-brain";
 import { DESCRIPTION_MAX, type DraftResult, type SpecDrafter } from "./drafter";
 import { checkFile, type FileKind, type FileStorage, type StoredFile } from "./storage";
 import type { BuilderStore } from "./store";
 import { BOARD_KINDS, BUILDER_LIMITS, SAMPLE_LABELS, type BoardItem, type BoardKind, type Sample, type SampleLabel } from "./types";
+import { AgentVersions } from "./versions";
 
 /** One row of the builder home. */
 export type BuilderAgentRow = {
@@ -69,6 +72,8 @@ export type BuilderOptions = {
   store: BuilderStore;
   files: FileStorage;
   drafter: SpecDrafter;
+  /** The run engine itself, not the guarded view: builders see the model, tokens and cost of a bench run. */
+  engine: RunEngine;
   now?: () => Date;
 };
 
@@ -93,13 +98,24 @@ function cleanLink(v: unknown): string | null {
 
 export class Builder implements BoardSource {
   readonly workspaceId = PLATFORM_WORKSPACE_ID;
+  /** The test bench, scoring, tuning and batches (phase 6). */
+  readonly bench: AgentBench;
+  /** Version history, compare and rollback (phase 6). */
+  readonly versions: AgentVersions;
   private readonly now: () => Date;
 
   constructor(private readonly opts: BuilderOptions) {
     this.now = opts.now ?? (() => new Date());
+    this.bench = new AgentBench(this);
+    this.versions = new AgentVersions(this);
   }
 
-  private iso(): string {
+  /** The stores and services, for the bench and version tools. */
+  get deps(): BuilderOptions {
+    return this.opts;
+  }
+
+  iso(): string {
     return this.now().toISOString();
   }
 
@@ -176,10 +192,11 @@ export class Builder implements BoardSource {
     return this.opts.agents.create(caller, this.workspaceId, spec, { note });
   }
 
-  /** Saves changes as a new version. Refuses a save that changes nothing. */
+  /** Saves changes as a new version, which is then current and starts unscored. Refuses a save that changes nothing. */
   async saveAgent(caller: Principal, id: string, changes: UpdateInput, opts: { bump?: Bump; note?: string } = {}): Promise<AgentSpec> {
     await this.requireBuilder(caller);
-    return this.opts.agents.update(caller, this.workspaceId, id, changes, opts);
+    await this.opts.agents.update(caller, this.workspaceId, id, changes, opts);
+    return this.bench.refreshQuality(caller, id);
   }
 
   async publish(caller: Principal, id: string): Promise<AgentSpec> {
@@ -224,8 +241,9 @@ export class Builder implements BoardSource {
 
   /* ---------- Samples ---------- */
 
-  private async requireAgent(caller: Principal, agentId: string): Promise<AgentSpec> {
-    const spec = await this.opts.agents.getForEdit(caller, this.workspaceId, agentId);
+  /** The full spec of an agent in ws_wovi (a given version, or the current one), or not_found. */
+  async requireAgent(caller: Principal, agentId: string, version?: string): Promise<AgentSpec> {
+    const spec = await this.opts.agents.getForEdit(caller, this.workspaceId, agentId, version);
     if (!spec) throw new AccountError("not_found", NOT_FOUND);
     return spec;
   }

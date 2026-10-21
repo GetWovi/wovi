@@ -10,32 +10,17 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Input, Select, Textarea } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
-import type { AgentInput, AgentSpec } from "@/lib/agents/spec";
+import type { AgentSpec } from "@/lib/agents/spec";
 import type { StoredFile } from "@/lib/builder/storage";
 import { BUILDER_LIMITS, type Sample } from "@/lib/builder/types";
 import styles from "./Builder.module.css";
 import { FilePick } from "./FilePick";
-import { INPUT_TYPE_LABELS } from "./labels";
-
-type Values = Record<string, string | string[] | StoredFile[]>;
-
-function asInputs(spec: AgentSpec, values: Values): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const input of spec.inputs) {
-    const v = values[input.key];
-    if (v === undefined || v === "" || (Array.isArray(v) && v.length === 0)) continue;
-    if (input.type === "image" || input.type === "file" || input.type === "video") {
-      out[input.key] = (v as StoredFile[]).map((f) => ({ assetId: f.id, name: f.name, mimeType: f.mimeType, sizeMb: Number((f.sizeBytes / 1024 / 1024).toFixed(3)) }));
-    } else if (input.type === "number") out[input.key] = Number(v);
-    else out[input.key] = v;
-  }
-  return out;
-}
+import { RunInputField, asRunInputs, type InputValues } from "./RunInputs";
 
 export function SamplesPanel({ csrf, spec, samples }: { csrf: string; spec: AgentSpec; samples: Sample[] }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [values, setValues] = useState<Values>({});
+  const [values, setValues] = useState<InputValues>({});
   const [label, setLabel] = useState<"gold" | "bad">("gold");
   const [title, setTitle] = useState("");
   const [idealOutput, setIdealOutput] = useState("");
@@ -94,7 +79,7 @@ export function SamplesPanel({ csrf, spec, samples }: { csrf: string; spec: Agen
       const r = await addSample(csrf, spec.id, {
         label,
         title,
-        inputs: asInputs(spec, values),
+        inputs: asRunInputs(spec, values),
         idealOutput,
         note,
         links: links.split("\n").map((s) => s.trim()).filter(Boolean),
@@ -124,7 +109,7 @@ export function SamplesPanel({ csrf, spec, samples }: { csrf: string; spec: Agen
     <div className={styles.columns}>
       <div className={styles.stack}>
         {samples.length === 0 ? (
-          <EmptyState title="No samples yet" description="Golden samples show the agent what great looks like. Phase 6's test bench runs every new version against them." />
+          <EmptyState title="No samples yet" description="Golden samples show the agent what great looks like. The test bench runs every new version against them." />
         ) : (
           <div className={styles.sampleList}>
             {samples.map((s) => (
@@ -187,7 +172,7 @@ export function SamplesPanel({ csrf, spec, samples }: { csrf: string; spec: Agen
           </div>
           <span className={styles.uploadLabel}>The inputs, as a user would fill them</span>
           {spec.inputs.map((input) => (
-            <SampleInputField key={input.key} input={input} value={values[input.key]} uploading={uploading === input.key} onChange={(v) => setValues((x) => ({ ...x, [input.key]: v }))} onImages={(list) => onImageInput(input.key, list)} />
+            <RunInputField key={input.key} input={input} value={values[input.key]} uploading={uploading === input.key} onChange={(v) => setValues((x) => ({ ...x, [input.key]: v }))} onImages={(list) => onImageInput(input.key, list)} />
           ))}
           <Textarea label={label === "gold" ? "The ideal output" : "The output to avoid"} rows={7} value={idealOutput} onChange={(e) => setIdealOutput(e.target.value)} maxLength={BUILDER_LIMITS.sampleOutput} required hint="Paste it exactly as it should read. For lists, one item per line." />
           <div className={styles.fieldGrid}>
@@ -221,62 +206,4 @@ export function SamplesPanel({ csrf, spec, samples }: { csrf: string; spec: Agen
       </Card>
     </div>
   );
-}
-
-function SampleInputField({ input, value, uploading, onChange, onImages }: { input: AgentInput; value: Values[string] | undefined; uploading: boolean; onChange: (v: Values[string]) => void; onImages: (list: FileList | null) => void }) {
-  const label = `${input.label}${input.required ? "" : " (optional)"}`;
-  switch (input.type) {
-    case "long_text":
-      return <Textarea label={label} rows={3} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} hint={input.help} maxLength={input.limits.maxLength} />;
-    case "text":
-      return <Input label={label} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} hint={input.help} maxLength={input.limits.maxLength} />;
-    case "url":
-      return <Input label={label} type="url" value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} hint={input.help} placeholder="https://" />;
-    case "number":
-      return <Input label={label} type="number" min={input.limits.min} max={input.limits.max} step={input.limits.step} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} hint={input.help} />;
-    case "profile":
-      return <Input label={label} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} hint={input.help ?? "A Brand Brain id, or empty for the default"} placeholder="bb_default" className={styles.mono} />;
-    case "choice": {
-      if (input.multiple) {
-        const list = (value as string[] | undefined) ?? [];
-        return (
-          <div className={styles.stackTight}>
-            <span className={styles.uploadLabel}>{label}</span>
-            <div className={styles.chips}>
-              {input.options.map((o) => (
-                <Chip key={o.value} selected={list.includes(o.value)} onClick={() => onChange(list.includes(o.value) ? list.filter((x) => x !== o.value) : [...list, o.value])}>
-                  {o.label}
-                </Chip>
-              ))}
-            </div>
-          </div>
-        );
-      }
-      return <Select label={label} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} options={[{ value: "", label: input.required ? "Pick one" : "Default" }, ...input.options]} hint={input.help} />;
-    }
-    case "image": {
-      const list = (value as StoredFile[] | undefined) ?? [];
-      return (
-        <div className={styles.upload}>
-          <span className={styles.uploadLabel}>{label}</span>
-          <div className={styles.uploadRow}>
-            <FilePick label={uploading ? "Uploading" : "Add an image"} accept="image/png,image/jpeg,image/webp,image/gif" multiple={input.limits.maxFiles > 1} disabled={uploading || list.length >= input.limits.maxFiles} onFiles={onImages} />
-            {list.map((f) => (
-              <Chip key={f.id} onRemove={() => onChange(list.filter((x) => x.id !== f.id))}>
-                {f.name}
-              </Chip>
-            ))}
-          </div>
-          <span className={styles.hint}>{input.help ?? `Up to ${input.limits.maxFiles} image${input.limits.maxFiles === 1 ? "" : "s"}, 8 MB each.`}</span>
-        </div>
-      );
-    }
-    default:
-      return (
-        <div className={styles.upload}>
-          <span className={styles.uploadLabel}>{label}</span>
-          <span className={styles.hint}>{INPUT_TYPE_LABELS[input.type]} uploads arrive with the media tools; a sample can leave this empty for now.</span>
-        </div>
-      );
-  }
 }

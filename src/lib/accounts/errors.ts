@@ -11,7 +11,9 @@ export type AccountErrorCode =
   | "forbidden"
   | "already_member"
   | "last_owner"
-  | "conflict";
+  | "conflict"
+  /** The call is allowed but needs the person's explicit yes first (a batch over the cost threshold). */
+  | "confirmation_required";
 
 export class AccountError extends Error {
   constructor(

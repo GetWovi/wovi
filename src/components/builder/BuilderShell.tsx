@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import styles from "./Builder.module.css";
 
 /** The builder's chrome: logo and the builder sticker left, the two places to go, the builder's name and the theme switch right. */
-export function BuilderShell({ active, who, children }: { active?: "agents" | "new"; who: string; children: ReactNode }) {
+export function BuilderShell({ active, who, children }: { active?: "agents" | "new" | "batch"; who: string; children: ReactNode }) {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -24,6 +24,9 @@ export function BuilderShell({ active, who, children }: { active?: "agents" | "n
             </Link>
             <Link href="/builder/new" className={styles.navLink} aria-current={active === "new" ? "page" : undefined}>
               New agent
+            </Link>
+            <Link href="/builder/batch" className={styles.navLink} aria-current={active === "batch" ? "page" : undefined}>
+              Batch run
             </Link>
             <Link href="/account" className={styles.navLink}>
               Account

@@ -26,6 +26,8 @@ export type VersionRow = {
   version: string;
   body: AgentBody;
   note: string | null;
+  /** Who saved it: a user id, or null for seeds and scripts. */
+  by?: string | null;
   createdAt: string;
 };
 

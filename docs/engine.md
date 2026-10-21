@@ -101,7 +101,7 @@ A failed check is stored in `run.checks` and sets `run.needsReview`; the output 
 
 Every provider implements `ModelProvider.complete({ model, messages, temperature, maxOutputTokens, signal })`.
 
-- **Fake** (`providers/fake.ts`): deterministic, no network. It answers with the JSON example from the prompt, filled with words from the run's input blocks. Tests script answers, errors and delays with `respond` and `latencyMs`. It is used by all tests, by `npm run agents:try`, and by `localEngine()` whenever no key is set. It prices its made-up tokens as the real model would, so dev totals give a rough idea of cost.
+- **Fake** (`providers/fake.ts`): deterministic, no network. It answers with the JSON example from the prompt, filled with words from the run's input blocks. Tests script answers, errors and delays with `respond` and `latencyMs`. It is used by all tests, by `npm run agents:try`, and by `localEngine()` whenever no key is set. It prices its made-up tokens as the real model would, so dev totals give a rough idea of cost. `WOVI_FAKE_LATENCY_MS` in the environment makes it take its time, so a running state can be seen on a screen.
 - **OpenRouter** (`providers/openrouter.ts`): OpenAI-compatible chat completions at `https://openrouter.ai/api/v1`. Off unless `OPENROUTER_API_KEY` is set in the environment. Tests use a stub `fetch` only.
 
 ## Models (owner's choice)
@@ -127,7 +127,7 @@ A pipeline step is `submitRun` with `parent: { pipelineRunId, step }`, a pinned 
 
 ## Who may call it (phase 4)
 
-The engine trusts the workspace id it is given. Callers reach it through `GuardedRuns`, which checks that the caller (a signed-in user or an API key) may run agents, read runs or see costs in that workspace first. See [accounts.md](accounts.md#the-registry-and-engine-behind-the-policy).
+The engine trusts the workspace id it is given. Callers reach it through `GuardedRuns`, which checks that the caller (a signed-in user or an API key) may run agents, read runs or see costs in that workspace first. See [accounts.md](accounts.md#the-registry-and-engine-behind-the-policy). The app holds one engine (`appEngine()`), shared by the guarded runs and the builder's test bench, so there is one queue; it calls `recover()` once on its first use. The bench reaches the engine directly, after its own builder check, because builders see the model and the cost ([builder.md](builder.md#the-test-bench-phase-6)).
 
 ## Commands
 

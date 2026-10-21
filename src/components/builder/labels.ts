@@ -52,6 +52,31 @@ export const ROUTE_LABELS: Record<string, string> = {
   "audio-standard": "Audio",
 };
 
+export const RATING_LABELS: Record<string, string> = { good: "Good", ok: "Ok", bad: "Bad" };
+
+/** Micro-dollars as money: cents from a dollar up, four decimals under it, so a column lines up. */
+export function money(micro: number): string {
+  const usd = micro / 1_000_000;
+  if (usd === 0) return "$0";
+  if (usd >= 1) return `$${usd.toFixed(2)}`;
+  if (usd < 0.0001) return "under $0.0001";
+  return `$${usd.toFixed(4)}`;
+}
+
+/** Milliseconds as a short time: "840 ms", "2.3 s", "1 min 5 s". */
+export function duration(ms: number | null | undefined): string {
+  if (ms === null || ms === undefined) return "";
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)} s`;
+  const m = Math.floor(ms / 60_000);
+  return `${m} min ${Math.round((ms - m * 60_000) / 1000)} s`;
+}
+
+/** 0 to 1 as "75%". */
+export function percent(rate: number | null | undefined): string {
+  return rate === null || rate === undefined ? "" : `${Math.round(rate * 100)}%`;
+}
+
 /** The time a server page renders at, read once per request for the "ago" labels. */
 export function currentTime(): number {
   return Date.now();

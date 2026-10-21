@@ -6,24 +6,29 @@ import { AccountError } from "@/lib/accounts/errors";
 import { RegistryError, type CreateInput, type UpdateInput } from "@/lib/agents/registry";
 import type { Bump } from "@/lib/agents/semver";
 import type { AgentSpec } from "@/lib/agents/spec";
+import type { BatchPlan, BatchView, BenchEstimate, BenchRequest, BenchView } from "@/lib/builder/bench";
 import type { DraftResult } from "@/lib/builder/drafter";
+import type { Scorecard } from "@/lib/builder/scoring";
 import { builderAction } from "@/lib/builder/server";
 import type { FileKind, StoredFile } from "@/lib/builder/storage";
-import type { BoardItem, BoardKind, Sample, SampleLabel } from "@/lib/builder/types";
+import type { BoardItem, BoardKind, RatingValue, Sample, SampleLabel } from "@/lib/builder/types";
+import type { VersionCompare } from "@/lib/builder/versions";
 
-export type Result<T> = { ok: true; value: T } | { ok: false; error: string; issues?: string[] };
+export type Result<T> = { ok: true; value: T } | { ok: false; error: string; code?: string; issues?: string[] };
 
 /** Runs a builder change and turns known errors into a message for the screen. */
-async function run<T>(csrf: string, agentId: string | null, fn: (ctx: Awaited<ReturnType<typeof builderAction>>) => Promise<T>): Promise<Result<T>> {
+async function run<T>(csrf: string, agentId: string | null, fn: (ctx: Awaited<ReturnType<typeof builderAction>>) => Promise<T>, opts: { quiet?: boolean } = {}): Promise<Result<T>> {
   try {
     const ctx = await builderAction(csrf);
     const value = await fn(ctx);
-    revalidatePath("/builder");
-    if (agentId) revalidatePath(`/builder/agents/${agentId}`);
+    if (!opts.quiet) {
+      revalidatePath("/builder");
+      if (agentId) revalidatePath(`/builder/agents/${agentId}`, "layout");
+    }
     return { ok: true, value };
   } catch (err) {
-    if (err instanceof AccountError) return { ok: false, error: err.message };
-    if (err instanceof RegistryError) return { ok: false, error: err.message.split("\n")[0], issues: err.issues };
+    if (err instanceof AccountError) return { ok: false, error: err.message, code: err.code };
+    if (err instanceof RegistryError) return { ok: false, error: err.message.split("\n")[0], code: err.code, issues: err.issues };
     throw err;
   }
 }
@@ -112,6 +117,69 @@ export async function removeBoardItem(csrf: string, agentId: string, itemId: str
     await builder.removeBoardItem(me, agentId, itemId);
     return null;
   });
+}
+
+/* ---------- Test bench ---------- */
+
+export async function runBench(csrf: string, agentId: string, req: BenchRequest): Promise<Result<BenchView>> {
+  return run(csrf, agentId, ({ builder, me }) => builder.bench.run(me, agentId, req), { quiet: true });
+}
+
+/** What the picked samples would cost on a version, before anything runs. */
+export async function estimateBench(csrf: string, agentId: string, req: { version?: string; sampleIds?: string[] }): Promise<Result<BenchEstimate>> {
+  return run(csrf, null, ({ builder, me }) => builder.bench.estimate(me, agentId, req), { quiet: true });
+}
+
+/** Polled while a bench runs. */
+export async function getBench(csrf: string, benchId: string): Promise<Result<BenchView>> {
+  return run(csrf, null, ({ builder, me }) => builder.bench.get(me, benchId), { quiet: true });
+}
+
+export async function cancelBench(csrf: string, benchId: string): Promise<Result<BenchView>> {
+  return run(csrf, null, ({ builder, me }) => builder.bench.cancel(me, benchId), { quiet: true });
+}
+
+export async function rateRun(csrf: string, agentId: string, runId: string, input: { rating: RatingValue; note: string }): Promise<Result<{ scorecard: Scorecard }>> {
+  return run(csrf, agentId, async ({ builder, me }) => ({ scorecard: (await builder.bench.rate(me, agentId, runId, input)).scorecard }), { quiet: true });
+}
+
+/** The tuning panel's save: a new version, and the same samples run against it when asked. */
+export async function tuneAgent(csrf: string, agentId: string, changes: UpdateInput, opts: { bump?: Bump; note?: string; rerun: string[] | null }): Promise<Result<{ version: string; bench: BenchView | null }>> {
+  return run(csrf, agentId, async ({ builder, me }) => {
+    const bump = opts.bump && ["patch", "minor", "major"].includes(opts.bump) ? opts.bump : "patch";
+    const note = typeof opts.note === "string" && opts.note.trim() ? opts.note.trim().slice(0, 200) : undefined;
+    const r = await builder.bench.tune(me, agentId, changes, { bump, note, rerun: opts.rerun ? { sampleIds: opts.rerun } : null });
+    return { version: r.spec.version, bench: r.bench };
+  });
+}
+
+/* ---------- Versions ---------- */
+
+export async function compareVersions(csrf: string, agentId: string, a: string, b: string): Promise<Result<VersionCompare>> {
+  return run(csrf, null, ({ builder, me }) => builder.versions.compare(me, agentId, a, b), { quiet: true });
+}
+
+export async function rollbackAgent(csrf: string, agentId: string, version: string): Promise<Result<{ version: string }>> {
+  return run(csrf, agentId, async ({ builder, me }) => ({ version: (await builder.versions.rollback(me, agentId, version)).version }));
+}
+
+/* ---------- Batch runs ---------- */
+
+export async function planBatch(csrf: string, agentIds: string[] | undefined): Promise<Result<BatchPlan>> {
+  return run(csrf, null, ({ builder, me }) => builder.bench.planBatch(me, agentIds), { quiet: true });
+}
+
+/** Above the cost threshold the result is `confirmation_required` until `confirmed` is true. */
+export async function runBatch(csrf: string, agentIds: string[] | undefined, confirmed: boolean): Promise<Result<BatchView>> {
+  return run(csrf, null, ({ builder, me }) => builder.bench.runBatch(me, agentIds, { confirmed }), { quiet: true });
+}
+
+export async function getBatch(csrf: string, batchId: string): Promise<Result<BatchView>> {
+  return run(csrf, null, ({ builder, me }) => builder.bench.getBatch(me, batchId), { quiet: true });
+}
+
+export async function cancelBatch(csrf: string, batchId: string): Promise<Result<BatchView>> {
+  return run(csrf, null, ({ builder, me }) => builder.bench.cancelBatch(me, batchId), { quiet: true });
 }
 
 export type { ActionState };

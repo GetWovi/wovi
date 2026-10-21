@@ -7,6 +7,8 @@ import { join } from "node:path";
 import { bumpSemver, compareSemver, highestSemver, type Bump } from "./semver";
 import {
   BODY_KEYS,
+  formatIssues,
+  qualitySchema,
   validateAgentBody,
   validateAgentSpec,
   type AgentBody,
@@ -51,7 +53,10 @@ export type ListFilter = {
   visibility?: AgentVisibility;
 };
 
-export type VersionInfo = { version: string; note: string | null; createdAt: string; current: boolean };
+export type VersionInfo = { version: string; note: string | null; by: string | null; createdAt: string; current: boolean };
+
+/** Options on a save: the change note and who saved it. */
+export type SaveOptions = { note?: string; by?: string | null };
 
 const WORKSPACE_ID = /^[a-z0-9][a-z0-9_-]{1,63}$/;
 
@@ -73,7 +78,7 @@ export class AgentRegistry {
     private readonly now: () => string = () => new Date().toISOString(),
   ) {}
 
-  async create(workspaceId: string, input: CreateInput, opts: { note?: string } = {}): Promise<AgentSpec> {
+  async create(workspaceId: string, input: CreateInput, opts: SaveOptions = {}): Promise<AgentSpec> {
     this.checkWorkspace(workspaceId);
     const result = validateAgentSpec({ ...input, quality: undefined });
     if (!result.ok) throw new RegistryError("invalid_spec", "The agent spec is not valid.", result.errors);
@@ -96,7 +101,7 @@ export class AgentRegistry {
       createdAt: at,
       updatedAt: at,
     };
-    await this.store.save(row, this.versionRow(workspaceId, bodyOf(spec), opts.note, at));
+    await this.store.save(row, this.versionRow(workspaceId, bodyOf(spec), opts, at));
     return spec;
   }
 
@@ -109,7 +114,7 @@ export class AgentRegistry {
     workspaceId: string,
     id: string,
     changes: UpdateInput,
-    opts: { bump?: Bump; note?: string } = {},
+    opts: SaveOptions & { bump?: Bump } = {},
   ): Promise<AgentSpec> {
     const row = await this.requireAgent(workspaceId, id);
     if ("id" in changes && (changes as { id?: unknown }).id !== id) {
@@ -133,7 +138,7 @@ export class AgentRegistry {
 
     const at = this.now();
     const next: AgentRow = { ...row, currentVersion: version, updatedAt: at };
-    await this.store.save(next, this.versionRow(workspaceId, checked.value, opts.note, at));
+    await this.store.save(next, this.versionRow(workspaceId, checked.value, opts, at));
     return this.compose(next, checked.value);
   }
 
@@ -175,7 +180,21 @@ export class AgentRegistry {
     const row = await this.requireAgent(workspaceId, id);
     return (await this.store.listVersions(workspaceId, id))
       .sort((a, b) => compareSemver(a.version, b.version))
-      .map((v) => ({ version: v.version, note: v.note, createdAt: v.createdAt, current: v.version === row.currentVersion }));
+      .map((v) => ({ version: v.version, note: v.note, by: v.by ?? null, createdAt: v.createdAt, current: v.version === row.currentVersion }));
+  }
+
+  /**
+   * Writes the quality fields (score, runs, last scored) on the listing. No
+   * version is made, and "last edited" does not move: a score is not an edit.
+   */
+  async setQuality(workspaceId: string, id: string, quality: AgentSpec["quality"]): Promise<AgentSpec> {
+    const row = await this.requireAgent(workspaceId, id);
+    const checked = qualitySchema.safeParse(quality);
+    if (!checked.success) throw new RegistryError("invalid_spec", "The quality fields are not valid.", formatIssues(checked.error));
+    const next: AgentRow = { ...row, quality: checked.data };
+    await this.store.save(next);
+    const v = await this.requireVersion(workspaceId, id, row.currentVersion);
+    return this.compose(next, v.body);
   }
 
   /**
@@ -241,8 +260,8 @@ export class AgentRegistry {
     return this.compose(next, v.body);
   }
 
-  private versionRow(workspaceId: string, body: AgentBody, note: string | undefined, at: string): VersionRow {
-    return { workspaceId, agentId: body.id, version: body.version, body, note: note ?? null, createdAt: at };
+  private versionRow(workspaceId: string, body: AgentBody, opts: SaveOptions, at: string): VersionRow {
+    return { workspaceId, agentId: body.id, version: body.version, body, note: opts.note ?? null, by: opts.by ?? null, createdAt: at };
   }
 
   private compose(row: AgentRow, body: AgentBody): AgentSpec {

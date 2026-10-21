@@ -56,7 +56,7 @@ Output kinds: `text` (maxWords), `list` (count, optional maxWordsPerItem, option
 | `owner` | `{ kind: "platform" or "creator", creatorId }`. Our own agents use the platform creator account `creator_wovi`. |
 | `status` | `draft`, `live` or `hidden` (built and kept, but not shown until its drop). |
 | `visibility` | `public` (in the gallery once live) or `workspace` (only the owner's workspace). |
-| `quality` | `score` (0 to 100 or null), `runs`, `lastScoredAt`. Not computed yet; the scorecard fills it later. |
+| `quality` | `score` (0 to 100 or null), `runs`, `lastScoredAt`. Written by the builder's scorecard for the current version ([builder.md](builder.md#scoring)); never by a save. |
 
 ### Rules the validator enforces
 
@@ -85,11 +85,12 @@ Every call takes a workspace id first, and every stored row carries it. One work
 
 | Call | What it does |
 |---|---|
-| `create(ws, spec)` | Validates and saves version one. Quality always starts empty. |
-| `update(ws, id, changes, { bump, note })` | Merges the changed body fields onto the current version, validates, and saves a new immutable version that becomes current. The version is the one in `changes` (must be higher than every existing version) or the highest one bumped (patch by default). A save that changes nothing is refused. |
+| `create(ws, spec, { note, by })` | Validates and saves version one. Quality always starts empty. `by` is who saved it (a user id; `GuardedAgents` fills it in, seeds leave it null). |
+| `update(ws, id, changes, { bump, note, by })` | Merges the changed body fields onto the current version, validates, and saves a new immutable version that becomes current. The version is the one in `changes` (must be higher than every existing version) or the highest one bumped (patch by default). A save that changes nothing is refused. |
 | `get(ws, id, version?)` | The current version, or a given one. `null` if missing. |
 | `list(ws, { owner, status, category, visibility })` | Current versions, sorted by id. `status` takes one value or a list. |
-| `versions(ws, id)` | Every version, oldest first, with which one is current. |
+| `versions(ws, id)` | Every version, oldest first, with its note, who saved it, and which one is current. |
+| `setQuality(ws, id, quality)` | Writes the quality fields on the listing. No version is made and `updatedAt` stays: a score is not an edit. |
 | `rows(ws)` | The listing rows with `createdAt` and `updatedAt`, for the builder's list. |
 | `rollback(ws, id, version)` | Makes an existing version current again. Nothing is created or deleted, so semver stays honest; the next save still goes above the highest version. |
 | `setStatus(ws, id, "draft" or "live")` | Publishes a draft, or takes it back. |

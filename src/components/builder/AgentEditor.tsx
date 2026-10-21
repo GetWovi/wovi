@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { saveAgent, setAgentStatus, type StatusAction } from "@/app/builder/actions";
-import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Chip";
 import { Textarea } from "@/components/ui/Field";
@@ -112,10 +113,17 @@ export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, n
             </span>
             <Tag tone="cobalt">{CATEGORY_LABELS[spec.category]}</Tag>
             <span>{spec.visibility === "public" ? "Public once live" : "This workspace only"}</span>
+            {spec.quality.score !== null && <Badge score={spec.quality.score} label="Score" size="sm" />}
             <span>Edited {ago(updatedAt, now)}</span>
           </div>
         </div>
         <div className={styles.actions}>
+          <ButtonLink href={`/builder/agents/${spec.id}/bench`} variant="ghost" leading={<Icon name="play" size={18} />}>
+            Test bench
+          </ButtonLink>
+          <ButtonLink href={`/builder/agents/${spec.id}/versions`} variant="ghost" leading={<Icon name="clock" size={18} />}>
+            Versions
+          </ButtonLink>
           {statusActions.map((a) => (
             <Button key={a} variant={a === "publish" ? "secondary" : "ghost"} onClick={() => setConfirm(a)}>
               {actionLabel[a]}
