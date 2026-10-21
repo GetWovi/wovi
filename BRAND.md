@@ -33,9 +33,9 @@ Theme switching: `<html data-theme="night|light">`. An inline script in `src/app
 
 ## Logo
 
-The wordmark reads **wovI**: lowercase w, o, v, then a tall capital I. The letters overlap slightly so the word is one flowing line: the w tucks into the o, the o touches the v, the v touches the I. The w is the mascot and carries the face.
+One stroke system draws the whole wordmark: a round monoline (width 24 on an x-height of 60 units) with custom letterforms, not a typeface. It reads **wovI**: the w has splayed outer arms and steeper inner arms with the peak just under the x-height; the w tucks into the o; the o touches the v, which shares the w's arm angle; the v touches a tall capital I with slab terminals, so it can never read as a lowercase l. The geometry lives in `src/brand/geometry.ts`.
 
-Versions (components in `src/components/brand/Wordmark.tsx`, files in `public/brand/`):
+Versions (component `src/components/brand/Wordmark.tsx`, files in `public/brand/`):
 
 | Version | Letters | Ground | Use | File |
 |---|---|---|---|---|
@@ -44,20 +44,21 @@ Versions (components in `src/components/brand/Wordmark.tsx`, files in `public/br
 | Night on Blaze | Night | Blaze | Colour moments, merch, stickers | `wordmark-night-on-blaze.svg` |
 | Cream on Cobalt | Cream | Cobalt | Accent surfaces, partner tiles | `wordmark-cream-on-cobalt.svg` |
 
-Each file includes its ground and the clearspace. The `-transparent` files hold the letters alone. In the app chrome, `<Wordmark variant="theme" />` draws Blaze letters with a face that follows the theme.
+Each file includes its ground and the clearspace (the height of the o on every side). The `-transparent` files hold the letters alone. In the app, `<Wordmark variant="theme" />` draws Blaze letters on the current ground, and `lit` adds a light-to-deep Blaze gradient for hero and footer use.
 
-Mascot only (`src/components/brand/Mark.tsx`): the w alone, for anything below 80px wide, avatars, the app icon and the favicon. Files: `mark-on-night.svg`, `mark-on-light.svg`, `app-icon.svg`, `app-icon-512.png`, `app-icon-192.png`, `favicon.svg`, `favicon-32.png`, `favicon-16.png`, `favicon.ico`. Social banner: `og-banner.svg` and `og-banner.png` (1200 x 630).
+The wordmark is always the clean letters. The w is the same letter Wovi is drawn from, so the two always match.
+
+Mascot only (`src/components/brand/Mark.tsx`): the w alone for anything under 80px wide, avatars, app icon and favicon. Under 32px it is the plain letter; from 32px up it carries the face. Files: `mark.svg` (letter), `mark-face-on-night.svg`, `mark-face-on-light.svg`, `app-icon.svg`, `app-icon-512.png`, `app-icon-192.png`, `favicon.svg`, `favicon-32.png`, `favicon-16.png`, `favicon.ico`. Social banner: `og-banner.svg` and `og-banner.png` (1200 x 630).
 
 Rules:
 
 - Keep the height of the o free on every side of the wordmark.
 - Never respace, outline, stretch or recolour the letters.
-- The face uses Cream where the ground is dark and Night where it is light. Blaze letters take the ink of the surface they sit on.
-- Below 28px the face is dropped and the w stays a clean letter.
+- The face, limbs and outline of Wovi follow the surface: Cream where the ground is dark, Night where it is light.
 
 ## Mascot: Wovi
 
-A rounded w with a closed-eye smile and cheeks, with thin arms and legs that appear in poses. Component: `src/components/brand/Mascot.tsx`. Limbs, face and outlines use Cream on night and Night on light (`ink="auto"` follows the theme; pass `ink="cream"` or `ink="night"` when the surface differs).
+Wovi is the w from the wordmark as a character: a Blaze body with a soft light along the top and a shade underneath, a sticker outline, open eyes with a highlight (happy closed arcs when celebrating, relaxed lines when asleep), cheeks, and thin arms and legs with mitts and shoes that appear in poses. Component: `src/components/brand/Mascot.tsx`. Limbs, face lines and the outline use Cream on night and Night on light (`ink="auto"` follows the theme; pass `ink="cream"` or `ink="night"` when the surface differs). The `look` prop points the pupils; the hero uses it to follow the cursor.
 
 | Pose | Product state |
 |---|---|
@@ -67,7 +68,7 @@ A rounded w with a closed-eye smile and cheeks, with thin arms and legs that app
 | `celebrating` | A job done, a credit reward lands |
 | `standing` | Neutral, when no state applies |
 
-Sizes from 24px to 320px. Each pose has gentle CSS motion (`src/styles/mascot.css`): walking bobs and swings, waving waves from the shoulder, sleeping breathes with drifting z's, celebrating hops with confetti. Motion never blocks a job and is off under `prefers-reduced-motion`. Pass `animate={false}` for a still.
+Sizes from 24px to 320px. Each pose has gentle CSS motion (`src/styles/mascot.css`): a blink now and then, walking bobs and swings, waving waves from the shoulder, sleeping breathes with drifting z's, celebrating hops with confetti. Motion never blocks a job and is off under `prefers-reduced-motion`. Pass `animate={false}` for a still.
 
 Static files for every pose and ground: `public/brand/mascot-<pose>-on-night.svg` and `-on-light.svg`.
 
@@ -101,6 +102,10 @@ All in `src/components/ui/`, styled with CSS modules on the tokens.
 | `Icon` | The bold icon set. |
 
 The `/design` page shows every component in its states on both themes.
+
+## Homepage
+
+`/` is the launch site: a WebGL shader hero (`ShaderField`, Cobalt and Blaze light on Night, reacts to the cursor, still under reduced motion), Wovi watching the cursor, a deterministic live demo of three agents at work, then scroll-driven sections built with GSAP ScrollTrigger (`src/components/home/`): the pipeline (pinned horizontal track on desktop, vertical on phones), the Brand Brain assembling, the agent gallery with tilt cards, the anti-slop review, the MCP and API code panel, creators, and the closing with the full-width wordmark. Every scene degrades to a calm, fully visible layout under `prefers-reduced-motion`.
 
 ## Scripts
 
