@@ -1,0 +1,32 @@
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+}
+.agent {
+  background: #0b1230;
+  box-shadow: inset 0 0 0 var(--stroke) var(--line);
+}
+.cobalt {
+  background: var(--cobalt);
+  color: #fff4dc;
+}
+.blaze {
+  background: var(--blaze);
+  color: #0b1230;
+}
+.line {
+  background: var(--line);
+  color: var(--text);
+}
+.glow {
+  background: var(--cobalt-glow);
+  color: #0b1230;
+}

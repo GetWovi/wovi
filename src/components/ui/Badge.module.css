@@ -1,0 +1,40 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--r-pill);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.md {
+  height: 32px;
+  padding: 0 12px 0 8px;
+  font-size: var(--fs-sm);
+}
+.sm {
+  height: 26px;
+  padding: 0 9px 0 6px;
+  font-size: var(--fs-xs);
+}
+.ring {
+  width: 20px;
+  height: 20px;
+}
+.sm .ring {
+  width: 16px;
+  height: 16px;
+}
+.blaze {
+  background: var(--blaze);
+  color: var(--on-blaze);
+}
+.cobalt {
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+}
+.neutral {
+  background: var(--text-tint);
+  color: var(--text);
+  box-shadow: inset 0 0 0 var(--stroke) var(--line);
+}

@@ -1,0 +1,97 @@
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.list {
+  display: flex;
+  gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.list::-webkit-scrollbar {
+  display: none;
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  height: 40px;
+  padding-inline: 16px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-sm);
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.tab:hover {
+  color: var(--text);
+}
+.count {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding-inline: 7px;
+  border-radius: var(--r-pill);
+  background: var(--text-tint);
+  font-size: var(--fs-xs);
+}
+
+/* Pill */
+.pill {
+  padding: 4px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  border: var(--stroke) solid var(--line);
+  width: fit-content;
+}
+.pill .tab {
+  border-radius: var(--r-pill);
+}
+.pill .tab:focus-visible {
+  border-radius: var(--r-pill);
+}
+.pill .active {
+  background: var(--blaze);
+  color: var(--on-blaze);
+}
+.pill .active .count {
+  background: rgb(11 18 48 / 0.15);
+}
+
+/* Line */
+.line {
+  border-bottom: var(--stroke) solid var(--line);
+}
+.line .tab {
+  position: relative;
+  height: 44px;
+  padding-inline: 12px;
+}
+.line .tab::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -2px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: transparent;
+  transition: background var(--t-fast) var(--ease);
+}
+.line .active {
+  color: var(--text);
+}
+.line .active::after {
+  background: var(--blaze);
+}
+
+.panel {
+  min-width: 0;
+}
