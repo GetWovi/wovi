@@ -13,6 +13,18 @@
   transform-box: view-box;
 }
 
+/* Blink now and then when the eyes are open. */
+.wovi-mascot.is-animated .wovi-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: wovi-blink 5.2s ease-in-out infinite;
+}
+
+/* Standing: a soft idle breath. */
+.wovi-mascot.is-animated[data-pose="standing"] .wovi-body {
+  animation: wovi-breathe 3.6s ease-in-out infinite;
+}
+
 /* Walking: a job is running. Legs and arms swing, the body bobs. */
 .wovi-mascot.is-animated[data-pose="walking"] .wovi-figure {
   animation: wovi-bob 0.56s ease-in-out infinite;
@@ -36,15 +48,12 @@
 }
 .wovi-mascot.is-animated[data-pose="waving"] .wovi-body {
   animation: wovi-sway 2.8s ease-in-out infinite;
-  transform-origin: 70px 100px;
 }
 
 /* Sleeping: idle. The body breathes, the z's drift. */
 .wovi-mascot.is-animated[data-pose="sleeping"] .wovi-figure {
   animation: wovi-breathe 3.2s ease-in-out infinite;
-  transform-origin: 70px 104px;
 }
-/* Still state: three z's fading in towards the big one. The animation overrides this. */
 .wovi-mascot[data-pose="sleeping"] .wovi-zzz .z-0 {
   opacity: 0.55;
 }
@@ -78,6 +87,16 @@
   animation-delay: 0.4s;
 }
 
+@keyframes wovi-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.08);
+  }
+}
 @keyframes wovi-bob {
   0%,
   100% {
@@ -90,10 +109,10 @@
 @keyframes wovi-swing {
   0%,
   100% {
-    transform: rotate(-16deg);
+    transform: rotate(-14deg);
   }
   50% {
-    transform: rotate(16deg);
+    transform: rotate(14deg);
   }
 }
 @keyframes wovi-swing-arm {
@@ -178,6 +197,7 @@
   .wovi-mascot .wovi-figure,
   .wovi-mascot .wovi-body,
   .wovi-mascot .wovi-limb,
+  .wovi-mascot .wovi-eye,
   .wovi-mascot .wovi-zzz path,
   .wovi-mascot .wovi-confetti circle {
     animation: none !important;

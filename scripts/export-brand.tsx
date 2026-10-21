@@ -31,8 +31,9 @@ for (const v of variants) {
 }
 
 /* Mascot-only mark: Blaze w, face for a dark ground and for a light ground. */
-save("mark-on-night.svg", renderToStaticMarkup(<Mark size={400} ink="cream" />));
-save("mark-on-light.svg", renderToStaticMarkup(<Mark size={400} ink="night" />));
+save("mark.svg", renderToStaticMarkup(<Mark size={400} face={false} />));
+save("mark-face-on-night.svg", renderToStaticMarkup(<Mark size={400} ink="cream" face />));
+save("mark-face-on-light.svg", renderToStaticMarkup(<Mark size={400} ink="night" face />));
 
 /* Poses, for each ground. Static (no CSS), so the pose is the drawing itself. */
 const poses: Pose[] = ["walking", "waving", "sleeping", "celebrating", "standing"];
@@ -61,7 +62,7 @@ save("favicon.svg", renderToStaticMarkup(<AppIcon size={64} rounded={false} />))
     <svg width={1200} height={630} viewBox="0 0 1200 630" role="img" aria-label="WOVI">
       <rect width={1200} height={630} fill={COLORS.night} />
       <g transform={`translate(${x0} ${wmY}) scale(${scale}) translate(${-vb.x} ${-vb.y})`}>
-        <WordmarkLetters letters={v.letters} ink={v.ink} />
+        <WordmarkLetters letters={v.letters} />
       </g>
       <g transform={`translate(${x0 + wmW + gap - 20} ${(630 - mascotSize) / 2})`}>
         <Mascot pose="waving" size={mascotSize} ink="cream" animate={false} label="" />
