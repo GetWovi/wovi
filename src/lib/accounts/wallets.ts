@@ -45,6 +45,7 @@ export class Wallets {
       userId,
       value: message,
       address,
+      meta: null,
       createdAt: this.a.iso(),
       expiresAt: this.a.iso(this.a.cfg.challengeTtlMs),
       usedAt: null,

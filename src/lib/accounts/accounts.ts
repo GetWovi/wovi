@@ -9,10 +9,12 @@
  *   accounts.apiKeys     keys for MCP and REST         api-keys.ts
  *   accounts.passkeys    WebAuthn                      passkeys.ts
  *   accounts.wallets     wallet links by signature     wallets.ts
+ *   accounts.builderCodes one-time codes for builders  builder-codes.ts
  */
 import { PLATFORM_CREATOR_ID, PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
 import { isWorkspaceId } from "@/lib/agents/registry";
 import { ApiKeys } from "./api-keys";
+import { BuilderCodes } from "./builder-codes";
 import { newId } from "./crypto";
 import type { EmailSender } from "./email";
 import { AccountError } from "./errors";
@@ -40,8 +42,10 @@ export type AccountsConfig = {
   appUrl: string;
   /** The passkey relying party name shown by the browser. */
   rpName: string;
-  /** Emails that hold the hidden builder role. Empty by default. */
+  /** Emails that hold the hidden builder role. Empty by default; builder codes are the usual way in. */
   builderEmails: string[];
+  /** How long a builder code stays open. */
+  builderCodeTtlMs: number;
   signInTtlMs: number;
   /** Wrong codes allowed per sign-in request before it is used up. */
   codeAttempts: number;
@@ -70,6 +74,7 @@ export const DEFAULT_CONFIG: AccountsConfig = {
   appUrl: "http://localhost:3900",
   rpName: "WOVI",
   builderEmails: [],
+  builderCodeTtlMs: 7 * DAY,
   signInTtlMs: 15 * MIN,
   codeAttempts: 5,
   inviteTtlMs: 7 * DAY,
@@ -124,6 +129,7 @@ export class Accounts {
   readonly apiKeys: ApiKeys;
   readonly passkeys: Passkeys;
   readonly wallets: Wallets;
+  readonly builderCodes: BuilderCodes;
 
   constructor(readonly opts: AccountsOptions) {
     if (!opts.secret || opts.secret.length < 32) throw new Error("Accounts need a secret of at least 32 characters.");
@@ -143,6 +149,7 @@ export class Accounts {
     this.apiKeys = new ApiKeys(this);
     this.passkeys = new Passkeys(this);
     this.wallets = new Wallets(this);
+    this.builderCodes = new BuilderCodes(this);
   }
 
   get store(): AccountStore {
@@ -163,9 +170,14 @@ export class Accounts {
 
   /* ---------- Builder and platform ---------- */
 
-  /** The hidden platform role. Read from the allowlist on every check, so removing an email takes effect at once. */
-  isBuilder(email: string): boolean {
-    return this.cfg.builderEmails.includes(email.toLowerCase());
+  /**
+   * The hidden platform role. A builder code sets `builder` on the account;
+   * the optional email allowlist is read on every check as well, so removing
+   * an email from it takes effect at once.
+   */
+  isBuilder(user: Pick<User, "email" | "builder">): boolean {
+    if (user.builder) return true;
+    return user.email !== null && this.cfg.builderEmails.includes(user.email.toLowerCase());
   }
 
   /** Makes the platform workspace ws_wovi and the platform creator creator_wovi real records. Safe to call again. */
@@ -188,7 +200,7 @@ export class Accounts {
     await this.ensurePlatform();
     const id = memberId(PLATFORM_WORKSPACE_ID, user.id);
     const member = await this.store.members.get(id);
-    if (this.isBuilder(user.email)) {
+    if (this.isBuilder(user)) {
       if (!member) await this.addMember(PLATFORM_WORKSPACE_ID, user.id, "owner", null);
       else if (member.role !== "owner") await this.store.members.update({ ...member, role: "owner", updatedAt: this.iso() });
     } else if (member) {
@@ -217,9 +229,22 @@ export class Accounts {
     const at = this.iso();
     const id = newId("usr");
     const workspace = await this.createWorkspaceRow(id, "Personal", true);
-    const user: User = { id, email, name: null, personalWorkspaceId: workspace.id, createdAt: at, updatedAt: at };
+    const user: User = { id, email, name: null, builder: false, personalWorkspaceId: workspace.id, createdAt: at, updatedAt: at };
     await this.store.users.insert(user);
     return { user, created: true };
+  }
+
+  /**
+   * An account with no email: a builder who joined with a code and a passkey.
+   * Sign-in is by passkey only. The id is chosen by the caller, because the
+   * passkey was created for it before the account existed.
+   */
+  async createPasskeyOnlyUserWithId(id: string, name: string, builder: boolean): Promise<User> {
+    const at = this.iso();
+    const workspace = await this.createWorkspaceRow(id, "Personal", true);
+    const user: User = { id, email: null, name, builder, personalWorkspaceId: workspace.id, createdAt: at, updatedAt: at };
+    await this.store.users.insert(user);
+    return user;
   }
 
   /**
@@ -259,14 +284,14 @@ export class Accounts {
   /**
    * The caller's role in a workspace, or null when they have none. An API key
    * only reaches its own workspace. The platform workspace answers only to
-   * builders on the allowlist right now.
+   * builders.
    */
   async roleIn(principal: Principal, workspaceId: string): Promise<Role | null> {
     if (!isWorkspaceId(workspaceId)) return null;
     if (principal.kind === "api_key") return principal.workspaceId === workspaceId ? principal.role : null;
     const user = await this.store.users.get(principal.userId);
     if (!user) return null;
-    if (workspaceId === PLATFORM_WORKSPACE_ID && !this.isBuilder(user.email)) return null;
+    if (workspaceId === PLATFORM_WORKSPACE_ID && !this.isBuilder(user)) return null;
     return (await this.store.members.get(memberId(workspaceId, user.id)))?.role ?? null;
   }
 

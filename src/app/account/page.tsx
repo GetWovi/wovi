@@ -57,7 +57,7 @@ export default async function AccountPage() {
         <div className={styles.pageHead}>
           <div>
             <h1>Account</h1>
-            <p className={styles.lead}>{info.user.email}</p>
+            <p className={styles.lead}>{info.user.email ?? info.user.name ?? "Passkey account"}</p>
           </div>
           <div className={styles.headActions}>
             <ActionForm action={signOut} csrf={csrf}>
@@ -116,7 +116,7 @@ export default async function AccountPage() {
                 <li key={m.userId} className={styles.item}>
                   <div className={styles.itemMain}>
                     <span className={styles.itemTitle}>
-                      {m.email}
+                      {m.email ?? m.name ?? "Passkey account"}
                       {self && " (you)"}
                     </span>
                     <span className={styles.itemMeta}>Joined {day(m.joinedAt)}</span>
@@ -125,7 +125,7 @@ export default async function AccountPage() {
                     {!self && assignable.length > 1 ? (
                       <ActionForm action={setRole} csrf={csrf} className={styles.inline}>
                         <input type="hidden" name="userId" value={m.userId} />
-                        <select name="role" defaultValue={m.role} aria-label={`Role of ${m.email}`} className={styles.smallSelect}>
+                        <select name="role" defaultValue={m.role} aria-label={`Role of ${m.email ?? m.name ?? m.userId}`} className={styles.smallSelect}>
                           {roleOptions(assignable).map((o) => (
                             <option key={o.value} value={o.value}>
                               {o.label}
@@ -221,12 +221,14 @@ export default async function AccountPage() {
 
         <Card title="Sign-in and wallet" className={styles.section}>
           <ul className={styles.list}>
-            <li className={styles.item}>
-              <div className={styles.itemMain}>
-                <span className={styles.itemTitle}>Email</span>
-                <span className={styles.itemMeta}>A link and a code to {info.user.email}</span>
-              </div>
-            </li>
+            {info.user.email && (
+              <li className={styles.item}>
+                <div className={styles.itemMain}>
+                  <span className={styles.itemTitle}>Email</span>
+                  <span className={styles.itemMeta}>A link and a code to {info.user.email}</span>
+                </div>
+              </li>
+            )}
             {passkeys.map((p) => (
               <li key={p.id} className={styles.item}>
                 <div className={styles.itemMain}>

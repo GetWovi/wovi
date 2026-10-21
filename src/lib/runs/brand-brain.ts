@@ -31,9 +31,12 @@ export type BrandBrainRef = {
   hash: string;
 };
 
+/** The agent a run is for, so a source can add the agent's own references (its mood board) to the parts. */
+export type BrandBrainAgentRef = { workspaceId: string; id: string };
+
 export interface BrandBrainSource {
   /** One Brand Brain by id, or the workspace's default when id is left out. Null when none. */
-  get(workspaceId: string, id?: string): Promise<BrandBrain | null>;
+  get(workspaceId: string, id?: string, agent?: BrandBrainAgentRef): Promise<BrandBrain | null>;
 }
 
 /** Fixed Brand Brains. The first one per workspace is its default. */

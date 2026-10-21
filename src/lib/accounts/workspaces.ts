@@ -11,7 +11,7 @@ import { AccountError } from "./errors";
 import { canAssign, canRemove, isRole, type Role } from "./policy";
 import type { Invite, Member, User, Workspace } from "./types";
 
-export type MemberView = { userId: string; email: string; name: string | null; role: Role; joinedAt: string };
+export type MemberView = { userId: string; email: string | null; name: string | null; role: Role; joinedAt: string };
 export type InviteView = Pick<Invite, "id" | "email" | "role" | "createdAt" | "expiresAt"> & { invitedBy: string | null; expired: boolean };
 export type WorkspaceView = Workspace & { role: Role };
 
@@ -75,7 +75,7 @@ export class Workspaces {
       if (user) out.push({ userId: user.id, email: user.email, name: user.name, role: m.role, joinedAt: m.createdAt });
     }
     const rank: Record<Role, number> = { owner: 0, admin: 1, editor: 2, viewer: 3 };
-    return out.sort((x, y) => rank[x.role] - rank[y.role] || x.email.localeCompare(y.email));
+    return out.sort((x, y) => rank[x.role] - rank[y.role] || (x.email ?? x.name ?? "").localeCompare(y.email ?? y.name ?? ""));
   }
 
   private async owners(workspaceId: string): Promise<number> {
@@ -246,7 +246,9 @@ export class Workspaces {
     const user = await this.a.store.users.get(userId);
     if (!user) throw new AccountError("unauthenticated", "Sign in again.");
     const invite = await this.openInvite(token);
-    if (invite.email !== user.email) throw new AccountError("forbidden", `This invite is for ${invite.email}. Sign in with that address to accept it.`);
+    if (user.email === null || invite.email !== user.email) {
+      throw new AccountError("forbidden", `This invite is for ${invite.email}. Sign in with that address to accept it.`);
+    }
     const ws = await this.a.store.workspaces.get(invite.workspaceId);
     if (!ws) throw new AccountError("invalid_invite", "This workspace no longer exists.");
 

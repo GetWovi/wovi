@@ -13,7 +13,8 @@
     "check:contrast": "tsx scripts/contrast.mjs",
     "test": "vitest run",
     "agents:seed": "tsx scripts/seed-agents.ts",
-    "agents:try": "tsx scripts/try-agent.ts"
+    "agents:try": "tsx scripts/try-agent.ts",
+    "builder:code": "tsx scripts/builder-code.ts"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",

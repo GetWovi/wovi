@@ -35,7 +35,7 @@ submitRun ──> queued ──> running ──> succeeded   (needsReview when a
 2. The agent is loaded from the registry: the pinned `version`, or the current one. The run records the exact version. An agent from another workspace (like the platform's own in `ws_wovi`) runs only when it is public and live; an owner may run its own drafts.
 3. The agent must be runnable now: a text output kind (`text`, `list`, `script`, `caption_set`, `post_set`), text routes, a priced model and a provider for both routes. Image, storyboard and video need media tools from a later phase.
 4. Inputs are checked against the spec's typed inputs: required, unknown keys, text length, link format, choice options, number range and step, file count, size, type and length. Choice and number defaults are filled in. Every problem is listed at once (`invalid_input`).
-5. The Brand Brain is the one the agent's profile input names, or the workspace default. A named one that does not exist is refused.
+5. The Brand Brain is the one the agent's profile input names, or the workspace default. A named one that does not exist is refused. The source also gets the agent's identity, so it can add the agent's own references: since phase 5 the builder's mood board for the agent joins `mood_board` and `references` ([builder.md](builder.md#mood-boards)).
 6. Guardrails that act before a run: `rights_confirmed` needs `confirmations.rights`, `voice_consent` needs `confirmations.voiceConsent`.
 7. Budget: the cap is the agent's `routing.maxCostUsd`, or lower when the caller passes `maxCostUsd`. If even the cheaper route's first call could cost more than the cap, the run is refused (`over_budget`).
 

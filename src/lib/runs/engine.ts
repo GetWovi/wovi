@@ -246,7 +246,7 @@ export class RunEngine {
     }
     const capMicroUsd = toMicroUsd(capUsd);
 
-    const brain = await this.loadBrain(req.workspaceId, spec, inputs);
+    const brain = await this.loadBrain(req.workspaceId, req.agentWorkspaceId ?? req.workspaceId, spec, inputs);
     const confirmations = req.confirmations ?? {};
     const before = runBeforeChecks({ spec, inputs, confirmations });
     const missing = before.filter((c) => c.status === "fail");
@@ -328,11 +328,11 @@ export class RunEngine {
     return id ? (this.opts.providers[id] ?? null) : null;
   }
 
-  /** The Brand Brain picked by the agent's profile input, or the workspace default. */
-  private async loadBrain(workspaceId: string, spec: AgentSpec, inputs: RunInputs): Promise<BrandBrain | null> {
+  /** The Brand Brain picked by the agent's profile input, or the workspace default, with the agent's own references added by the source. */
+  private async loadBrain(workspaceId: string, agentWorkspaceId: string, spec: AgentSpec, inputs: RunInputs): Promise<BrandBrain | null> {
     const profile = spec.inputs.find((i) => i.type === "profile");
     const picked = profile ? (inputs[profile.key] as string | undefined) : undefined;
-    const brain = await this.opts.brandBrains.get(workspaceId, picked);
+    const brain = await this.opts.brandBrains.get(workspaceId, picked, { workspaceId: agentWorkspaceId, id: spec.id });
     if (picked && !brain) throw new RunError("invalid_input", "Some inputs are not valid.", [`${profile!.key}: No Brand Brain "${picked}" in this workspace.`]);
     return brain;
   }
@@ -362,7 +362,7 @@ export class RunEngine {
 
     let result: ExecResult;
     try {
-      const brain = await this.loadBrain(run.workspaceId, spec, run.inputs).catch(() => null);
+      const brain = await this.loadBrain(run.workspaceId, run.agent.workspaceId, spec, run.inputs).catch(() => null);
       result = await executeRun({
         spec,
         run,
@@ -443,17 +443,17 @@ export class RunEngine {
 
 /**
  * The engine on the local JSON stores in .data/ (or WOVI_DATA_DIR), with the
- * stub Brand Brain. Uses the fake provider unless OPENROUTER_API_KEY is set,
- * and always when `fake` is true.
+ * stub Brand Brain unless another source is given. Uses the fake provider
+ * unless OPENROUTER_API_KEY is set, and always when `fake` is true.
  */
-export function localEngine(opts: { dataDir?: string; fake?: boolean } = {}): RunEngine {
+export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource } = {}): RunEngine {
   const dataDir = opts.dataDir ?? process.env.WOVI_DATA_DIR ?? join(process.cwd(), ".data");
   const providers = providersFromEnv();
   const fake = opts.fake ?? !providers.openrouter;
   return new RunEngine({
     registry: localRegistry(dataDir),
     store: jsonFileRunStore(join(dataDir, "runs.json")),
-    brandBrains: stubBrandBrains(),
+    brandBrains: opts.brandBrains ?? stubBrandBrains(),
     providers: fake ? { fake: providers.fake } : providers,
     providerOverride: fake ? "fake" : undefined,
   });

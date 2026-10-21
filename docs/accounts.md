@@ -10,6 +10,7 @@ Who someone is, which workspaces they belong to, and what they may do there. Pha
 | `workspaces.ts` | Workspaces, members, roles, invites, leaving, the last-owner rule. |
 | `api-keys.ts` | Keys for MCP and REST (phase 14): create, list, revoke, authenticate. |
 | `passkeys.ts` | WebAuthn through `@simplewebauthn/server`: add a passkey, sign in with it. |
+| `builder-codes.ts` | One-time builder codes and the passkey-only join. |
 | `wallets.ts` | Wallet links by signature (Sign-In With Ethereum message, checked offline with viem). |
 | `policy.ts` | The permission table. Pure functions. |
 | `guard.ts` | `GuardedAgents` and `GuardedRuns`: the registry and the engine with a caller on every call. |
@@ -24,7 +25,8 @@ Who someone is, which workspaces they belong to, and what they may do there. Pha
 
 | Record | Key fields | Workspace id |
 |---|---|---|
-| User | `id`, `email` (lowercased, unique), `personalWorkspaceId` | belongs to a person, spans workspaces |
+| User | `id`, `email` (lowercased, unique; null for a passkey-only builder), `name`, `builder`, `personalWorkspaceId` | belongs to a person, spans workspaces |
+| Builder code | `codeHash`, `suffix`, `label`, `expiresAt`, `usedAt`, `usedBy`, `revokedAt` | none; made on the command line |
 | Workspace | `id`, `name`, `personal`, `plan` (`free` until billing in phase 13) | is one |
 | Member | `workspaceId`, `userId`, `role` | yes |
 | Invite | `workspaceId`, `email`, `role`, `tokenHash`, `expiresAt`, `acceptedAt`, `revokedAt` | yes |
@@ -34,11 +36,11 @@ Who someone is, which workspaces they belong to, and what they may do there. Pha
 | Sign-in request | `email`, `tokenHash`, `codeHash`, `expiresAt`, `attempts`, `usedAt` | belongs to a person |
 | Passkey | credential `id`, `userId`, `publicKey`, `counter` | belongs to a person |
 | Wallet link | lowercase address as `id`, `userId`, `address`, `chainId` | belongs to a person |
-| Challenge | `kind`, `userId`, `value`, `expiresAt`, `usedAt` | short-lived |
+| Challenge | `kind`, `userId`, `value`, `meta`, `expiresAt`, `usedAt` | short-lived |
 
 Everything a workspace owns carries its `workspaceId`, like agents and runs, so teams and agencies need no migration. Identity records belong to a person and span their workspaces.
 
-No secret is stored in the clear: session tokens, link tokens, invite tokens and API keys are stored as sha256 (they are 256-bit random values), and sign-in codes as an HMAC with the server secret.
+No secret is stored in the clear: session tokens, link tokens, invite tokens, builder codes and API keys are stored as sha256 (they are 256-bit random values), and sign-in codes as an HMAC with the server secret.
 
 ## Sign-in
 
@@ -115,7 +117,23 @@ await runs.costTotals(caller, workspaceId);            // see_costs
 
 ## The hidden builder
 
-`WOVI_BUILDER_EMAILS` (comma-separated, empty by default) lists who holds the platform role "builder". The platform workspace `ws_wovi` and the platform creator `creator_wovi` are real records, made on first sign-in or by `npm run agents:seed`. At each sign-in, a builder becomes an owner of `ws_wovi`; anyone else loses any membership there. The allowlist is read on every check, so removing an email takes effect at once. Nobody can invite people into `ws_wovi`. Nothing links to it: for anyone not on the list it does not exist (`not_found`), and sessions start in the personal workspace even for builders.
+The platform role "builder" opens the Agent Builder (phase 5, [builder.md](builder.md)) and owns the platform workspace `ws_wovi` and the platform creator `creator_wovi`, which are real records made on first sign-in or by `npm run agents:seed`. Nobody's email sits in any config: the way in is a **builder code**.
+
+**Builder codes** (`builder-codes.ts`, `scripts/builder-code.ts`):
+
+```
+npm run builder:code                      prints a new code (shown once)
+npm run builder:code -- --label Funkai    the same, with a label for the list
+npm run builder:code -- --list            every code: id, last characters, state, dates
+npm run builder:code -- --revoke bcd_...  revokes an open code
+```
+
+- A code is `wovi_builder_` plus 43 random characters. Only its sha256 is stored. It works once, expires after 7 days, and can be revoked while open. A used code is never reopened.
+- The hidden page `/builder/join` (nothing links to it) takes the code and a display name, then creates a **passkey** on that device. No email is involved at any step. The join is two steps like adding a passkey: `startJoin` checks the code and makes the passkey creation options for a user id that does not exist yet; `finishJoin` verifies the passkey first, then takes the code in one conditional write, then creates the user (no email, `builder: true`), the personal workspace, the passkey and the session. A passkey prompt that fails leaves the code open; two people racing with one code cannot both get in.
+- A passkey-only account signs in from `/sign-in` with "Sign in with a passkey" and nothing else; it cannot ask for an email link and cannot accept email invites. The account page shows the name in place of the email.
+- `user.builder` is the stored role. `accounts.isBuilder(user)` also reads the optional email allowlist `WOVI_BUILDER_EMAILS` (comma-separated, empty by default), so that path still works for a local setup; the allowlist is read on every check.
+
+At each sign-in a builder becomes an owner of `ws_wovi`; anyone else loses any membership there. Nobody can invite people into `ws_wovi`. For anyone who is not a builder it does not exist (`not_found`), and every `/builder` page is a 404. Sessions start in the personal workspace even for builders.
 
 ## Email
 
@@ -127,7 +145,7 @@ Accounts only talk to `EmailSender`. In development the dev sender prints each m
 |---|---|---|
 | `WOVI_APP_URL` | `http://localhost:3900` | Links in emails, the passkey origin, the wallet message domain. |
 | `WOVI_SECRET` | generated into `.data/secret` on a local app | Server secret for code hashes and CSRF tokens. Required off localhost. |
-| `WOVI_BUILDER_EMAILS` | empty | The builder allowlist. |
+| `WOVI_BUILDER_EMAILS` | empty | The optional builder email allowlist. Builder codes are the usual way in. |
 | `EMAIL_PROVIDER` | off | A wired email provider. |
 | `WOVI_DATA_DIR` | `.data` | Where the JSON stores, mail and the dev secret live. |
 
@@ -135,7 +153,7 @@ Rate limits use the first `X-Forwarded-For` hop, which is only trustworthy behin
 
 ## Storage
 
-Each table is a `Collection` with `get`, `find(where)`, `insert`, `update`, `updateIf(id, where, patch)` and `delete`. `updateIf` is the one conditional write (single use of links, codes, invites and challenges; token rotation), which maps to `UPDATE ... WHERE ... RETURNING` in SQL. `memoryAccountStore()` is for tests, `jsonFileAccountStore(file)` for local work (one process). A Postgres store implements the same interface with unique indexes on `users.email` and every `*_hash` column.
+Each table is a `Collection` with `get`, `find(where)`, `insert`, `update`, `updateIf(id, where, patch)` and `delete`. `updateIf` is the one conditional write (single use of links, codes, invites, builder codes and challenges; token rotation), which maps to `UPDATE ... WHERE ... RETURNING` in SQL. `memoryAccountStore()` is for tests, `jsonFileAccountStore(file)` for local work (one process). The generic `memoryTables` and `jsonFileTables` behind them also serve the builder's own tables. A Postgres store implements the same interface with unique indexes on `users.email` and every `*_hash` column.
 
 ## Pages
 
@@ -145,6 +163,7 @@ Bare screens on the existing tokens and components; the real app screens are pha
 - `/sign-in/verify`: the email link's landing.
 - `/invite`: accept an invite (sign in first if needed).
 - `/account`: current workspace (switch, rename, create, leave), members and roles, invites, API keys, passkeys, wallets, sign out, sign out everywhere.
+- `/builder/join`: a builder code, a name and a passkey make a builder account. Hidden; nothing links to it.
 
 ## Tests
 

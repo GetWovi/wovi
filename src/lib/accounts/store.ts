@@ -14,6 +14,7 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type {
   ApiKey,
+  BuilderCode,
   Challenge,
   Creator,
   Invite,
@@ -53,6 +54,7 @@ export type AccountStore = {
   challenges: Collection<Challenge>;
   creators: Collection<Creator>;
   rateLimits: Collection<RateBucket>;
+  builderCodes: Collection<BuilderCode>;
 };
 
 const TABLES = [
@@ -68,10 +70,11 @@ const TABLES = [
   "challenges",
   "creators",
   "rateLimits",
+  "builderCodes",
 ] as const satisfies readonly (keyof AccountStore)[];
 
 type Row = { id: string };
-type Data = Record<(typeof TABLES)[number], Row[]>;
+type Data = Record<string, Row[]>;
 
 const clone = <T>(v: T): T => structuredClone(v);
 
@@ -80,8 +83,8 @@ function matches(row: Row, where: Record<string, unknown>): boolean {
 }
 
 /** Every call reads, changes and writes in one synchronous step, so calls never interleave inside one process. */
-function collection<T extends Row>(read: () => Data, write: (data: Data) => void, table: keyof Data): Collection<T> {
-  const rows = (data: Data) => data[table] as T[];
+function collection<T extends Row>(read: () => Data, write: (data: Data) => void, table: string): Collection<T> {
+  const rows = (data: Data) => (data[table] ??= []) as T[];
   return {
     async get(id) {
       const row = rows(read()).find((r) => r.id === id);
@@ -123,29 +126,33 @@ function collection<T extends Row>(read: () => Data, write: (data: Data) => void
   };
 }
 
-function build(read: () => Data, write: (data: Data) => void): AccountStore {
-  return Object.fromEntries(TABLES.map((t) => [t, collection(read, write, t)])) as unknown as AccountStore;
-}
+/* ---------- Generic table sets, shared with the builder's store ---------- */
 
-const empty = (): Data => Object.fromEntries(TABLES.map((t) => [t, []])) as unknown as Data;
-
-/** In memory. Used by tests. */
-export function memoryAccountStore(): AccountStore {
-  const data = empty();
-  return build(
-    () => data,
-    () => undefined,
-  );
+/** A set of named collections, one per table name, all kept in memory. For tests. */
+export function memoryTables<S extends Record<string, Collection<Row>>>(tables: readonly (keyof S & string)[]): S {
+  const data: Data = Object.fromEntries(tables.map((t) => [t, []]));
+  return Object.fromEntries(
+    tables.map((t) => [
+      t,
+      collection(
+        () => data,
+        () => undefined,
+        t,
+      ),
+    ]),
+  ) as unknown as S;
 }
 
 /**
- * One JSON file on disk, for local work. Writes go through a temp file and a
- * rename, so a crash never leaves half a file. One process only.
+ * A set of named collections in one JSON file on disk, for local work. Writes
+ * go through a temp file and a rename, so a crash never leaves half a file.
+ * One process only.
  */
-export function jsonFileAccountStore(file: string): AccountStore {
+export function jsonFileTables<S extends Record<string, Collection<Row>>>(file: string, tables: readonly (keyof S & string)[]): S {
+  const empty = (): Data => Object.fromEntries(tables.map((t) => [t, []]));
   const read = (): Data => {
     try {
-      return { ...empty(), ...(JSON.parse(readFileSync(file, "utf8")) as Partial<Data>) };
+      return { ...empty(), ...(JSON.parse(readFileSync(file, "utf8")) as Data) };
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") return empty();
       throw err;
@@ -157,5 +164,15 @@ export function jsonFileAccountStore(file: string): AccountStore {
     writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n", { mode: 0o600 });
     renameSync(tmp, file);
   };
-  return build(read, write);
+  return Object.fromEntries(tables.map((t) => [t, collection(read, write, t)])) as unknown as S;
+}
+
+/** In memory. Used by tests. */
+export function memoryAccountStore(): AccountStore {
+  return memoryTables<AccountStore>(TABLES);
+}
+
+/** One JSON file on disk, for local work. */
+export function jsonFileAccountStore(file: string): AccountStore {
+  return jsonFileTables<AccountStore>(file, TABLES);
 }

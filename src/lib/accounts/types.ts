@@ -8,9 +8,11 @@ import type { Role } from "./policy";
 
 export type User = {
   id: string;
-  /** Lowercased and trimmed. One user per address. */
-  email: string;
+  /** Lowercased and trimmed. One user per address. Null for an account made with a passkey only (a builder who joined with a code). */
+  email: string | null;
   name: string | null;
+  /** The hidden platform role, given by a builder code. The email allowlist can grant it too, at sign-in time. */
+  builder: boolean;
   /** Made at sign-up. The session falls back to it. */
   personalWorkspaceId: string;
   createdAt: string;
@@ -130,7 +132,7 @@ export type WalletLink = {
   linkedAt: string;
 };
 
-export type ChallengeKind = "passkey_register" | "passkey_auth" | "wallet_link";
+export type ChallengeKind = "passkey_register" | "passkey_auth" | "wallet_link" | "builder_join";
 
 /** A short-lived, single-use value a browser or wallet signs. */
 export type Challenge = {
@@ -141,9 +143,29 @@ export type Challenge = {
   value: string;
   /** For wallet links: the address the message names. */
   address: string | null;
+  /** For builder joins: the hash of the code being used and the display name given. */
+  meta: Record<string, string> | null;
   createdAt: string;
   expiresAt: string;
   usedAt: string | null;
+};
+
+/**
+ * A one-time code that makes the person who redeems it a builder. Made by
+ * `npm run builder:code`, never by the app. Only its hash is stored.
+ */
+export type BuilderCode = {
+  id: string;
+  /** sha256 of the code. */
+  codeHash: string;
+  /** The last characters of the code, for telling codes apart in a list. */
+  suffix: string;
+  label: string | null;
+  createdAt: string;
+  expiresAt: string;
+  usedAt: string | null;
+  usedBy: string | null;
+  revokedAt: string | null;
 };
 
 /** A creator account. Agents name one as their owner. */

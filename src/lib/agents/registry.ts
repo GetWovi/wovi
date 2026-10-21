@@ -164,6 +164,12 @@ export class AgentRegistry {
     return specs;
   }
 
+  /** The listing rows of a workspace's agents, with timestamps: for builder and admin screens. */
+  async rows(workspaceId: string): Promise<AgentRow[]> {
+    this.checkWorkspace(workspaceId);
+    return (await this.store.listAgents(workspaceId)).sort((a, b) => a.id.localeCompare(b.id));
+  }
+
   /** Every version, oldest first. */
   async versions(workspaceId: string, id: string): Promise<VersionInfo[]> {
     const row = await this.requireAgent(workspaceId, id);

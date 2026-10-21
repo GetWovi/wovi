@@ -45,6 +45,7 @@ export class Passkeys {
       userId,
       value,
       address: null,
+      meta: null,
       createdAt: this.a.iso(),
       expiresAt: this.a.iso(this.a.cfg.challengeTtlMs),
       usedAt: null,
@@ -55,40 +56,47 @@ export class Passkeys {
 
   /* ---------- Adding a passkey (signed in) ---------- */
 
-  async registrationOptions(userId: string): Promise<{ challengeId: string; options: PublicKeyCredentialCreationOptionsJSON }> {
-    const user = await this.a.store.users.get(userId);
-    if (!user) throw new AccountError("unauthenticated", "Sign in again.");
+  /** The browser's creation options for a user id and display name. Shared with the builder join flow, where the user does not exist yet. */
+  async creationOptions(userId: string, userName: string): Promise<PublicKeyCredentialCreationOptionsJSON> {
     const existing = await this.a.store.passkeys.find({ userId });
-    const options = await generateRegistrationOptions({
+    return generateRegistrationOptions({
       rpName: this.a.cfg.rpName,
       rpID: this.rpId,
-      userName: user.email,
-      userID: new TextEncoder().encode(user.id),
+      userName,
+      userID: new TextEncoder().encode(userId),
       attestationType: "none",
       excludeCredentials: existing.map((p) => ({ id: p.id, transports: p.transports })),
       authenticatorSelection: { residentKey: "required", userVerification: "preferred" },
     });
+  }
+
+  async registrationOptions(userId: string): Promise<{ challengeId: string; options: PublicKeyCredentialCreationOptionsJSON }> {
+    const user = await this.a.store.users.get(userId);
+    if (!user) throw new AccountError("unauthenticated", "Sign in again.");
+    const options = await this.creationOptions(user.id, user.email ?? user.name ?? user.id);
     const c = await this.saveChallenge("passkey_register", userId, options.challenge);
     return { challengeId: c.id, options };
   }
 
-  async verifyRegistration(userId: string, challengeId: string, response: RegistrationResponseJSON, name = "Passkey"): Promise<PasskeyView> {
-    const c = await this.a.takeChallenge(challengeId, "passkey_register", userId);
-    if (!c) throw new AccountError("invalid_signature", FAILED);
-    let info;
+  /** Checks a registration response against a challenge value. Throws invalid_signature when it does not hold. */
+  async checkRegistration(challengeValue: string, response: RegistrationResponseJSON) {
     try {
       const result = await verifyRegistrationResponse({
         response,
-        expectedChallenge: c.value,
+        expectedChallenge: challengeValue,
         expectedOrigin: this.origin,
         expectedRPID: this.rpId,
         requireUserVerification: false,
       });
       if (!result.verified) throw new Error("not verified");
-      info = result.registrationInfo;
+      return result.registrationInfo;
     } catch {
       throw new AccountError("invalid_signature", FAILED);
     }
+  }
+
+  /** Saves a verified credential for a user. */
+  async savePasskey(userId: string, info: Awaited<ReturnType<Passkeys["checkRegistration"]>>, response: RegistrationResponseJSON, name: string): Promise<PasskeyView> {
     if (await this.a.store.passkeys.get(info.credential.id)) throw new AccountError("conflict", "This passkey is already added.");
     const passkey: Passkey = {
       id: info.credential.id,
@@ -102,6 +110,13 @@ export class Passkeys {
     };
     await this.a.store.passkeys.insert(passkey);
     return this.view(passkey);
+  }
+
+  async verifyRegistration(userId: string, challengeId: string, response: RegistrationResponseJSON, name = "Passkey"): Promise<PasskeyView> {
+    const c = await this.a.takeChallenge(challengeId, "passkey_register", userId);
+    if (!c) throw new AccountError("invalid_signature", FAILED);
+    const info = await this.checkRegistration(c.value, response);
+    return this.savePasskey(userId, info, response, name);
   }
 
   /* ---------- Signing in with a passkey ---------- */

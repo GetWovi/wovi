@@ -90,6 +90,7 @@ Every call takes a workspace id first, and every stored row carries it. One work
 | `get(ws, id, version?)` | The current version, or a given one. `null` if missing. |
 | `list(ws, { owner, status, category, visibility })` | Current versions, sorted by id. `status` takes one value or a list. |
 | `versions(ws, id)` | Every version, oldest first, with which one is current. |
+| `rows(ws)` | The listing rows with `createdAt` and `updatedAt`, for the builder's list. |
 | `rollback(ws, id, version)` | Makes an existing version current again. Nothing is created or deleted, so semver stays honest; the next save still goes above the highest version. |
 | `setStatus(ws, id, "draft" or "live")` | Publishes a draft, or takes it back. |
 | `hide(ws, id)`, `unhide(ws, id)` | Hidden keeps the agent but takes it out of view. Unhide returns it to the status it had, or `live` if it was created hidden. |

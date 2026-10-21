@@ -57,6 +57,12 @@ export class GuardedAgents {
     return this.registry.versions(workspaceId, id);
   }
 
+  /** Listing rows with timestamps, for people who edit the workspace's agents. */
+  async rows(caller: Principal, workspaceId: string) {
+    await this.accounts.authorize(caller, workspaceId, "edit_agents");
+    return this.registry.rows(workspaceId);
+  }
+
   async create(caller: Principal, workspaceId: string, input: CreateInput, opts: { note?: string } = {}): Promise<AgentSpec> {
     await this.accounts.authorize(caller, workspaceId, "edit_agents");
     await this.checkOwner(workspaceId, input.owner);

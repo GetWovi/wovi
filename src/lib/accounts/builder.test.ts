@@ -17,7 +17,7 @@ describe("the hidden builder role", () => {
     expect(await store.workspaces.get(PLATFORM_WORKSPACE_ID)).toMatchObject({ id: PLATFORM_WORKSPACE_ID, name: "WOVI", personal: false });
     expect(await store.creators.get(PLATFORM_CREATOR_ID)).toMatchObject({ workspaceId: PLATFORM_WORKSPACE_ID, kind: "platform" });
     expect(await store.members.find({ workspaceId: PLATFORM_WORKSPACE_ID })).toEqual([]);
-    expect(accounts.isBuilder(user.email)).toBe(false);
+    expect(accounts.isBuilder(user)).toBe(false);
   });
 
   it("gives allowlisted emails ownership of the platform workspace, and nobody else sees it", async () => {

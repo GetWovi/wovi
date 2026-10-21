@@ -6,6 +6,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { localRegistry } from "@/lib/agents/registry";
+import { localBrandBrains } from "@/lib/builder/local";
 import { localEngine } from "@/lib/runs/engine";
 import type { Accounts } from "./accounts";
 import { CSRF_FIELD, checkCsrfToken, csrfTokenFor, sameOrigin } from "./csrf";
@@ -31,9 +32,9 @@ export function appAgents(): GuardedAgents {
   return (cache.agents ??= new GuardedAgents(localRegistry(), accounts()));
 }
 
-/** The run engine as the app may use it: every call names its caller. */
+/** The run engine as the app may use it: every call names its caller. Reads each agent's mood board next to the Brand Brain. */
 export function appRuns(): GuardedRuns {
-  return (cache.runs ??= new GuardedRuns(localEngine(), accounts()));
+  return (cache.runs ??= new GuardedRuns(localEngine({ brandBrains: localBrandBrains() }), accounts()));
 }
 
 export async function requestMeta() {
