@@ -1,0 +1,203 @@
+/* Plain account screens: sign-in, link landing, invite, settings. Built on the tokens; the app screens come in phase 9. */
+
+.authMain {
+  min-height: calc(100svh - var(--header-h));
+  display: grid;
+  place-items: center;
+  padding: var(--s-7) var(--gutter);
+}
+.authCard {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.authHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.authHead h1 {
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-snug);
+}
+.lead {
+  color: var(--text-muted);
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.or {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.or::before,
+.or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.fine {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: contents;
+}
+.error {
+  color: var(--blaze-text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+.ok {
+  color: var(--cobalt-glow);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+}
+.secret {
+  display: block;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  border: var(--stroke) dashed var(--line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* Settings */
+.page {
+  padding-block: var(--s-7) var(--s-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  max-width: 880px;
+}
+.pageHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+.pageHead h1 {
+  font-size: var(--fs-3xl);
+}
+.headActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.sectionNote {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  margin-top: calc(var(--s-2) * -1);
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s-3);
+}
+/* Fields sit inside the form's fieldset (display: contents), after the hidden CSRF input. */
+.row > fieldset > div:first-of-type {
+  flex: 1 1 260px;
+}
+.row > .error,
+.row > .ok,
+.row > .secret {
+  flex-basis: 100%;
+}
+@media (max-width: 600px) {
+  .row > fieldset > div {
+    flex: 1 1 100%;
+  }
+}
+.inline {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--hairline-strong);
+}
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--hairline-strong);
+}
+.itemMain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.itemTitle {
+  font-weight: var(--fw-semibold);
+  overflow-wrap: anywhere;
+}
+.itemMeta {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.itemActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.role {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: var(--cobalt-tint);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  text-transform: capitalize;
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--fs-sm);
+}
+.smallSelect {
+  min-height: 38px;
+  padding: 6px 12px;
+  border: var(--stroke) solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+}
+.empty {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}

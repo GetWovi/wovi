@@ -125,6 +125,10 @@ Defaults, from OpenRouter's public list on 2026-10-21. Change them in `MODEL_ROU
 
 A pipeline step is `submitRun` with `parent: { pipelineRunId, step }`, a pinned `version`, and `maxCostUsd` set to what is left of the pipeline's budget; `waitForRun` returns the typed output that feeds the next step.
 
+## Who may call it (phase 4)
+
+The engine trusts the workspace id it is given. Callers reach it through `GuardedRuns`, which checks that the caller (a signed-in user or an API key) may run agents, read runs or see costs in that workspace first. See [accounts.md](accounts.md#the-registry-and-engine-behind-the-policy).
+
 ## Commands
 
 - `npm run agents:try -- hook-writer` seeds the launch agents if needed and runs one end to end on the fake provider from the workspace `ws_dev`, then prints the run. Pass your own inputs as JSON after the id. Runs are saved in `.data/runs.json`.

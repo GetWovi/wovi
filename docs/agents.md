@@ -81,7 +81,7 @@ import { localRegistry } from "@/lib/agents";
 const agents = localRegistry(); // JSON store in .data/agents.json
 ```
 
-Every call takes a workspace id first, and every stored row carries it. One workspace never sees another's agents.
+Every call takes a workspace id first, and every stored row carries it. One workspace never sees another's agents. Since phase 4 the web app, MCP and the API reach the registry only through `GuardedAgents`, which names the caller on every call and checks their role in that workspace ([accounts.md](accounts.md#the-registry-and-engine-behind-the-policy)).
 
 | Call | What it does |
 |---|---|
