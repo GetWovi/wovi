@@ -1,226 +1,248 @@
 /**
- * WOVI brand geometry, second drawing.
+ * WOVI brand geometry, drawn from Funkai's brand boards.
  *
- * One stroke system draws the whole wordmark: a round monoline of width S on
- * an x-height of 60 units (visible top 40, baseline 100). The w is the mascot;
- * the o, v and the tall slab-serif I are drawn with the same stroke so the
- * word reads as one flowing line. Every logo and mascot file comes from here.
+ * Every logo, mark and mascot file comes from these numbers. The unit is the
+ * letter height: the wordmark is 350 units tall. The w is a filled blob (three
+ * round lobes on top, two round legs below, an S-curve down each side); o, v
+ * and I are round-ended strokes of the same weight. The w carries the face,
+ * and with limbs it becomes Wovi, the mascot.
  */
 
 export const COLORS = {
-  night: "#0B1230",
-  cream: "#FFF4DC",
   blaze: "#FF5A1F",
-  blazeLight: "#FF8A5C",
-  blazeDeep: "#D9430F",
   cobalt: "#1F4DFF",
+  night: "#0B1230",
+  raised: "#141D44",
+  raisedAlt: "#1C2760",
+  cream: "#FFF4DC",
   cobaltGlow: "#7C97FF",
-  surfaceNight: "#141D44",
-  lineNight: "#2A3668",
-  mutedNight: "#A9B3D9",
-  lineLight: "#E8D9B5",
-  mutedLight: "#3A4468",
 } as const;
 
 export type Ink = "cream" | "night";
-
-/** Stroke width of every letter. */
-export const S = 24;
 
 /* ------------------------------------------------------------------ */
 /* The w                                                               */
 /* ------------------------------------------------------------------ */
 
-/** Centreline points of the w: outer arms splayed, inner arms steeper, peak below the x-height. */
-export const W_POINTS = {
-  A: [16, 52],
-  B: [40, 88],
-  C: [54, 63],
-  D: [68, 88],
-  E: [92, 52],
+/** Letter height. Everything below is in these units. */
+export const H = 350;
+
+/** The w's box: 444 wide, 350 tall, origin at its top left. */
+export const W_BOX = { w: 444, h: 350 } as const;
+
+/** Horizontal centre of the w. */
+export const W_CX = 222;
+
+const LOBE_R = 52; // the three round bumps on top
+const LOBE_Y = 56; // centre height of the outer lobes (the middle one sits 4 higher)
+const VALLEY_R = 33; // the U between two lobes
+const VALLEY_Y = 88; // centre of the valley's round bottom
+const LEG_R = 60; // the two round legs
+const LEG_Y = 289; // centre of a leg's round bottom
+const NOTCH_R = 25; // the U between the legs
+const NOTCH_Y = 248; // centre of the notch's round top
+const SIDE_TOP = 95; // where the straight outer edge starts to sweep in
+const SIDE_END = 258; // where the sweep meets the leg
+
+/** Centres of the lobes, valleys and legs. */
+export const W_LOBES = [52, 222, 392] as const;
+export const W_LEGS = [137, 307] as const;
+
+/** The w as one closed filled path. */
+export const W_PATH = [
+  `M0 ${LOBE_Y}`,
+  `L0 ${SIDE_TOP}`,
+  `C0 180 77 175 77 ${SIDE_END}`,
+  `L77 ${LEG_Y}`,
+  `A${LEG_R} ${LEG_R} 0 0 0 197 ${LEG_Y}`,
+  `L197 ${NOTCH_Y}`,
+  `A${NOTCH_R} ${NOTCH_R} 0 0 1 247 ${NOTCH_Y}`,
+  `L247 ${LEG_Y}`,
+  `A${LEG_R} ${LEG_R} 0 0 0 367 ${LEG_Y}`,
+  `L367 ${SIDE_END}`,
+  `C367 175 444 180 444 ${SIDE_TOP}`,
+  `L444 ${LOBE_Y}`,
+  `A${LOBE_R} ${LOBE_R} 0 0 0 340 ${LOBE_Y}`,
+  `L340 ${VALLEY_Y}`,
+  `A${VALLEY_R} ${VALLEY_R} 0 0 1 274 ${VALLEY_Y}`,
+  `L274 ${LOBE_Y - 4}`,
+  `A${LOBE_R} ${LOBE_R} 0 0 0 170 ${LOBE_Y - 4}`,
+  `L170 ${VALLEY_Y}`,
+  `A${VALLEY_R} ${VALLEY_R} 0 0 1 104 ${VALLEY_Y}`,
+  `L104 ${LOBE_Y}`,
+  `A${LOBE_R} ${LOBE_R} 0 0 0 0 ${LOBE_Y}`,
+  "Z",
+].join(" ");
+
+/* ------------------------------------------------------------------ */
+/* The face                                                            */
+/* ------------------------------------------------------------------ */
+
+export type Eyes = "calm" | "happy";
+export type Mouth = "smile" | "open" | "small";
+
+/** Face layout in w units. Lines are round-capped strokes. */
+export const FACE = {
+  stroke: 9,
+  eyeY: 160,
+  eyeDx: 46,
+  eyeHalf: 20,
+  eyeBend: 16,
+  mouthY: 195,
+  mouthHalf: 25,
+  mouthBend: 22,
+  openTop: 182,
+  openRx: 32,
+  openRy: 29,
+  tongue: { dy: 21, rx: 10, ry: 6 },
+  smallMouth: { dy: 2, rx: 8, ry: 10 },
+  cheekDx: 88,
+  cheekY: 186,
+  cheekRx: 15,
+  cheekRy: 10,
 } as const;
 
-const { A, B, C, D, E } = W_POINTS;
-export const W_PATH = `M${A[0]} ${A[1]} L${B[0]} ${B[1]} L${C[0]} ${C[1]} L${D[0]} ${D[1]} L${E[0]} ${E[1]}`;
+/** Path for one eye, centred on (0,0). Calm eyes rest like a soft smile; happy eyes flip up. */
+export function eyePath(kind: Eyes): string {
+  const h = FACE.eyeHalf;
+  const b = FACE.eyeBend;
+  return kind === "calm" ? `M${-h} -4 Q0 ${b} ${h} -4` : `M${-h} 4 Q0 ${-b} ${h} 4`;
+}
 
-/** Visible bounds of the w alone (stroke included). */
-export const W_BOUNDS = { x: A[0] - S / 2, y: A[1] - S / 2, w: E[0] - A[0] + S, h: B[1] - A[1] + S };
+export const SMILE_PATH = `M${-FACE.mouthHalf} -7 Q0 ${FACE.mouthBend} ${FACE.mouthHalf} -7`;
+
+/** The open smile: a flat top and a round bottom. */
+export const OPEN_MOUTH_PATH = `M${-FACE.openRx} 0 H${FACE.openRx} A${FACE.openRx} ${FACE.openRy} 0 0 1 ${-FACE.openRx} 0 Z`;
 
 /* ------------------------------------------------------------------ */
-/* The wordmark: w o v I                                               */
+/* The wordmark: W O V I                                               */
 /* ------------------------------------------------------------------ */
 
-const h = S / 2;
-const tuck = 6; // how far the w's right arm sinks into the o
-const oOuter = 32; // the o overshoots the x-height by 2 on each side
-const oCx = E[0] + h - tuck + oOuter;
-const oCy = 70;
-const vLeft = oCx + oOuter - 2 + h; // the o touches the v
-const vDx = B[0] - A[0]; // same angle as the w's outer arms
-const iX = vLeft + 2 * vDx + S - 1; // the v touches the I
-const iTop = 14; // cap height: visible top at 2
-const serifHalf = 12;
+/** Stroke weight of o, v and I. */
+export const STROKE = 95;
+
+const oCx = 595; // the w's right lobe tucks 22 units into the o
+const oOuter = 173;
+const oCy = H - oOuter; // the o sits on the baseline and clears the top by 4
+const vApex: [number, number] = [891.5, 302.5];
+const vTopY = STROKE / 2;
+const vSpread = 134.5; // half the distance between the arm tops
+const iX = 1113.5;
 
 export const WORDMARK = {
   w: W_PATH,
-  o: { cx: oCx, cy: oCy, r: oOuter - h },
-  v: `M${vLeft} ${A[1]} L${vLeft + vDx} ${B[1]} L${vLeft + 2 * vDx} ${A[1]}`,
-  i: `M${iX} ${iTop + h} L${iX} ${B[1]}`,
-  /** Slab terminals that make the capital I unmistakable. */
-  serifs: `M${iX - serifHalf} ${iTop + h} L${iX + serifHalf} ${iTop + h} M${iX - serifHalf} ${B[1]} L${iX + serifHalf} ${B[1]}`,
+  o: { cx: oCx, cy: oCy, r: oOuter - STROKE / 2 },
+  v: `M${vApex[0] - vSpread} ${vTopY} L${vApex[0]} ${vApex[1]} L${vApex[0] + vSpread} ${vTopY}`,
+  i: `M${iX} ${STROKE / 2} L${iX} ${H - STROKE / 2}`,
   /** Visible bounds of the whole word. */
-  bounds: { x: A[0] - h, y: iTop, w: iX + serifHalf + h - (A[0] - h), h: B[1] + h - iTop },
-  /** Clearspace on every side equals the height of the o. */
-  clearspace: oOuter * 2,
+  bounds: { x: 0, y: 0, w: iX + STROKE / 2, h: H },
+  /** Clearspace on every side equals the width of the I. */
+  clearspace: STROKE,
 } as const;
 
 /* ------------------------------------------------------------------ */
 /* The mascot: Wovi                                                     */
 /* ------------------------------------------------------------------ */
 
-/** The mascot box. The w is scaled by K and placed so limbs have room. */
-export const MASCOT_BOX = 160;
-export const MASCOT_SCALE = 1.1;
-export const MASCOT_OFFSET = {
-  x: (MASCOT_BOX - W_BOUNDS.w * MASCOT_SCALE) / 2 - W_BOUNDS.x * MASCOT_SCALE,
-  y: 30 - W_BOUNDS.y * MASCOT_SCALE,
+export type Pose = "move" | "hello" | "wait" | "done";
+
+export const POSE_NAMES: Record<Pose, string> = {
+  move: "On the move",
+  hello: "Hello",
+  wait: "Waiting for a job",
+  done: "Job done",
 };
 
-/** Wordmark units to mascot box units. */
-export function toBox([x, y]: readonly [number, number]): [number, number] {
-  return [MASCOT_OFFSET.x + x * MASCOT_SCALE, MASCOT_OFFSET.y + y * MASCOT_SCALE];
-}
+/** The mascot box in w units: room for limbs, z's and sparkles around the w. */
+export const MASCOT_BOX = { x: -70, y: -100, w: 584, h: 610 } as const;
 
-const peak = toBox(C);
-const bottomLeft = toBox(B);
-const bottomRight = toBox(D);
-
-/** Face layout in box units, centred on the peak of the w. */
-export const FACE = {
-  eyeY: peak[1] + 11,
-  eyeDx: 9.5,
-  eyeR: 5.6,
-  pupilR: 3.1,
-  arcHalf: 5.2,
-  stroke: 3.4,
-  mouthY: peak[1] + 20.5,
-  mouthHalf: 6,
-  cheekDx: 21,
-  cheekY: peak[1] + 16,
-  cheekR: 3.1,
-  centerX: peak[0],
-};
-
-export const LIMB = { stroke: 5.5, hand: 4.8, foot: 7.5 };
-
-/** Where limbs attach, in box units. */
-export const ANCHORS = {
-  shoulderLeft: [toBox([28, 70])[0] - 8, toBox([28, 70])[1] + 1] as [number, number],
-  shoulderRight: [toBox([80, 70])[0] + 8, toBox([80, 70])[1] + 1] as [number, number],
-  hipLeft: [bottomLeft[0], bottomLeft[1] + 11] as [number, number],
-  hipRight: [bottomRight[0], bottomRight[1] + 11] as [number, number],
-};
-
-export type Pose = "standing" | "walking" | "waving" | "sleeping" | "celebrating";
-export type Eyes = "open" | "happy" | "sleep";
-export type Mouth = "smile" | "open" | "small";
+export const LIMB_STROKE = 26;
 
 export type Limb = {
   part: "arm-left" | "arm-right" | "leg-left" | "leg-right";
   d: string;
+  /** Where the limb joins the body; motion rotates around it. */
   pivot: readonly [number, number];
-  /** Hand position; feet are drawn as a bar at the end of the leg. */
-  hand?: readonly [number, number];
-  foot?: { x: number; y: number; dir: 1 | -1 };
 };
 
-export type PoseSpec = { eyes: Eyes; mouth: Mouth; limbs: Limb[]; look?: readonly [number, number] };
+export type PoseSpec = {
+  eyes: Eyes;
+  mouth: Mouth;
+  limbs: Limb[];
+};
 
-const SL = ANCHORS.shoulderLeft;
-const SR = ANCHORS.shoulderRight;
-const HL = ANCHORS.hipLeft;
-const HR = ANCHORS.hipRight;
-const legLen = 17;
+const LEG_TOP = 338; // just inside the body so the join never shows
+const HIP_L: [number, number] = [W_LEGS[0], LEG_TOP];
+const HIP_R: [number, number] = [W_LEGS[1], LEG_TOP];
 
-function armDown(side: "left" | "right"): Limb {
-  const [x, y] = side === "left" ? SL : SR;
+/** A straight leg with a little foot that curls outward. */
+function standingLeg(side: "left" | "right"): Limb {
+  const [x, y] = side === "left" ? HIP_L : HIP_R;
   const d = side === "left" ? -1 : 1;
-  return { part: side === "left" ? "arm-left" : "arm-right", d: `M${x} ${y} L${x + 15 * d} ${y + 14}`, pivot: [x, y], hand: [x + 15 * d, y + 14] };
-}
-function legStraight(side: "left" | "right"): Limb {
-  const [x, y] = side === "left" ? HL : HR;
-  const d = side === "left" ? -1 : 1;
-  return { part: side === "left" ? "leg-left" : "leg-right", d: `M${x} ${y} L${x} ${y + legLen}`, pivot: [x, y], foot: { x, y: y + legLen + 2, dir: d } };
+  const bottom = 458;
+  return {
+    part: side === "left" ? "leg-left" : "leg-right",
+    d: `M${x} ${y} L${x} ${bottom} C${x} ${bottom + 20} ${x + 14 * d} ${bottom + 22} ${x + 28 * d} ${bottom + 14} Q${x + 40 * d} ${bottom + 7} ${x + 44 * d} ${bottom - 2}`,
+    pivot: [x, y],
+  };
 }
 
 export const POSES: Record<Pose, PoseSpec> = {
-  standing: {
-    eyes: "open",
-    mouth: "smile",
-    limbs: [armDown("left"), armDown("right"), legStraight("left"), legStraight("right")],
-  },
-  walking: {
-    eyes: "open",
-    mouth: "small",
-    look: [1, 0],
-    limbs: [
-      { part: "arm-left", d: `M${SL[0]} ${SL[1]} L${SL[0] - 16} ${SL[1] + 6}`, pivot: SL, hand: [SL[0] - 16, SL[1] + 6] },
-      { part: "arm-right", d: `M${SR[0]} ${SR[1]} L${SR[0] + 10} ${SR[1] + 16}`, pivot: SR, hand: [SR[0] + 10, SR[1] + 16] },
-      { part: "leg-left", d: `M${HL[0]} ${HL[1]} L${HL[0] - 7} ${HL[1] + 15}`, pivot: HL, foot: { x: HL[0] - 7, y: HL[1] + 17, dir: -1 } },
-      { part: "leg-right", d: `M${HR[0]} ${HR[1]} L${HR[0] + 7} ${HR[1] + 15}`, pivot: HR, foot: { x: HR[0] + 7, y: HR[1] + 17, dir: 1 } },
-    ],
-  },
-  waving: {
-    eyes: "open",
+  move: {
+    eyes: "calm",
     mouth: "smile",
     limbs: [
-      armDown("left"),
-      { part: "arm-right", d: `M${SR[0]} ${SR[1]} L${SR[0] + 17} ${SR[1] - 8} L${SR[0] + 23} ${SR[1] - 27}`, pivot: SR, hand: [SR[0] + 23, SR[1] - 27] },
-      legStraight("left"),
-      legStraight("right"),
+      // back leg swings down and back, toe curling up
+      { part: "leg-left", d: `M${HIP_L[0]} ${LEG_TOP} C${HIP_L[0] - 6} 400 ${HIP_L[0] - 34} 420 ${HIP_L[0] - 44} 452 C${HIP_L[0] - 50} 472 ${HIP_L[0] - 30} 478 ${HIP_L[0] - 22} 464`, pivot: HIP_L },
+      // front leg kicks forward, foot pointing ahead
+      { part: "leg-right", d: `M${HIP_R[0]} ${LEG_TOP} C${HIP_R[0] + 10} 392 ${HIP_R[0] + 48} 408 ${HIP_R[0] + 70} 436 C${HIP_R[0] + 84} 454 ${HIP_R[0] + 108} 450 ${HIP_R[0] + 114} 432`, pivot: HIP_R },
     ],
   },
-  sleeping: {
-    eyes: "sleep",
-    mouth: "small",
+  hello: {
+    eyes: "calm",
+    mouth: "smile",
     limbs: [
-      { part: "arm-left", d: `M${SL[0]} ${SL[1]} L${SL[0] - 6} ${SL[1] + 17}`, pivot: SL, hand: [SL[0] - 6, SL[1] + 17] },
-      { part: "arm-right", d: `M${SR[0]} ${SR[1]} L${SR[0] + 6} ${SR[1] + 17}`, pivot: SR, hand: [SR[0] + 6, SR[1] + 17] },
-      legStraight("left"),
-      legStraight("right"),
+      { part: "arm-left", d: "M16 150 C-12 182 -24 222 -10 262", pivot: [16, 150] },
+      { part: "arm-right", d: "M428 170 C478 150 492 90 476 40", pivot: [428, 170] },
+      standingLeg("left"),
+      standingLeg("right"),
     ],
   },
-  celebrating: {
+  wait: {
+    eyes: "calm",
+    mouth: "small",
+    limbs: [standingLeg("left"), standingLeg("right")],
+  },
+  done: {
     eyes: "happy",
     mouth: "open",
     limbs: [
-      { part: "arm-left", d: `M${SL[0]} ${SL[1]} L${SL[0] - 17} ${SL[1] - 9} L${SL[0] - 23} ${SL[1] - 28}`, pivot: SL, hand: [SL[0] - 23, SL[1] - 28] },
-      { part: "arm-right", d: `M${SR[0]} ${SR[1]} L${SR[0] + 17} ${SR[1] - 9} L${SR[0] + 23} ${SR[1] - 28}`, pivot: SR, hand: [SR[0] + 23, SR[1] - 28] },
-      { part: "leg-left", d: `M${HL[0]} ${HL[1]} L${HL[0] - 7} ${HL[1] + 15}`, pivot: HL, foot: { x: HL[0] - 7, y: HL[1] + 17, dir: -1 } },
-      { part: "leg-right", d: `M${HR[0]} ${HR[1]} L${HR[0] + 7} ${HR[1] + 15}`, pivot: HR, foot: { x: HR[0] + 7, y: HR[1] + 17, dir: 1 } },
+      { part: "arm-left", d: "M22 156 C-14 130 -40 80 -32 14", pivot: [22, 156] },
+      { part: "arm-right", d: "M422 156 C458 130 484 80 476 14", pivot: [422, 156] },
+      { part: "leg-left", d: `M${HIP_L[0]} ${LEG_TOP} L62 446`, pivot: HIP_L },
+      { part: "leg-right", d: `M${HIP_R[0]} ${LEG_TOP} L382 446`, pivot: HIP_R },
     ],
   },
 };
 
-/** Sleeping z marks, biggest last. */
+/** Sleeping z's for the wait pose: x, y of the top left, size. Biggest first. */
 export const SLEEP_Z: ReadonlyArray<{ x: number; y: number; s: number }> = [
-  { x: 122, y: 42, s: 6 },
-  { x: 131, y: 30, s: 8 },
-  { x: 142, y: 15, s: 10 },
+  { x: 462, y: -42, s: 22 },
+  { x: 500, y: -84, s: 15 },
 ];
 
 export function zPath(x: number, y: number, s: number): string {
   return `M${x} ${y} L${x + s} ${y} L${x} ${y + s} L${x + s} ${y + s}`;
 }
 
-/** Confetti for celebrating: x, y, radius, colour key. */
-export const CONFETTI: ReadonlyArray<{ x: number; y: number; r: number; c: "blaze" | "cobaltGlow" | "ink" }> = [
-  { x: 30, y: 26, r: 3, c: "cobaltGlow" },
-  { x: 48, y: 14, r: 2.5, c: "ink" },
-  { x: 70, y: 10, r: 3.2, c: "blaze" },
-  { x: 94, y: 9, r: 2.5, c: "cobaltGlow" },
-  { x: 114, y: 18, r: 3, c: "ink" },
-  { x: 132, y: 28, r: 2.5, c: "blaze" },
-  { x: 16, y: 56, r: 2.5, c: "blaze" },
-  { x: 146, y: 58, r: 2.5, c: "cobaltGlow" },
-];
+/** A four-point sparkle centred on (0,0) with radius 1. */
+export const SPARKLE_PATH = "M0 -1 Q0.1 -0.1 1 0 Q0.1 0.1 0 1 Q-0.1 0.1 -1 0 Q-0.1 -0.1 0 -1 Z";
+
+/** What floats above the w when a job is done. */
+export const DONE_MARKS = {
+  sparkle: { x: 222, y: -56, r: 30 },
+  dots: [
+    { x: 36, y: -46, r: 11, c: "blaze" as const },
+    { x: 410, y: -46, r: 11, c: "cobaltGlow" as const },
+  ],
+} as const;

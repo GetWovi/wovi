@@ -1,4 +1,4 @@
-import { Mark } from "@/components/brand/Mark";
+import { Logo } from "@/components/brand/Logo";
 import styles from "./Avatar.module.css";
 
 export type AvatarProps = {
@@ -32,7 +32,7 @@ export function Avatar({ name, src, size = 40, kind = "person" }: AvatarProps) {
   if (kind === "agent") {
     return (
       <span className={[styles.avatar, styles.agent].join(" ")} style={style} role="img" aria-label={name}>
-        <Mark size={Math.round(size * 0.62)} ink="cream" label="" />
+        <Logo kind="mark" variant="night" height={Math.round(size * 0.5)} label="" />
       </span>
     );
   }

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
+import { LOGO_FILES } from "@/components/brand/Logo";
 import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
 
@@ -16,18 +17,18 @@ export const metadata: Metadata = {
     default: "WOVI",
     template: "%s | WOVI",
   },
-  description: "Your vision. Agents that execute it. Single-purpose AI agents for social content.",
+  description: "AI agents for content. One agent, one job. Each agent reads your Brand Brain first and hands you work that sounds like you.",
   icons: {
     icon: [
-      { url: "/brand/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "32x32 16x16" },
+      { url: LOGO_FILES.favicon, type: "image/svg+xml" },
+      { url: LOGO_FILES.ico, sizes: "32x32 16x16" },
     ],
-    apple: [{ url: "/brand/app-icon-192.png", sizes: "192x192" }],
+    apple: [{ url: LOGO_FILES.appIcon192, sizes: "192x192" }],
   },
   openGraph: {
     title: "WOVI",
-    description: "Your vision. Agents that execute it.",
-    images: [{ url: "/brand/og-banner.png", width: 1200, height: 630 }],
+    description: "AI agents for content. One agent, one job.",
+    images: [{ url: LOGO_FILES.ogBanner, width: 1200, height: 630 }],
   },
 };
 

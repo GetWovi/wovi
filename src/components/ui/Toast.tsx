@@ -68,7 +68,7 @@ export function Toast({ title, description, tone = "info", onDismiss, static: is
   return (
     <div className={[styles.toast, styles[tone], isStatic ? styles.static : ""].filter(Boolean).join(" ")} role="status">
       <span className={styles.lead}>
-        {tone === "success" ? <Mascot pose="celebrating" size={40} label="" /> : <Icon name={tone === "warning" ? "warning" : "info"} size={22} />}
+        {tone === "success" ? <Mascot pose="done" size={44} label="" /> : <Icon name={tone === "warning" ? "warning" : "info"} size={22} />}
       </span>
       <span className={styles.text}>
         <span className={styles.title}>{title}</span>

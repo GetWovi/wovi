@@ -7,12 +7,12 @@ export type EmptyStateProps = {
   title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
-  /** Waving by default: a welcome. */
+  /** Hello by default: a welcome. */
   pose?: Pose;
   size?: "sm" | "md";
 };
 
-export function EmptyState({ title, description, action, pose = "waving", size = "md" }: EmptyStateProps) {
+export function EmptyState({ title, description, action, pose = "hello", size = "md" }: EmptyStateProps) {
   return (
     <div className={[styles.empty, styles[size]].join(" ")}>
       <Mascot pose={pose} size={size === "sm" ? 96 : 160} />

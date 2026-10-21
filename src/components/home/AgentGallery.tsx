@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, type PointerEvent } from "react";
 import { Mascot } from "@/components/brand/Mascot";
 import { Icon } from "@/components/ui/Icon";
 import { AGENTS } from "./demo-data";
@@ -9,51 +8,40 @@ import { reveal, useScrollScene } from "./scroll";
 import home from "./home.module.css";
 import styles from "./AgentGallery.module.css";
 
+const STATES = [
+  { pose: "move", name: "On the move", when: "A job is running" },
+  { pose: "wait", name: "Waiting for a job", when: "The agent is idle" },
+  { pose: "done", name: "Job done", when: "The result is ready for you" },
+] as const;
+
 export function AgentGallery() {
   const ref = useScrollScene<HTMLElement>(({ el, gsap, reduce }) => {
     reveal(gsap, el, "[data-head]", { reduce });
-    reveal(gsap, el, "[data-card]", { reduce, stagger: 0.06, y: 36, start: "top 75%" });
+    reveal(gsap, el, "[data-card]", { reduce, stagger: 0.06, y: 30, start: "top 72%" });
+    reveal(gsap, el, "[data-state]", { reduce, stagger: 0.12, y: 30, start: "top 70%" });
   });
-
-  // Tilt towards the pointer; the light follows it.
-  const onMove = useCallback((e: PointerEvent<HTMLElement>) => {
-    const card = e.currentTarget;
-    const r = card.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width;
-    const y = (e.clientY - r.top) / r.height;
-    card.style.setProperty("--mx", `${x * 100}%`);
-    card.style.setProperty("--my", `${y * 100}%`);
-    card.style.setProperty("--rx", `${(0.5 - y) * 8}deg`);
-    card.style.setProperty("--ry", `${(x - 0.5) * 10}deg`);
-  }, []);
-  const onLeave = useCallback((e: PointerEvent<HTMLElement>) => {
-    const card = e.currentTarget;
-    card.style.setProperty("--rx", "0deg");
-    card.style.setProperty("--ry", "0deg");
-  }, []);
 
   return (
     <section ref={ref} id="agents" className={home.section} aria-labelledby="agents-title">
-      <div className={home.wash} />
       <div className="container">
         <div className={home.head}>
-          <span className={home.eyebrow} data-head>
-            The marketplace
+          <span className="eyebrow" data-head>
+            The agents
           </span>
           <h2 id="agents-title" className={home.title} data-head>
-            One agent. One job. <em>Done properly.</em>
+            One agent, one job. Pick the one for the task.
           </h2>
           <p className={home.lead} data-head>
-            No all-in-one assistant that is average at everything. Pick the agent for the task, give it a brief, and get work that is scored against your Brand
-            Brain before you see it.
+            No all-in-one assistant that is average at everything. Each agent is built and scored on one outcome, so you can see which one is good before you use
+            it.
           </p>
         </div>
+
         <div className={styles.grid}>
-          {AGENTS.map((a) => (
-            <article key={a.name} className={[styles.card, a.status === "next" ? styles.next : ""].join(" ")} data-card onPointerMove={onMove} onPointerLeave={onLeave}>
-              <div className={styles.light} />
+          {AGENTS.map((a, i) => (
+            <article key={a.name} className={[home.panel, home.panelTight, i % 2 ? home.panelAlt : "", styles.card, a.status === "next" ? styles.next : ""].join(" ")} data-card>
               <div className={styles.top}>
-                <span className={styles.icon}>
+                <span className={[home.iconTile, a.status === "live" ? home.iconTileBlaze : ""].join(" ")}>
                   <Icon name={a.icon} size={22} />
                 </span>
                 {a.status === "live" ? <Ring value={a.fit} size={44} /> : <span className={[home.chip, home.chipCobalt].join(" ")}>Next</span>}
@@ -63,19 +51,36 @@ export function AgentGallery() {
               <div className={styles.foot}>
                 <span className={home.chip}>{a.tag}</span>
                 {a.status === "live" ? (
-                  <span className={styles.run}>
-                    Run <Icon name="arrow-right" size={16} />
+                  <span className={styles.state}>
+                    <span className={styles.stateIdle}>
+                      <Mascot pose="wait" size={36} label="" />
+                    </span>
+                    <span className={styles.stateRun}>
+                      <Mascot pose="move" size={36} label="" />
+                    </span>
+                    <span className={styles.stateText}>
+                      <span className={styles.stateIdle}>Waiting</span>
+                      <span className={styles.stateRun}>Run</span>
+                    </span>
                   </span>
                 ) : (
-                  <span className={styles.sleep}>
-                    <Mascot pose="sleeping" size={30} label="" />
-                  </span>
+                  <span className={styles.soon}>In the works</span>
                 )}
               </div>
             </article>
           ))}
         </div>
-        <p className={styles.note}>Brand fit shown is a sample. Scores come from your own Brand Brain once you set it up.</p>
+        <p className={styles.note}>Brand fit shown is a sample. Real scores come from verified runs against your own Brand Brain.</p>
+
+        <div className={styles.states}>
+          {STATES.map((s, i) => (
+            <div key={s.pose} className={[home.panel, i === 1 ? home.panelAlt : "", styles.stateCard].join(" ")} data-state>
+              <Mascot pose={s.pose} size={150} label={`Wovi, ${s.name.toLowerCase()}`} />
+              <span className={styles.stateName}>{s.name}</span>
+              <span className={styles.stateWhen}>{s.when}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );

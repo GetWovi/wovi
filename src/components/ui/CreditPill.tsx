@@ -1,4 +1,4 @@
-import { Mark } from "@/components/brand/Mark";
+import { Logo } from "@/components/brand/Logo";
 import styles from "./CreditPill.module.css";
 
 export type CreditPillProps = {
@@ -15,7 +15,7 @@ export function CreditPill({ amount, kind = "balance", size = "md" }: CreditPill
   return (
     <span className={[styles.pill, styles[kind], styles[size]].join(" ")} title={`${amount} ${label}`}>
       <span className={styles.coin}>
-        <Mark size={size === "sm" ? 14 : 18} ink={kind === "reward" ? "night" : "auto"} label="" />
+        <Logo kind="mark" variant={kind === "reward" ? "on-cobalt" : "theme"} height={size === "sm" ? 11 : 14} label="" />
       </span>
       <span className={styles.amount}>
         {sign}

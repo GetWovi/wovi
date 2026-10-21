@@ -1,49 +1,21 @@
-/* Shared homepage layout and surfaces. */
+/* Shared homepage vocabulary, from Funkai's boards: night ground, big rounded
+   raised panels with a hairline, orange eyebrows, cream headlines. */
 
 .section {
   position: relative;
-  padding: clamp(72px, 10vw, 140px) 0;
-}
-.sectionTight {
-  position: relative;
-  padding: clamp(56px, 7vw, 96px) 0;
+  padding: clamp(48px, 5.5vw, 84px) 0;
 }
 .head {
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
-  max-width: 760px;
-  margin-bottom: clamp(32px, 5vw, 64px);
-}
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  height: 30px;
-  padding: 0 12px 0 8px;
-  border-radius: var(--r-pill);
-  border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
-  background: color-mix(in srgb, var(--surface) 70%, transparent);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  backdrop-filter: blur(10px);
-}
-.eyebrow::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--blaze);
-  box-shadow: 0 0 12px var(--blaze);
+  max-width: 720px;
+  margin-bottom: clamp(28px, 4vw, 56px);
 }
 .title {
-  font-size: clamp(34px, 4.6vw, 60px);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
+  font-size: clamp(32px, 4.2vw, 56px);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
   font-weight: var(--fw-bold);
   text-wrap: balance;
 }
@@ -51,80 +23,60 @@
   font-style: normal;
   color: var(--blaze-text);
 }
+/* Headlines beside a panel: one size down so they hold to three lines. */
+.titleSm {
+  font-size: clamp(30px, 3.3vw, 44px);
+}
 .lead {
-  font-size: clamp(17px, 1.4vw, 20px);
+  font-size: clamp(17px, 1.35vw, 20px);
   line-height: 1.5;
   color: var(--text-muted);
-  max-width: 58ch;
+  max-width: 56ch;
   text-wrap: pretty;
 }
 
-/* Glass: a real border, a soft inner light, and a blurred ground. */
-.glass {
+/* Panels */
+.panel {
   position: relative;
-  border-radius: var(--r-lg);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 82%, transparent), color-mix(in srgb, var(--surface) 62%, transparent));
-  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--text) 10%, transparent),
-    0 30px 80px rgb(0 0 0 / 0.35);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  padding: clamp(22px, 2.6vw, 36px);
 }
-:global([data-theme="light"]) .glass {
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.8),
-    0 30px 80px rgb(11 18 48 / 0.12);
+.panelAlt {
+  background: var(--surface-alt);
 }
-
-/* Grain: a static noise layer that keeps gradients from banding. */
-.grain {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.09;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
-}
-
-/* Soft colour wash behind a section */
-.wash {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
-}
-.wash::before,
-.wash::after {
-  content: "";
-  position: absolute;
-  width: 60vw;
-  height: 60vw;
-  max-width: 900px;
-  max-height: 900px;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.35;
-}
-.wash::before {
-  left: -20vw;
-  top: -10%;
-  background: var(--cobalt);
-}
-.wash::after {
-  right: -25vw;
-  bottom: -20%;
+.panelBlaze {
   background: var(--blaze);
-  opacity: 0.22;
+  border-color: transparent;
+  color: var(--on-blaze);
 }
-:global([data-theme="light"]) .wash::before,
-:global([data-theme="light"]) .wash::after {
-  opacity: 0.16;
+.panelCobalt {
+  background: var(--cobalt);
+  border-color: transparent;
+  color: var(--on-cobalt);
+}
+.panelTight {
+  border-radius: var(--r-lg);
+  padding: clamp(18px, 2vw, 26px);
+}
+/* A small label at the top of a panel */
+.panelLabel {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blaze-text);
+  margin-bottom: var(--s-3);
+}
+.panelBlaze .panelLabel,
+.panelCobalt .panelLabel {
+  color: inherit;
+  opacity: 0.85;
 }
 
+/* Chips */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -132,10 +84,10 @@
   height: 26px;
   padding: 0 10px;
   border-radius: var(--r-pill);
-  background: color-mix(in srgb, var(--text) 8%, transparent);
+  background: var(--text-tint);
   font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
   white-space: nowrap;
@@ -147,6 +99,10 @@
 .chipCobalt {
   background: var(--cobalt-tint);
   color: var(--cobalt-glow);
+}
+.chipSolid {
+  background: var(--blaze);
+  color: var(--on-blaze);
 }
 
 /* Score ring */
@@ -167,4 +123,20 @@
   font-size: 13px;
   font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums;
+}
+
+/* Icon tile: a rounded square with a bold icon */
+.iconTile {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--cobalt-tint);
+  color: var(--cobalt-glow);
+  flex: none;
+}
+.iconTileBlaze {
+  background: var(--blaze-tint);
+  color: var(--blaze-text);
 }

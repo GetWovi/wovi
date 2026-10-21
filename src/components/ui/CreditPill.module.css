@@ -32,6 +32,6 @@
   color: var(--text-muted);
 }
 .reward {
-  background: var(--blaze);
-  color: var(--on-blaze);
+  background: var(--cobalt);
+  color: var(--on-cobalt);
 }

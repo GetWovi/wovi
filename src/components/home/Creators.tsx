@@ -1,90 +1,89 @@
 "use client";
 
+import { Logo } from "@/components/brand/Logo";
 import { Mascot } from "@/components/brand/Mascot";
-import { Mark } from "@/components/brand/Mark";
-import { Icon } from "@/components/ui/Icon";
 import { Ring } from "./Ring";
 import { reveal, useScrollScene } from "./scroll";
 import home from "./home.module.css";
 import styles from "./Creators.module.css";
 
 const STEPS = [
-  { n: "01", title: "Define one job", text: "A clear brief, a few examples, the rules it must never break." },
-  { n: "02", title: "Test it against real Brand Brains", text: "Run it on sample briefs and see the fit before anyone else does." },
-  { n: "03", title: "List it with a price", text: "You set the credits per run. Buyers see the fit, not a sales page." },
-  { n: "04", title: "Earn when it runs", text: "Every run pays the creator. Keep improving it, keep earning." },
+  { n: "01", title: "Describe one job", text: "A plain-language brief, sample work you like, and the rules it must never break. No code." },
+  { n: "02", title: "Test it on real briefs", text: "Run it against sample Brand Brains, compare versions side by side, and see the fit before anyone else does." },
+  { n: "03", title: "List it", text: "Your agent goes in the gallery with a verified score from real runs. Reviews come from real users only." },
+  { n: "04", title: "Earn when it runs", text: "Every run pays the creator. Feedback from live runs comes back as suggestions you approve, so it keeps getting better." },
 ];
 
 export function Creators() {
   const ref = useScrollScene<HTMLElement>(({ el, gsap, reduce }) => {
     reveal(gsap, el, "[data-head]", { reduce });
-    reveal(gsap, el, "[data-step]", { reduce, stagger: 0.12, y: 30 });
+    reveal(gsap, el, "[data-step]", { reduce, stagger: 0.1, y: 30, start: "top 72%" });
     reveal(gsap, el, "[data-card]", { reduce, y: 50, start: "top 70%" });
   });
 
   return (
     <section ref={ref} id="creators" className={home.section} aria-labelledby="creators-title">
-      <div className={["container", styles.inner].join(" ")}>
-        <div className={styles.left}>
-          <div className={[home.head, styles.head].join(" ")}>
-            <span className={home.eyebrow} data-head>
-              For creators
-            </span>
-            <h2 id="creators-title" className={home.title} data-head>
-              Build an agent. <em>Earn when it runs.</em>
-            </h2>
-            <p className={home.lead} data-head>
-              If you can describe one job well, you can build an agent for it. WOVI handles the running, the scoring and the payouts.
-            </p>
-          </div>
+      <div className="container">
+        <div className={home.head}>
+          <span className="eyebrow" data-head>
+            For creators
+          </span>
+          <h2 id="creators-title" className={home.title} data-head>
+            Build an agent. Earn when it runs.
+          </h2>
+          <p className={home.lead} data-head>
+            If you can describe one job well, you can build an agent for it, with prompts, mood boards and sample work as the only inputs. WOVI runs it, scores
+            it and pays you.
+          </p>
+        </div>
+
+        <div className={styles.inner}>
           <ol className={styles.steps}>
-            {STEPS.map((s) => (
-              <li key={s.n} className={styles.step} data-step>
+            {STEPS.map((s, i) => (
+              <li key={s.n} className={[home.panel, home.panelTight, i % 2 ? home.panelAlt : "", styles.step].join(" ")} data-step>
                 <span className={styles.stepNum}>{s.n}</span>
-                <span>
-                  <strong>{s.title}</strong>
-                  <span className={styles.stepText}>{s.text}</span>
-                </span>
+                <strong className={styles.stepTitle}>{s.title}</strong>
+                <span className={styles.stepText}>{s.text}</span>
               </li>
             ))}
           </ol>
-        </div>
 
-        <div className={styles.right}>
-          <div className={[home.glass, styles.card].join(" ")} data-card>
+          <div className={[home.panel, home.panelCobalt, styles.card].join(" ")} data-card>
+            <span className={home.panelLabel}>A creator listing</span>
             <div className={styles.cardTop}>
               <span className={styles.avatar}>
-                <Mark size={26} ink="cream" />
+                <Logo kind="mark" variant="on-cobalt" height={22} label="" />
               </span>
               <span className={styles.cardMeta}>
                 <strong>Local Shop Storyteller</strong>
                 <span>by a creator like you</span>
               </span>
-              <Ring value={92} size={44} />
+              <Ring value={92} size={48} tone="cream" />
             </div>
             <p className={styles.cardJob}>Turns one thing that happened in the shop today into a post locals will stop for.</p>
             <div className={styles.cardRow}>
-              <span className={home.chip}>Hooks</span>
-              <span className={home.chip}>Local</span>
-              <span className={home.chip}>Short-form</span>
-            </div>
-            <div className={styles.price}>
-              <span>
-                <span className={styles.priceLabel}>Price per run</span>
-                <span className={styles.priceValue}>
-                  <Mark size={16} face={false} /> 2 credits
+              {["Hooks", "Local", "Short-form"].map((t) => (
+                <span key={t} className={styles.tag}>
+                  {t}
                 </span>
-              </span>
-              <span className={styles.priceHint}>You set it. You change it any time.</span>
+              ))}
             </div>
-            <div className={styles.payout}>
-              <span className={styles.payoutLine}>
-                <Icon name="bolt" size={16} /> Run finished
+            <div className={styles.stats}>
+              <span>
+                <span className={styles.statLabel}>Verified score</span>
+                <span className={styles.statValue}>From real runs</span>
               </span>
-              <span className={styles.payoutAmount}>+ credits to you</span>
+              <span>
+                <span className={styles.statLabel}>Reviews</span>
+                <span className={styles.statValue}>Real users only</span>
+              </span>
             </div>
             <div className={styles.cheer}>
-              <Mascot pose="celebrating" size={120} label="Wovi celebrating a payout" />
+              <span className={styles.cheerText}>
+                <strong>Job done.</strong>
+                <span>The creator earns.</span>
+              </span>
+              <Mascot pose="done" size={150} ink="cream" label="Wovi, job done" />
             </div>
           </div>
         </div>

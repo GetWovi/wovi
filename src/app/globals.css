@@ -37,7 +37,19 @@ h4 {
 h1 {
   font-size: var(--fs-4xl);
   line-height: var(--lh-tight);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+body {
+  overflow-x: clip;
 }
 h2 {
   font-size: var(--fs-2xl);
@@ -108,6 +120,36 @@ svg {
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+/* The logo follows the theme: one file for night, one for light. */
+.wovi-logo {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+.wovi-logo img {
+  height: 100%;
+  width: auto;
+}
+.wovi-logo-light {
+  display: none;
+}
+[data-theme="light"] .wovi-logo-night {
+  display: none;
+}
+[data-theme="light"] .wovi-logo-light {
+  display: block;
+}
+
+/* Shared page vocabulary from the brand board */
+.eyebrow {
+  display: inline-block;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--blaze-text);
 }
 
 code,

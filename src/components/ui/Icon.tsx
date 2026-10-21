@@ -23,7 +23,30 @@ const PATHS = {
   upload: "M12 16V4M6.5 9.5L12 4l5.5 5.5M4 20h16",
   film: "M4 5h16v14H4zM4 10h16M4 14h16M8 5v14M16 5v14",
   hash: "M9 4l-2 16M17 4l-2 16M4 9h17M3 15h17",
+  mail: "M3.5 6.5h17v11h-17zM3.5 7l8.5 6.5L20.5 7",
+  link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5",
+  image: "M4 5h16v14H4zM4 15l5-5 4 4 3-3 4 4M15.5 9.5h.01",
+  mic: "M12 15a3.5 3.5 0 0 0 3.5-3.5v-5a3.5 3.5 0 0 0-7 0v5A3.5 3.5 0 0 0 12 15zM6 11.5a6 6 0 0 0 12 0M12 17.5V21",
+  pen: "M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10zM13.5 8l3 3",
 } as const;
+
+/* Brand marks for the header: drawn as filled shapes, not strokes. */
+const FILLED = {
+  github:
+    "M12 2C6.5 2 2 6.6 2 12.2c0 4.5 2.9 8.3 6.8 9.7.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.4 9.4 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.3 4.7-4.6 5 .4.3.7 1 .7 1.9v2.8c0 .3.2.6.7.5A10.2 10.2 0 0 0 22 12.2C22 6.6 17.5 2 12 2z",
+  x: "M17.8 3h3.1l-6.8 7.8L22 21h-6.3l-4.9-6.4L5.2 21H2.1l7.3-8.3L1.8 3h6.4l4.4 5.9L17.8 3zm-1.1 16.2h1.7L7.3 4.7H5.4l11.3 14.5z",
+} as const;
+
+export type BrandIconName = keyof typeof FILLED;
+
+/** GitHub and X, as filled marks. */
+export function BrandIcon({ name, size = 22, label, ...rest }: Omit<SVGProps<SVGSVGElement>, "name"> & { name: BrandIconName; size?: number; label?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true} {...rest}>
+      <path d={FILLED[name]} />
+    </svg>
+  );
+}
 
 export type IconName = keyof typeof PATHS;
 export const ICON_NAMES = Object.keys(PATHS) as IconName[];

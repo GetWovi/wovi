@@ -7,9 +7,9 @@ import styles from "./JobRow.module.css";
 export type JobStatus = "running" | "idle" | "done";
 
 const STATUS: Record<JobStatus, { pose: Pose; label: string }> = {
-  running: { pose: "walking", label: "Running" },
-  idle: { pose: "sleeping", label: "Idle" },
-  done: { pose: "celebrating", label: "Done" },
+  running: { pose: "move", label: "Running" },
+  idle: { pose: "wait", label: "Waiting" },
+  done: { pose: "done", label: "Done" },
 };
 
 export type JobRowProps = {

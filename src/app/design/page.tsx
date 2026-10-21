@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import type { Pose } from "@/brand/geometry";
+import { POSE_NAMES, type Pose } from "@/brand/geometry";
+import { Sparkle, Sticker } from "@/components/brand/Accents";
+import { Logo, LOGO_FILES } from "@/components/brand/Logo";
 import { Mascot } from "@/components/brand/Mascot";
-import { AppIcon, Mark } from "@/components/brand/Mark";
-import { Wordmark, WORDMARK_VARIANTS, type WordmarkVariant } from "@/components/brand/Wordmark";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteHeader";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -32,15 +32,16 @@ const SECTIONS = [
 ] as const;
 
 const TOKENS: { name: string; night: string; light: string; use: string; variable: string }[] = [
-  { name: "Background", night: "#0B1230", light: "#FFF4DC", use: "App ground", variable: "--bg" },
+  { name: "Background", night: "#0B1230", light: "#FFF4DC", use: "App ground. Night is the default.", variable: "--bg" },
   { name: "Surface", night: "#141D44", light: "#FFFFFF", use: "Cards, panels, sheets", variable: "--surface" },
+  { name: "Surface alt", night: "#1C2760", light: "#FFF9EA", use: "Alternating panels", variable: "--surface-alt" },
   { name: "Line", night: "#2A3668", light: "#E8D9B5", use: "Borders, dividers", variable: "--line" },
   { name: "Text", night: "#FFF4DC", light: "#0B1230", use: "Body and headings", variable: "--text" },
   { name: "Text muted", night: "#A9B3D9", light: "#3A4468", use: "Captions, helper text", variable: "--text-muted" },
-  { name: "Blaze", night: "#FF5A1F", light: "#FF5A1F", use: "Logo, primary buttons, key moments", variable: "--blaze" },
-  { name: "Cobalt", night: "#1F4DFF", light: "#1F4DFF", use: "Fills, secondary buttons, highlights", variable: "--cobalt" },
-  { name: "Cobalt Glow", night: "#7C97FF", light: "#1F4DFF", use: "Cobalt as text or links on night", variable: "--cobalt-glow" },
-  { name: "Blaze Text", night: "#FF5A1F", light: "#BF3E0E", use: "Derived: Blaze as text; deeper on light", variable: "--blaze-text" },
+  { name: "Blaze", night: "#FF5A1F", light: "#FF5A1F", use: "Primary. Logo, buttons, key moments", variable: "--blaze" },
+  { name: "Cobalt", night: "#1F4DFF", light: "#1F4DFF", use: "Second voice. Fills, highlights", variable: "--cobalt" },
+  { name: "Cobalt Glow", night: "#7C97FF", light: "#1F4DFF", use: "Cobalt as text, lines and stickers on night", variable: "--cobalt-glow" },
+  { name: "Blaze text", night: "#FF5A1F", light: "#BF3E0E", use: "Derived: Blaze as text, deeper on light", variable: "--blaze-text" },
 ];
 
 const PAIRS: { label: string; fg: string; bg: string; rule: "use" | "never" }[] = [
@@ -57,32 +58,40 @@ const PAIRS: { label: string; fg: string; bg: string; rule: "use" | "never" }[] 
   { label: "Text muted on Background (light)", fg: "#3A4468", bg: "#FFF4DC", rule: "use" },
   { label: "Cobalt as text on Cream (light)", fg: "#1F4DFF", bg: "#FFF4DC", rule: "use" },
   { label: "Blaze as text on Cream (light)", fg: "#FF5A1F", bg: "#FFF4DC", rule: "never" },
-  { label: "Blaze Text (deep) on Cream (light)", fg: "#BF3E0E", bg: "#FFF4DC", rule: "use" },
+  { label: "Blaze text (deep) on Cream (light)", fg: "#BF3E0E", bg: "#FFF4DC", rule: "use" },
 ];
 
-const POSES: { pose: Pose; state: string; when: string }[] = [
-  { pose: "walking", state: "Walking", when: "A job is running or loading" },
-  { pose: "waving", state: "Waving hello", when: "Onboarding, welcome, empty states" },
-  { pose: "sleeping", state: "Sleeping", when: "An agent idle, waiting for a job" },
-  { pose: "celebrating", state: "Celebrating", when: "A job done, a credit reward lands" },
+const LOGOS: { variant: "night" | "light" | "on-blaze" | "on-cobalt"; ground: string; name: string; use: string }[] = [
+  { variant: "night", ground: "#0B1230", name: "Primary", use: "Blaze on Night. App header, splash, social banners" },
+  { variant: "light", ground: "#FFF4DC", name: "Light mode", use: "Blaze on Cream. Light theme, documents" },
+  { variant: "on-blaze", ground: "#FF5A1F", name: "Night on Blaze", use: "Campaign graphics, merch" },
+  { variant: "on-cobalt", ground: "#1F4DFF", name: "Cream on Cobalt", use: "Campaign graphics, merch" },
+];
+
+const POSES: { pose: Pose; brand: string; state: string }[] = [
+  { pose: "move", brand: "Walking", state: "A job is running or loading" },
+  { pose: "hello", brand: "Waving hello", state: "Onboarding, welcome, empty states" },
+  { pose: "wait", brand: "Sleeping", state: "An agent is waiting for a job, idle" },
+  { pose: "done", brand: "Celebrating", state: "A job is done, a credit reward lands" },
 ];
 
 const TYPE_SCALE: { token: string; px: number; weight: number; sample: string }[] = [
-  { token: "--fs-5xl", px: 80, weight: 700, sample: "Your vision." },
-  { token: "--fs-4xl", px: 48, weight: 700, sample: "Agents that execute it" },
-  { token: "--fs-3xl", px: 36, weight: 700, sample: "One agent, one job" },
+  { token: "--fs-5xl", px: 80, weight: 700, sample: "One agent. One job." },
+  { token: "--fs-4xl", px: 48, weight: 700, sample: "Night is the default" },
+  { token: "--fs-3xl", px: 36, weight: 700, sample: "The w is Wovi" },
   { token: "--fs-2xl", px: 28, weight: 700, sample: "Hook Writer finished" },
   { token: "--fs-xl", px: 22, weight: 600, sample: "Ten hooks, ranked" },
   { token: "--fs-lg", px: 18, weight: 500, sample: "A caption in your voice for the platform you post on" },
   { token: "--fs-md", px: 16, weight: 400, sample: "Body text. Each agent does one task and does it well, so the result reads like you on a good day." },
   { token: "--fs-sm", px: 14, weight: 500, sample: "Helper text, labels and metadata" },
-  { token: "--fs-xs", px: 12, weight: 600, sample: "TAGS AND FINE PRINT" },
+  { token: "--fs-xs", px: 12, weight: 600, sample: "EYEBROWS, TAGS AND FINE PRINT" },
 ];
 
 function Section({ id, title, intro, children }: { id: string; title: string; intro?: string; children: React.ReactNode }) {
   return (
     <section id={id} className={styles.section} aria-labelledby={`${id}-title`}>
       <div className={styles.sectionHead}>
+        <span className="eyebrow">{title}</span>
         <h2 id={`${id}-title`}>{title}</h2>
         {intro && <p className={styles.intro}>{intro}</p>}
       </div>
@@ -109,10 +118,10 @@ export default function DesignPage() {
       <SiteHeader active="design" />
       <main className="container">
         <header className={styles.pageHead}>
-          <Tag tone="blaze">Phase 1</Tag>
-          <h1>WOVI design system</h1>
+          <span className="eyebrow">WOVI</span>
+          <h1>Night is the default</h1>
           <p className={styles.lead}>
-            Night first, built from tokens. Switch the theme in the header to check every piece on both grounds.
+            The brand from Funkai&apos;s boards, built as tokens, components and the mascot. Switch the theme in the header to check every piece on both grounds.
           </p>
           <nav className={styles.jump} aria-label="Sections">
             {SECTIONS.map(([id, label]) => (
@@ -123,113 +132,140 @@ export default function DesignPage() {
           </nav>
         </header>
 
-        <Section id="logo" title="Logo" intro="One stroke draws the whole word. The w tucks into the o, the o touches the v, the v touches a tall capital I with slab terminals so it never reads as an l. The w is the same letter Wovi is drawn from.">
+        <Section
+          id="logo"
+          title="Logo"
+          intro="The wordmark WOVI in chunky rounded strokes. The w is the mascot: three soft bumps on top, two legs below, a sleeping face and cobalt cheeks. O, V and I are geometric with fully rounded ends and the same weight."
+        >
           <div className={styles.logoGrid}>
-            {(Object.keys(WORDMARK_VARIANTS) as WordmarkVariant[])
-              .filter((v) => v !== "theme")
-              .map((v) => (
-                <figure key={v} className={styles.logoTile}>
-                  <Wordmark variant={v} height={150} withBackground className={styles.logoArt} />
-                  <figcaption>
-                    <strong>{WORDMARK_VARIANTS[v].name}</strong>
-                    <span className="muted">{WORDMARK_VARIANTS[v].use}</span>
-                  </figcaption>
-                </figure>
-              ))}
-          </div>
-          <Sub title="Mascot only" note="Below 80px wide, and for avatars, app icon and favicon, the w stands alone: a clean letter under 32px, the face from 32px up.">
-            <div className={styles.markRow}>
-              {[16, 24, 32, 48, 64, 80].map((s) => (
-                <div key={s} className={styles.markCell}>
-                  <Mark size={s} />
-                  <span className={styles.caption}>{s}px</span>
+            {LOGOS.map((l) => (
+              <figure key={l.variant} className={styles.logoTile}>
+                <div className={styles.logoArt} style={{ background: l.ground }}>
+                  <Logo variant={l.variant} height={96} label={`WOVI, ${l.name}`} />
                 </div>
-              ))}
-              <div className={styles.markCell}>
-                <Mark size={80} face={false} />
-                <span className={styles.caption}>Letter only</span>
-              </div>
-              <div className={styles.markCell}>
-                <AppIcon size={96} />
-                <span className={styles.caption}>App icon</span>
-              </div>
-              <div className={styles.markCell}>
-                <AppIcon size={48} />
-                <span className={styles.caption}>192 / 48</span>
-              </div>
-              <div className={styles.markCell}>
-                <AppIcon size={32} rounded={false} />
-                <span className={styles.caption}>Favicon</span>
-              </div>
-            </div>
-          </Sub>
-          <Sub title="Rules">
-            <ul className={styles.rules}>
-              <li>Keep the height of the o free on every side of the wordmark.</li>
-              <li>Never respace, outline, stretch or recolour the letters.</li>
-              <li>Primary is Blaze on Night. On light surfaces use Blaze on Cream. Night on Blaze and Cream on Cobalt are the colour variants.</li>
-              <li>The wordmark is always the clean letters. The face, limbs and outline of Wovi follow the surface: Cream where the ground is dark, Night where it is light.</li>
-              <li>Under 32px the mark is the letter alone; the face only appears where it can be seen.</li>
-            </ul>
-          </Sub>
-        </Section>
-
-        <Section id="mascot" title="Mascot" intro="Wovi is the w from the wordmark with a face, a sticker outline, and thin arms and legs that appear in poses. Each pose is a product state.">
-          <div className={styles.poseGrid}>
-            {POSES.map((p) => (
-              <figure key={p.pose} className={styles.poseTile}>
-                <Mascot pose={p.pose} size={200} />
                 <figcaption>
-                  <strong>{p.state}</strong>
-                  <span className="muted">{p.when}</span>
+                  <strong>{l.name}</strong>
+                  <span className="muted">{l.use}</span>
                 </figcaption>
               </figure>
             ))}
           </div>
-          <Sub title="Sizes" note="From 24px to 320px. Below 48px the face is a hint; the pose still reads.">
+          <Sub title="The w alone" note="Below 80px wide, and for avatars, the app icon and the favicon, the w stands alone.">
+            <div className={styles.markRow}>
+              {[16, 24, 32, 48, 64, 80].map((s) => (
+                <div key={s} className={styles.markCell}>
+                  <Logo kind="mark" height={Math.round(s * 0.79)} label={`WOVI mark at ${s}px`} />
+                  <span className={styles.caption}>{s}px</span>
+                </div>
+              ))}
+              <div className={styles.markCell}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/app-icon.svg" alt="App icon" width={96} height={96} className={styles.appIcon} />
+                <span className={styles.caption}>App icon</span>
+              </div>
+              <div className={styles.markCell}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={LOGO_FILES.favicon} alt="Favicon" width={32} height={32} />
+                <span className={styles.caption}>Favicon</span>
+              </div>
+            </div>
+          </Sub>
+          <Sub title="Files" note="The site shows the logo only through the Logo component, which reads these files. Replace them to swap the logo everywhere.">
+            <ul className={styles.rules}>
+              <li>
+                <code>public/brand/wovi-wordmark.svg</code> blaze letters for night grounds, and <code>wovi-wordmark-on-light.svg</code> for cream
+              </li>
+              <li>
+                <code>wovi-wordmark-night.svg</code> for a Blaze ground, <code>wovi-wordmark-cream.svg</code> for a Cobalt ground
+              </li>
+              <li>
+                <code>wovi-mark.svg</code> and the same three variants for the w alone
+              </li>
+              <li>
+                <code>public/favicon.ico</code>, <code>public/brand/favicon.svg</code>, <code>app-icon-192.png</code>, <code>app-icon-512.png</code>,{" "}
+                <code>og-banner.png</code>
+              </li>
+            </ul>
+          </Sub>
+          <Sub title="Rules">
+            <ul className={styles.rules}>
+              <li>Blaze on Night is the primary. Blaze on Cream is the light-mode version. Night on Blaze and Cream on Cobalt are the colour variants.</li>
+              <li>Keep the height of the o free on every side of the wordmark.</li>
+              <li>Never respace, outline, stretch or recolour the letters.</li>
+              <li>Below 80px wide, use the w alone.</li>
+            </ul>
+          </Sub>
+        </Section>
+
+        <Section id="mascot" title="Mascot" intro="The w is Wovi. Thin cream arms and legs appear in four poses, and each pose stands for a product state, so the app can reuse it.">
+          <div className={styles.poseGrid}>
+            {POSES.map((p, i) => (
+              <figure key={p.pose} className={[styles.poseTile, i % 3 === 1 ? styles.poseTileAlt : ""].join(" ")}>
+                <Mascot pose={p.pose} size={220} />
+                <figcaption>
+                  <strong>{POSE_NAMES[p.pose]}</strong>
+                  <span className={styles.poseBrand}>{p.brand}</span>
+                  <span className="muted">{p.state}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <Sub title="Sizes" note="From 24px to 320px wide. Below 48px the face is a hint; the pose still reads.">
             <div className={styles.sizeRow}>
               {[24, 32, 48, 64, 96, 160, 240, 320].map((s) => (
                 <div key={s} className={styles.markCell}>
-                  <Mascot pose="waving" size={s} animate={false} />
+                  <Mascot pose="hello" size={s} animate={false} />
                   <span className={styles.caption}>{s}</span>
                 </div>
               ))}
             </div>
           </Sub>
-          <Sub title="On either ground" note="Limbs, face lines and the outline use Cream on night and Night on light. Pass ink when the surface differs from the theme.">
+          <Sub title="On either ground" note="Limbs use Cream on night and Night on light. Pass ink when the surface differs from the theme. The body stays Blaze.">
             <div className={styles.groundRow}>
               <div className={styles.groundNight}>
-                <Mascot pose="celebrating" size={120} ink="cream" />
-                <span>Cream ink on Night</span>
+                <Mascot pose="done" size={140} ink="cream" />
+                <span>Cream limbs on Night</span>
               </div>
               <div className={styles.groundLight}>
-                <Mascot pose="celebrating" size={120} ink="night" />
-                <span>Night ink on Cream</span>
+                <Mascot pose="done" size={140} ink="night" />
+                <span>Night limbs on Cream</span>
               </div>
               <div className={styles.groundCobalt}>
-                <Mascot pose="walking" size={120} ink="cream" />
-                <span>Cream ink on Cobalt</span>
+                <Mascot pose="move" size={140} ink="cream" />
+                <span>Cream limbs on Cobalt</span>
               </div>
               <div className={styles.groundBlaze}>
-                <Mascot pose="sleeping" size={120} ink="night" />
-                <span>Night ink on Blaze</span>
+                <Mascot pose="wait" size={140} ink="night" />
+                <span>Night limbs on Blaze</span>
               </div>
             </div>
           </Sub>
-          <Sub title="Motion" note="Wovi bobs, waves, breathes or hops. Motion never blocks a job and stops under prefers-reduced-motion.">
+          <Sub title="Accents" note="Hand-drawn-feeling stickers in Cobalt Glow and four-point sparkles go with the mascot.">
+            <div className={styles.row}>
+              <Sticker tilt={-7}>one agent</Sticker>
+              <Sticker tilt={5}>one job</Sticker>
+              <Sticker tone="blaze" tilt={-4}>
+                night first
+              </Sticker>
+              <Sparkle size={28} />
+              <Sparkle size={18} />
+              <Sparkle size={12} />
+            </div>
+          </Sub>
+          <Sub title="Motion" note="Wovi breathes, walks, waves or jumps. Motion never blocks a job and stops under prefers-reduced-motion.">
             <div className={styles.row}>
               {POSES.map((p) => (
-                <Mascot key={p.pose} pose={p.pose} size={72} />
+                <Mascot key={p.pose} pose={p.pose} size={80} />
               ))}
               <span className="muted">Static:</span>
               {POSES.map((p) => (
-                <Mascot key={p.pose} pose={p.pose} size={72} animate={false} />
+                <Mascot key={p.pose} pose={p.pose} size={80} animate={false} />
               ))}
             </div>
           </Sub>
         </Section>
 
-        <Section id="colour" title="Colour" intro="Eight brand tokens plus one derived text token. Blaze is the brand and the primary action; Cobalt fills and highlights; Cobalt Glow carries Cobalt as text on night; Blaze Text carries Blaze as text on light.">
+        <Section id="colour" title="Colour" intro="Night is the default. Blaze orange glows on it, and cobalt is the supporting voice. Where cobalt is used as text or lines on night, use Cobalt Glow so it stays readable. Light mode is the alternate: cream ground, night text, same blaze and cobalt.">
           <div className={styles.swatches}>
             {TOKENS.map((t) => (
               <div key={t.name} className={styles.swatch}>
@@ -249,7 +285,7 @@ export default function DesignPage() {
               </div>
             ))}
           </div>
-          <Sub title="Contrast" note="Measured with WCAG 2 relative luminance. Text on a Blaze button is Night, never Cream. Cobalt as text on Night is too weak; use Cobalt Glow.">
+          <Sub title="Contrast" note="Text on a Blaze button is Night, never Cream. Cobalt as text on Night is too weak; use Cobalt Glow. Cream on a Cobalt fill is fine.">
             <div className={styles.contrast}>
               {PAIRS.map((p) => {
                 const r = contrastRatio(p.fg, p.bg);
@@ -276,14 +312,14 @@ export default function DesignPage() {
           </Sub>
         </Section>
 
-        <Section id="type" title="Type" intro="Outfit in Regular, Medium, SemiBold and Bold, self-hosted. Headlines tight, body relaxed.">
+        <Section id="type" title="Type" intro="Outfit in Regular, Medium, SemiBold and Bold, for headlines and interface. Headlines are cream and tight; eyebrows are small, orange and letter-spaced; secondary text is the muted lavender-gray.">
           <div className={styles.typeList}>
             {TYPE_SCALE.map((t) => (
               <div key={t.token} className={styles.typeRow}>
                 <span className={styles.typeMeta}>
                   <code>{t.token}</code> {t.px}px / {t.weight}
                 </span>
-                <span className={styles.typeSample} style={{ fontSize: t.px, fontWeight: t.weight, lineHeight: t.px >= 36 ? 1.05 : t.px >= 22 ? 1.2 : 1.5 }}>
+                <span className={styles.typeSample} style={{ fontSize: t.px, fontWeight: t.weight, lineHeight: t.px >= 36 ? 1.05 : t.px >= 22 ? 1.2 : 1.5, letterSpacing: t.px === 12 ? "0.16em" : undefined }}>
                   {t.sample}
                 </span>
               </div>
@@ -291,21 +327,41 @@ export default function DesignPage() {
           </div>
         </Section>
 
-        <Section id="shape" title="Shape and motion" intro="Round and bold. Large radii, thick strokes, no hairlines. Motion is quick and springy.">
+        <Section id="shape" title="Shape and motion" intro="Flat and round. Big rounded panels with a hairline on night, thick strokes on icons and controls, no gradients for their own sake.">
           <div className={styles.shapeGrid}>
+            <Sub title="Panels" note="Raised and Surface alt alternate. Blaze and Cobalt panels are the colour moments.">
+              <div className={styles.panelRow}>
+                <div className={styles.panelDemo}>
+                  <span className="eyebrow">Raised</span>
+                  <strong>#141D44</strong>
+                </div>
+                <div className={[styles.panelDemo, styles.panelDemoAlt].join(" ")}>
+                  <span className="eyebrow">Surface alt</span>
+                  <strong>#1C2760</strong>
+                </div>
+                <div className={[styles.panelDemo, styles.panelDemoBlaze].join(" ")}>
+                  <span>Blaze</span>
+                  <strong>#FF5A1F</strong>
+                </div>
+                <div className={[styles.panelDemo, styles.panelDemoCobalt].join(" ")}>
+                  <span>Cobalt</span>
+                  <strong>#1F4DFF</strong>
+                </div>
+              </div>
+            </Sub>
             <Sub title="Radii">
               <div className={styles.row}>
                 {[
-                  ["--r-sm", "10px"],
-                  ["--r-md", "16px"],
-                  ["--r-lg", "24px"],
-                  ["--r-xl", "32px"],
+                  ["--r-sm", "12px"],
+                  ["--r-md", "18px"],
+                  ["--r-lg", "28px"],
+                  ["--r-xl", "40px"],
                   ["--r-pill", "999px"],
                 ].map(([token, value]) => (
                   <div key={token} className={styles.markCell}>
                     <span className={styles.radiusBox} style={{ borderRadius: value }} />
                     <span className={styles.caption}>
-                      <code>{token}</code>
+                      <code>{token}</code> {value}
                     </span>
                   </div>
                 ))}
@@ -323,19 +379,7 @@ export default function DesignPage() {
                 ))}
               </div>
             </Sub>
-            <Sub title="Shadows">
-              <div className={styles.row}>
-                {["sm", "md", "lg"].map((s) => (
-                  <div key={s} className={styles.markCell}>
-                    <span className={styles.shadowBox} style={{ boxShadow: `var(--shadow-${s})` }} />
-                    <span className={styles.caption}>
-                      <code>--shadow-{s}</code>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Sub>
-            <Sub title="Icons" note="24 grid, 2.5 stroke, round caps.">
+            <Sub title="Icons" note="24 grid, 2.5 stroke, round caps. No thin hairline icons.">
               <div className={styles.iconRow}>
                 {ICON_NAMES.map((n) => (
                   <span key={n} className={styles.iconCell} title={n}>
@@ -344,7 +388,7 @@ export default function DesignPage() {
                 ))}
               </div>
             </Sub>
-            <Sub title="Motion" note="120ms fast, 200ms base, 320ms slow. One standard ease and one bounce for knobs and mascots.">
+            <Sub title="Motion" note="120ms fast, 200ms base, 320ms slow. One standard ease and one bounce for knobs and the mascot. Sections rise in on scroll; nothing moves under reduced motion.">
               <div className={styles.row}>
                 <code>--t-fast 120ms</code>
                 <code>--t-base 200ms</code>
@@ -403,7 +447,7 @@ export default function DesignPage() {
           <Sub title="Card">
             <div className={styles.cardGrid}>
               <Card title="Raised" actions={<Button size="sm" variant="ghost">Edit</Button>}>
-                <p className="muted">The default card. Surface, a line and a soft shadow.</p>
+                <p className="muted">The default card. Surface with a hairline.</p>
               </Card>
               <Card variant="outlined" title="Outlined">
                 <p className="muted">Flat, for lists and dense screens.</p>
@@ -419,7 +463,7 @@ export default function DesignPage() {
 
           <Sub title="Input, Textarea, Select">
             <div className={styles.formGrid}>
-              <Input label="Agent name" placeholder="Hook Writer" hint="Shown in the marketplace." />
+              <Input label="Agent name" placeholder="Hook Writer" hint="Shown in the gallery." />
               <Input label="Search agents" placeholder="Search" leading={<Icon name="search" size={20} />} />
               <Input label="Price per run" defaultValue="two credits" error="Enter a whole number of credits." />
               <Input label="Disabled" placeholder="Not editable" disabled />
@@ -469,7 +513,7 @@ export default function DesignPage() {
             <OverlayDemo />
           </Sub>
 
-          <Sub title="Toast" note="Success brings Wovi celebrating.">
+          <Sub title="Toast" note="Success brings Wovi, job done.">
             <div className={styles.stack}>
               <div className={styles.toastGrid}>
                 <Toast static tone="success" title="Caption Writer finished" description="4 captions ready to review." />
@@ -480,18 +524,18 @@ export default function DesignPage() {
             </div>
           </Sub>
 
-          <Sub title="Empty state" note="Wovi waves hello where there is nothing yet.">
+          <Sub title="Empty state" note="Wovi says hello where there is nothing yet.">
             <div className={styles.emptyGrid}>
               <EmptyState
                 title="No jobs yet"
                 description="Pick an agent, give it a brief, and your first result lands here."
                 action={<Button leading={<Icon name="plus" />}>Start a job</Button>}
               />
-              <EmptyState size="sm" title="No saved agents" description="Save an agent from the marketplace to see it here." />
+              <EmptyState size="sm" title="No saved agents" description="Save an agent from the gallery to see it here." />
             </div>
           </Sub>
 
-          <Sub title="Job status row" note="Running, idle and done, using the poses.">
+          <Sub title="Job status row" note="Running, waiting and done, using the poses.">
             <div className={styles.stackSm}>
               <JobRow status="running" agent="Hook Writer" task="10 hooks for the bakery custom-cake post" meta="Started just now" action={<Button size="sm" variant="ghost">View</Button>} />
               <JobRow status="idle" agent="Trend Scout" task="Waiting for a brief" meta="Last run yesterday" action={<Button size="sm" variant="secondary">Run</Button>} />

@@ -1,44 +1,48 @@
 /*
-  WOVI design tokens. Night is the default theme; light is an alternate
-  switched on with [data-theme="light"] on <html>. Build from these, never by eye.
+  WOVI design tokens, from Funkai's brand board. Night is the default theme;
+  light is the alternate, switched on with [data-theme="light"] on <html>.
+  Build from these, never by eye.
 */
 
 :root {
   color-scheme: dark;
 
-  /* Colour */
-  --bg: #0b1230;
-  --surface: #141d44;
+  /* Colour: the brand table */
+  --bg: #0b1230; /* Night: default ground */
+  --surface: #141d44; /* Raised: cards and panels */
+  --surface-alt: #1c2760; /* the lighter cobalt-navy for alternating cards */
   --surface-2: #1b2554; /* hover and pressed surfaces */
-  --line: #2a3668;
-  --text: #fff4dc;
-  --text-muted: #a9b3d9;
-  --blaze: #ff5a1f;
+  --line: #2a3668; /* borders, dividers */
+  --text: #fff4dc; /* Cream */
+  --text-muted: #a9b3d9; /* captions, helper text */
+  --blaze: #ff5a1f; /* primary: logo, buttons, key moments */
   --blaze-hover: #ff7445;
   --blaze-active: #e84d13;
-  --cobalt: #1f4dff;
+  --cobalt: #1f4dff; /* second voice: fills, highlights */
   --cobalt-hover: #3d65ff;
   --cobalt-active: #1740e0;
-  --cobalt-glow: #7c97ff;
-  --blaze-text: #ff5a1f; /* Blaze as text: fine on night (5.9:1), too weak on light */
+  --cobalt-glow: #7c97ff; /* Cobalt as text or lines on night */
+  --blaze-text: #ff5a1f; /* Blaze as text: fine on night (5.9:1), deeper on light */
 
   /* Text that sits on a fill */
-  --on-blaze: #0b1230;
+  --on-blaze: #0b1230; /* always Night on Blaze, never Cream */
   --on-cobalt: #fff4dc;
   --link: var(--cobalt-glow);
-  --mascot-ink: #fff4dc;
+  --mascot-ink: #fff4dc; /* limbs: Cream on night, Night on light */
 
-  /* Translucent tints built from the brand colours */
-  --blaze-tint: color-mix(in srgb, var(--blaze) 18%, transparent);
+  /* Hairline borders on panels, and translucent tints from the brand colours */
+  --hairline: color-mix(in srgb, var(--text) 9%, transparent);
+  --hairline-strong: color-mix(in srgb, var(--text) 16%, transparent);
+  --blaze-tint: color-mix(in srgb, var(--blaze) 16%, transparent);
   --cobalt-tint: color-mix(in srgb, var(--cobalt) 22%, transparent);
   --text-tint: color-mix(in srgb, var(--text) 8%, transparent);
   --overlay: rgb(5 9 28 / 0.7);
 
-  /* Radii: round and bold */
-  --r-sm: 10px;
-  --r-md: 16px;
-  --r-lg: 24px;
-  --r-xl: 32px;
+  /* Radii: big rounded panels */
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 28px;
+  --r-xl: 40px;
   --r-pill: 999px;
 
   /* Spacing scale */
@@ -52,15 +56,15 @@
   --s-8: 64px;
   --s-9: 96px;
 
-  /* Strokes: thick, never hairline */
+  /* Strokes: thick for icons and controls; panels get a hairline */
   --stroke: 2px;
   --stroke-bold: 3px;
   --icon-stroke: 2.5;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
-  --shadow-md: 0 6px 18px rgb(0 0 0 / 0.35);
-  --shadow-lg: 0 20px 50px rgb(0 0 0 / 0.5);
+  /* Shadows: flat brand, so shadows stay soft and rare */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.25);
+  --shadow-md: 0 8px 24px rgb(0 0 0 / 0.28);
+  --shadow-lg: 0 24px 60px rgb(0 0 0 / 0.4);
   --focus-ring: 0 0 0 3px color-mix(in srgb, var(--blaze) 55%, transparent);
 
   /* Motion */
@@ -70,7 +74,7 @@
   --ease: cubic-bezier(0.2, 0, 0, 1);
   --ease-bounce: cubic-bezier(0.34, 1.4, 0.64, 1);
 
-  /* Type scale */
+  /* Type: Outfit */
   --font: var(--font-outfit), "Outfit", system-ui, sans-serif;
   --fs-xs: 12px;
   --fs-sm: 14px;
@@ -80,9 +84,9 @@
   --fs-2xl: 28px;
   --fs-3xl: 36px;
   --fs-4xl: 48px;
-  --fs-5xl: clamp(48px, 8vw, 80px);
-  --lh-tight: 1.05;
-  --lh-snug: 1.2;
+  --fs-5xl: clamp(44px, 7vw, 84px);
+  --lh-tight: 1.02;
+  --lh-snug: 1.15;
   --lh-body: 1.5;
   --fw-regular: 400;
   --fw-medium: 500;
@@ -90,9 +94,9 @@
   --fw-bold: 700;
 
   /* Layout */
-  --container: 1200px;
+  --container: 1240px;
   --gutter: 16px;
-  --header-h: 72px;
+  --header-h: 76px;
 }
 
 [data-theme="light"] {
@@ -100,6 +104,7 @@
 
   --bg: #fff4dc;
   --surface: #ffffff;
+  --surface-alt: #fff9ea;
   --surface-2: #fff9ea;
   --line: #e8d9b5;
   --text: #0b1230;
@@ -108,11 +113,13 @@
   --blaze-text: #bf3e0e; /* Blaze Deep: Blaze as text on cream (4.9:1); fills stay #FF5A1F */
   --link: var(--cobalt);
   --mascot-ink: #0b1230;
+  --hairline: color-mix(in srgb, var(--text) 12%, transparent);
+  --hairline-strong: color-mix(in srgb, var(--text) 22%, transparent);
   --overlay: rgb(11 18 48 / 0.5);
 
   --shadow-sm: 0 1px 2px rgb(11 18 48 / 0.08);
-  --shadow-md: 0 6px 18px rgb(11 18 48 / 0.12);
-  --shadow-lg: 0 20px 50px rgb(11 18 48 / 0.18);
+  --shadow-md: 0 8px 24px rgb(11 18 48 / 0.1);
+  --shadow-lg: 0 24px 60px rgb(11 18 48 / 0.16);
 }
 
 @media (min-width: 720px) {

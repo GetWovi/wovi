@@ -5,6 +5,8 @@ export type DemoRun = {
   hooks: string[];
   caption: string;
   frames: { label: string; text: string }[];
+  /** Short on-screen text for each frame. */
+  onScreen: string[];
   fit: number;
 };
 
@@ -18,6 +20,7 @@ export const DEMO_RUNS: DemoRun[] = [
       { label: "Frame 2", text: "Empty cake display, early light." },
       { label: "Frame 3", text: "Saturday queue out the door." },
     ],
+    onScreen: ["We stopped.", "5:40am", "Saturday"],
     fit: 94,
   },
   {
@@ -29,6 +32,7 @@ export const DEMO_RUNS: DemoRun[] = [
       { label: "Frame 2", text: "A full plate, overhead, natural light." },
       { label: "Frame 3", text: "Client laughing mid-set." },
     ],
+    onScreen: ["No numbers.", "Full plate", "Week three"],
     fit: 91,
   },
   {
@@ -40,6 +44,7 @@ export const DEMO_RUNS: DemoRun[] = [
       { label: "Frame 2", text: "Terminal scroll, then silence." },
       { label: "Frame 3", text: "Phone lights up on the desk." },
     ],
+    onScreen: ["Four years.", "3:14am", "First review"],
     fit: 96,
   },
 ];

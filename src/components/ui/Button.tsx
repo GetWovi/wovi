@@ -39,7 +39,7 @@ export function Button({
     <button type={type} className={cls} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>
       {loading ? (
         <span className={styles.spinner} aria-hidden="true">
-          <Mascot pose="walking" size={MASCOT_SIZE[size]} ink={ink} label="" />
+          <Mascot pose="move" size={MASCOT_SIZE[size]} ink={ink} label="" />
         </span>
       ) : (
         leading && <span className={styles.icon}>{leading}</span>

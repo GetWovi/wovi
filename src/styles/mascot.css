@@ -9,92 +9,78 @@
 
 .wovi-mascot .wovi-limb,
 .wovi-mascot .wovi-figure,
-.wovi-mascot .wovi-body {
+.wovi-mascot .wovi-body,
+.wovi-mascot .wovi-zzz path,
+.wovi-mascot .wovi-sparkle,
+.wovi-mascot .wovi-dot {
   transform-box: view-box;
 }
 
-/* Blink now and then when the eyes are open. */
-.wovi-mascot.is-animated .wovi-eye {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: wovi-blink 5.2s ease-in-out infinite;
-}
-
-/* Standing: a soft idle breath. */
-.wovi-mascot.is-animated[data-pose="standing"] .wovi-body {
+/* Every pose breathes a little. */
+.wovi-mascot.is-animated .wovi-body {
   animation: wovi-breathe 3.6s ease-in-out infinite;
 }
 
-/* Walking: a job is running. Legs and arms swing, the body bobs. */
-.wovi-mascot.is-animated[data-pose="walking"] .wovi-figure {
-  animation: wovi-bob 0.56s ease-in-out infinite;
+/* On the move: a job is running. The body bobs, the legs swing from the hip. */
+.wovi-mascot.is-animated[data-pose="move"] .wovi-figure {
+  animation: wovi-bob 0.6s ease-in-out infinite;
 }
-.wovi-mascot.is-animated[data-pose="walking"] .leg-left {
-  animation: wovi-swing 1.12s ease-in-out infinite;
+.wovi-mascot.is-animated[data-pose="move"] .leg-left {
+  animation: wovi-swing 1.2s ease-in-out infinite;
 }
-.wovi-mascot.is-animated[data-pose="walking"] .leg-right {
-  animation: wovi-swing 1.12s ease-in-out infinite reverse;
-}
-.wovi-mascot.is-animated[data-pose="walking"] .arm-left {
-  animation: wovi-swing-arm 1.12s ease-in-out infinite reverse;
-}
-.wovi-mascot.is-animated[data-pose="walking"] .arm-right {
-  animation: wovi-swing-arm 1.12s ease-in-out infinite;
+.wovi-mascot.is-animated[data-pose="move"] .leg-right {
+  animation: wovi-swing 1.2s ease-in-out infinite reverse;
 }
 
-/* Waving: hello. The raised arm waves from the shoulder, the body sways. */
-.wovi-mascot.is-animated[data-pose="waving"] .arm-right {
-  animation: wovi-wave 1.4s ease-in-out infinite;
+/* Hello: the raised arm waves, the body sways. */
+.wovi-mascot.is-animated[data-pose="hello"] .arm-right {
+  animation: wovi-wave 1.5s ease-in-out infinite;
 }
-.wovi-mascot.is-animated[data-pose="waving"] .wovi-body {
-  animation: wovi-sway 2.8s ease-in-out infinite;
+.wovi-mascot.is-animated[data-pose="hello"] .arm-left {
+  animation: wovi-sway-arm 3s ease-in-out infinite;
 }
-
-/* Sleeping: idle. The body breathes, the z's drift. */
-.wovi-mascot.is-animated[data-pose="sleeping"] .wovi-figure {
-  animation: wovi-breathe 3.2s ease-in-out infinite;
-}
-.wovi-mascot[data-pose="sleeping"] .wovi-zzz .z-0 {
-  opacity: 0.55;
-}
-.wovi-mascot[data-pose="sleeping"] .wovi-zzz .z-1 {
-  opacity: 0.8;
-}
-.wovi-mascot.is-animated[data-pose="sleeping"] .wovi-zzz path {
-  animation: wovi-drift 3.2s ease-in-out infinite;
-}
-.wovi-mascot.is-animated[data-pose="sleeping"] .wovi-zzz .z-1 {
-  animation-delay: -0.8s;
-}
-.wovi-mascot.is-animated[data-pose="sleeping"] .wovi-zzz .z-2 {
-  animation-delay: -1.6s;
+.wovi-mascot.is-animated[data-pose="hello"] .wovi-figure {
+  animation: wovi-sway 3s ease-in-out infinite;
 }
 
-/* Celebrating: done. A little hop, confetti rises and fades. */
-.wovi-mascot.is-animated[data-pose="celebrating"] .wovi-figure {
-  animation: wovi-hop 1.1s cubic-bezier(0.3, 0, 0.2, 1) infinite;
+/* Waiting for a job: a slow breath, the z's float up one after the other. */
+.wovi-mascot.is-animated[data-pose="wait"] .wovi-body {
+  animation-duration: 4.4s;
 }
-.wovi-mascot.is-animated[data-pose="celebrating"] .wovi-confetti circle {
-  animation: wovi-confetti 1.1s ease-out infinite;
+.wovi-mascot.is-animated[data-pose="wait"] .wovi-zzz path {
+  animation: wovi-drift 3.6s ease-in-out infinite;
 }
-.wovi-mascot.is-animated[data-pose="celebrating"] .wovi-confetti .confetti-1,
-.wovi-mascot.is-animated[data-pose="celebrating"] .wovi-confetti .confetti-4,
-.wovi-mascot.is-animated[data-pose="celebrating"] .wovi-confetti .confetti-7 {
-  animation-delay: 0.2s;
-}
-.wovi-mascot.is-animated[data-pose="celebrating"] .wovi-confetti .confetti-2,
-.wovi-mascot.is-animated[data-pose="celebrating"] .wovi-confetti .confetti-5 {
-  animation-delay: 0.4s;
+.wovi-mascot.is-animated[data-pose="wait"] .wovi-zzz .z-1 {
+  animation-delay: -1.8s;
 }
 
-@keyframes wovi-blink {
+/* Job done: a little jump, the arms lift, the sparkle twinkles. */
+.wovi-mascot.is-animated[data-pose="done"] .wovi-figure {
+  animation: wovi-hop 1.4s cubic-bezier(0.3, 0, 0.2, 1) infinite;
+}
+.wovi-mascot.is-animated[data-pose="done"] .arm-left {
+  animation: wovi-lift 1.4s ease-in-out infinite;
+}
+.wovi-mascot.is-animated[data-pose="done"] .arm-right {
+  animation: wovi-lift 1.4s ease-in-out infinite reverse;
+}
+.wovi-mascot.is-animated[data-pose="done"] .wovi-sparkle {
+  animation: wovi-twinkle 1.4s ease-in-out infinite;
+}
+.wovi-mascot.is-animated[data-pose="done"] .wovi-dot {
+  animation: wovi-float 1.4s ease-in-out infinite;
+}
+.wovi-mascot.is-animated[data-pose="done"] .dot-1 {
+  animation-delay: -0.7s;
+}
+
+@keyframes wovi-breathe {
   0%,
-  92%,
   100% {
-    transform: scaleY(1);
+    transform: scale(1, 1);
   }
-  95% {
-    transform: scaleY(0.08);
+  50% {
+    transform: scale(1.012, 0.988);
   }
 }
 @keyframes wovi-bob {
@@ -103,68 +89,59 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translateY(-8px);
   }
 }
 @keyframes wovi-swing {
   0%,
   100% {
-    transform: rotate(-14deg);
+    transform: rotate(-9deg);
   }
   50% {
-    transform: rotate(14deg);
-  }
-}
-@keyframes wovi-swing-arm {
-  0%,
-  100% {
-    transform: rotate(-12deg);
-  }
-  50% {
-    transform: rotate(12deg);
+    transform: rotate(9deg);
   }
 }
 @keyframes wovi-wave {
   0%,
   100% {
-    transform: rotate(-12deg);
+    transform: rotate(-10deg);
   }
   50% {
     transform: rotate(14deg);
   }
 }
+@keyframes wovi-sway-arm {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
 @keyframes wovi-sway {
   0%,
   100% {
-    transform: rotate(-2deg);
+    transform: rotate(-1.5deg);
   }
   50% {
-    transform: rotate(2deg);
-  }
-}
-@keyframes wovi-breathe {
-  0%,
-  100% {
-    transform: scale(1, 1);
-  }
-  50% {
-    transform: scale(1.015, 0.985);
+    transform: rotate(1.5deg);
   }
 }
 @keyframes wovi-drift {
   0% {
     opacity: 0;
-    transform: translate(0, 4px);
+    transform: translate(0, 10px);
   }
   30% {
     opacity: 1;
   }
   80% {
-    opacity: 0.2;
+    opacity: 0.25;
   }
   100% {
     opacity: 0;
-    transform: translate(3px, -8px);
+    transform: translate(8px, -22px);
   }
 }
 @keyframes wovi-hop {
@@ -172,24 +149,40 @@
   100% {
     transform: translateY(0);
   }
-  35% {
-    transform: translateY(-7px);
+  30% {
+    transform: translateY(-16px);
   }
   55% {
-    transform: translateY(-7px);
+    transform: translateY(-16px);
   }
 }
-@keyframes wovi-confetti {
-  0% {
-    opacity: 0;
-    transform: translateY(6px) scale(0.6);
+@keyframes wovi-lift {
+  0%,
+  100% {
+    transform: rotate(0deg);
   }
-  30% {
+  35% {
+    transform: rotate(-8deg);
+  }
+}
+@keyframes wovi-twinkle {
+  0%,
+  100% {
+    transform: scale(0.85) rotate(0deg);
+    opacity: 0.8;
+  }
+  40% {
+    transform: scale(1.15) rotate(20deg);
     opacity: 1;
   }
+}
+@keyframes wovi-float {
+  0%,
   100% {
-    opacity: 0;
-    transform: translateY(-10px) scale(1);
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
   }
 }
 
@@ -197,9 +190,12 @@
   .wovi-mascot .wovi-figure,
   .wovi-mascot .wovi-body,
   .wovi-mascot .wovi-limb,
-  .wovi-mascot .wovi-eye,
   .wovi-mascot .wovi-zzz path,
-  .wovi-mascot .wovi-confetti circle {
+  .wovi-mascot .wovi-sparkle,
+  .wovi-mascot .wovi-dot {
     animation: none !important;
+  }
+  .wovi-mascot .wovi-zzz path {
+    opacity: 1;
   }
 }

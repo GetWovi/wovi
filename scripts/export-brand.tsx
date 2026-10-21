@@ -1,71 +1,65 @@
 /**
- * Writes the standalone SVG brand files in public/brand from the same React
- * components the app uses, so the files and the components never drift.
- * Run: npm run brand:svg
+ * Writes the stand-in brand files in public/brand from the drawn geometry.
+ * The site reads these files through <Logo />; when Funkai's final art
+ * arrives, replace the files and skip this script. Run: npm run brand:svg
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
-import { COLORS, MASCOT_BOX, type Pose } from "@/brand/geometry";
+import { COLORS, type Pose } from "@/brand/geometry";
+import { AppIconArt, LOGO_VERSIONS, MarkArt, WordmarkArt, WordmarkLetters, type LogoVersion } from "@/brand/placeholder";
 import { Mascot } from "@/components/brand/Mascot";
-import { AppIcon, Mark } from "@/components/brand/Mark";
-import { Wordmark, WordmarkLetters, wordmarkViewBox, WORDMARK_VARIANTS, type WordmarkVariant } from "@/components/brand/Wordmark";
 
 const OUT = join(process.cwd(), "public", "brand");
 mkdirSync(OUT, { recursive: true });
 
-const XMLNS = 'xmlns="http://www.w3.org/2000/svg"';
-
 function save(name: string, markup: string) {
-  // React omits the namespace on the root <svg>; standalone files need it.
-  const svg = markup.replace("<svg", `<svg ${XMLNS}`);
+  // React omits the namespace on a root <svg> without xmlns; standalone files need it.
+  const svg = markup.startsWith('<svg xmlns="http://www.w3.org/2000/svg"') ? markup : markup.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
   writeFileSync(join(OUT, name), `<?xml version="1.0" encoding="UTF-8"?>\n${svg}\n`);
   console.log("wrote", name);
 }
 
-/* Wordmark: four versions with background and clearspace, plus transparent letters. */
-const variants: WordmarkVariant[] = ["primary", "light", "night-on-blaze", "cream-on-cobalt"];
-for (const v of variants) {
-  save(`wordmark-${v}.svg`, renderToStaticMarkup(<Wordmark variant={v} height={400} withBackground />));
-  save(`wordmark-${v}-transparent.svg`, renderToStaticMarkup(<Wordmark variant={v} height={400} />));
+/* Wordmark and mark: the four versions as transparent letters (what the site uses) and the wordmark with its ground. */
+const suffix: Record<LogoVersion, string> = { night: "", light: "-on-light", "on-blaze": "-night", "on-cobalt": "-cream" };
+for (const v of Object.keys(LOGO_VERSIONS) as LogoVersion[]) {
+  save(`wovi-wordmark${suffix[v]}.svg`, renderToStaticMarkup(<WordmarkArt version={v} height={350} />));
+  save(`wovi-wordmark${suffix[v]}-ground.svg`, renderToStaticMarkup(<WordmarkArt version={v} height={540} withGround />));
+  save(`wovi-mark${suffix[v]}.svg`, renderToStaticMarkup(<MarkArt version={v} size={400} />));
 }
 
-/* Mascot-only mark: Blaze w, face for a dark ground and for a light ground. */
-save("mark.svg", renderToStaticMarkup(<Mark size={400} face={false} />));
-save("mark-face-on-night.svg", renderToStaticMarkup(<Mark size={400} ink="cream" face />));
-save("mark-face-on-light.svg", renderToStaticMarkup(<Mark size={400} ink="night" face />));
-
-/* Poses, for each ground. Static (no CSS), so the pose is the drawing itself. */
-const poses: Pose[] = ["walking", "waving", "sleeping", "celebrating", "standing"];
+/* Mascot poses, for each ground. Static (no CSS), so the pose is the drawing itself. */
+const poses: Pose[] = ["move", "hello", "wait", "done"];
 for (const p of poses) {
-  save(`mascot-${p}-on-night.svg`, renderToStaticMarkup(<Mascot pose={p} size={MASCOT_BOX * 4} ink="cream" animate={false} />));
-  save(`mascot-${p}-on-light.svg`, renderToStaticMarkup(<Mascot pose={p} size={MASCOT_BOX * 4} ink="night" animate={false} />));
+  save(`mascot-${p}-on-night.svg`, renderToStaticMarkup(<Mascot pose={p} size={600} ink="cream" animate={false} />));
+  save(`mascot-${p}-on-light.svg`, renderToStaticMarkup(<Mascot pose={p} size={600} ink="night" animate={false} />));
 }
 
 /* App icon and favicon. */
-save("app-icon.svg", renderToStaticMarkup(<AppIcon size={512} />));
-save("favicon.svg", renderToStaticMarkup(<AppIcon size={64} rounded={false} />));
+save("app-icon.svg", renderToStaticMarkup(<AppIconArt size={512} />));
+save("favicon.svg", renderToStaticMarkup(<AppIconArt size={64} rounded={false} />));
 
-/* OG banner 1200 x 630: the primary wordmark with Wovi waving. */
+/* OG banner 1200 x 630: the primary wordmark with Wovi saying hello. */
 {
-  const vb = wordmarkViewBox(false);
-  const wmH = 230;
-  const wmW = (wmH * vb.w) / vb.h;
-  const scale = wmH / vb.h;
-  const mascotSize = 400;
-  const gap = 40;
-  const total = wmW + gap + mascotSize * 0.9;
+  const v = LOGO_VERSIONS.night;
+  const wmH = 190;
+  const wmW = Math.round((wmH * 1161) / 350);
+  const mascotW = 320;
+  const gap = 56;
+  const total = wmW + gap + mascotW;
   const x0 = (1200 - total) / 2;
-  const wmY = (630 - wmH) / 2 + 10;
-  const v = WORDMARK_VARIANTS.primary;
+  const wmY = (630 - wmH) / 2 - 24;
   const banner = (
-    <svg width={1200} height={630} viewBox="0 0 1200 630" role="img" aria-label="WOVI">
+    <svg xmlns="http://www.w3.org/2000/svg" width={1200} height={630} viewBox="0 0 1200 630" role="img" aria-label="WOVI">
       <rect width={1200} height={630} fill={COLORS.night} />
-      <g transform={`translate(${x0} ${wmY}) scale(${scale}) translate(${-vb.x} ${-vb.y})`}>
-        <WordmarkLetters letters={v.letters} />
+      <g transform={`translate(${x0} ${wmY}) scale(${wmH / 350})`}>
+        <WordmarkLetters letters={v.letters} line={v.line} cheek={v.cheek} />
       </g>
-      <g transform={`translate(${x0 + wmW + gap - 20} ${(630 - mascotSize) / 2})`}>
-        <Mascot pose="waving" size={mascotSize} ink="cream" animate={false} label="" />
+      <text x={x0 + wmW / 2} y={wmY + wmH + 58} textAnchor="middle" fill={COLORS.cream} fontFamily="Outfit, system-ui, sans-serif" fontWeight="700" fontSize="26" letterSpacing="6">
+        AI AGENTS FOR CONTENT
+      </text>
+      <g transform={`translate(${x0 + wmW + gap} ${(630 - mascotW * 1.045) / 2})`}>
+        <Mascot pose="hello" size={mascotW} ink="cream" animate={false} label="" />
       </g>
     </svg>
   );

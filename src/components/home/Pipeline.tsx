@@ -7,83 +7,63 @@ import { reveal, useScrollScene } from "./scroll";
 import home from "./home.module.css";
 import styles from "./Pipeline.module.css";
 
-const ICONS = ["spark", "film", "copy", "check", "play"] as const;
+const ICONS = ["pen", "film", "image", "check", "mic"] as const;
 
 /**
- * From idea to post. On desktop the section pins and the five stages slide
- * past as you scroll while Wovi walks the line; on phones it is a vertical
- * sequence that reveals stage by stage.
+ * From idea to post. Five stages in a row; Wovi walks the rail above them
+ * as the section scrolls through. On phones the stages stack.
  */
 export function Pipeline() {
   const ref = useScrollScene<HTMLElement>(({ el, gsap, desktop, reduce }) => {
-    const track = el.querySelector<HTMLElement>("[data-track]");
-    const line = el.querySelector<HTMLElement>("[data-line]");
+    reveal(gsap, el, "[data-head]", { reduce });
+    reveal(gsap, el, "[data-stage]", { reduce, stagger: 0.1, y: 30, start: "top 72%" });
     const walker = el.querySelector<HTMLElement>("[data-walker]");
-    const cards = el.querySelectorAll<HTMLElement>("[data-stage]");
-    if (!track || !line || !walker) return;
-
-    if (!desktop || reduce) {
-      gsap.set(track, { x: 0 });
-      gsap.set(line, { scaleX: 1 });
-      reveal(gsap, el, "[data-stage]", { reduce, stagger: 0.12 });
-      reveal(gsap, el, "[data-head]", { reduce });
+    const fill = el.querySelector<HTMLElement>("[data-fill]");
+    if (!walker || !fill || !desktop) return;
+    if (reduce) {
+      gsap.set(walker, { left: "calc(100% - 96px)" });
+      gsap.set(fill, { scaleX: 1 });
       return;
     }
-
-    const distance = () => track.scrollWidth - el.clientWidth + 64;
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: el,
-        start: "top top",
-        end: () => `+=${distance() + 600}`,
-        pin: true,
-        scrub: 0.8,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-      },
-    });
-    tl.fromTo(line, { scaleX: 0 }, { scaleX: 1, ease: "none", duration: 1 }, 0)
-      .to(track, { x: () => -distance(), ease: "none", duration: 1 }, 0)
-      .fromTo(walker, { left: "0%" }, { left: "calc(100% - 96px)", ease: "none", duration: 1 }, 0);
-    cards.forEach((card, i) => {
-      tl.fromTo(card, { opacity: 0.35, y: 24, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, ease: "power2.out", duration: 0.12 }, Math.max(0, i * 0.2 - 0.05));
-    });
-    reveal(gsap, el, "[data-head]", { reduce });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: el, start: "top 70%", end: "bottom 60%", scrub: 0.8 } });
+    tl.fromTo(walker, { left: "0%" }, { left: "calc(100% - 96px)", ease: "none" }, 0).fromTo(fill, { scaleX: 0 }, { scaleX: 1, ease: "none" }, 0);
   });
 
   return (
-    <section ref={ref} id="pipeline" className={styles.section} aria-labelledby="pipeline-title">
-      <div className={home.wash} />
-      <div className={["container", styles.inner].join(" ")}>
+    <section ref={ref} id="pipeline" className={home.section} aria-labelledby="pipeline-title">
+      <div className="container">
         <div className={[home.head, styles.head].join(" ")}>
-          <span className={home.eyebrow} data-head>
+          <span className="eyebrow" data-head>
             How a post is made
           </span>
           <h2 id="pipeline-title" className={home.title} data-head>
-            From idea to post, <em>one agent at a time.</em>
+            From idea to post, one agent at a time.
           </h2>
           <p className={home.lead} data-head>
-            Every stage is its own agent with one job. You stay in the loop at every step, and nothing ships until you approve it.
+            Every stage is its own agent with one task. Each output feeds the next, and nothing ships until you say yes.
           </p>
         </div>
 
-        <div className={styles.rail}>
-          <div className={styles.line}>
-            <span className={styles.lineFill} data-line />
-          </div>
-          <div className={styles.walker} data-walker>
-            <Mascot pose="walking" size={88} label="Wovi walking the pipeline" />
-          </div>
+        <div className={styles.rail} aria-hidden="true">
+          <span className={styles.line}>
+            <span className={styles.lineFill} data-fill />
+          </span>
+          {PIPELINE.map((p) => (
+            <span key={p.id} className={styles.node} />
+          ))}
+          <span className={styles.walker} data-walker>
+            <Mascot pose="move" size={96} label="" />
+          </span>
         </div>
 
-        <div className={styles.track} data-track>
+        <ol className={styles.track}>
           {PIPELINE.map((p, i) => (
-            <article key={p.id} className={[styles.stage, p.tag === "Next" ? styles.stageNext : ""].join(" ")} data-stage>
+            <li key={p.id} className={[home.panel, home.panelTight, i % 2 ? home.panelAlt : "", styles.stage].join(" ")} data-stage>
               <div className={styles.stageTop}>
                 <span className={styles.num}>0{i + 1}</span>
                 <span className={[home.chip, p.tag === "Next" ? home.chipCobalt : p.tag === "Live" ? home.chipBlaze : ""].join(" ")}>{p.tag}</span>
               </div>
-              <span className={styles.stageIcon}>
+              <span className={[home.iconTile, i === 3 ? home.iconTileBlaze : ""].join(" ")}>
                 <Icon name={ICONS[i]} size={22} />
               </span>
               <h3 className={styles.stageTitle}>{p.title}</h3>
@@ -92,9 +72,9 @@ export function Pipeline() {
                 <span className={styles.agentDot} />
                 {p.agent}
               </span>
-            </article>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </section>
   );

@@ -1,10 +1,10 @@
 import home from "./home.module.css";
 
 /** A score ring. `value` 0 to 100; the arc is animated by CSS on --ring-value when `live`. */
-export function Ring({ value, size = 44, tone = "blaze", className }: { value: number; size?: number; tone?: "blaze" | "cobalt"; className?: string }) {
+export function Ring({ value, size = 44, tone = "blaze", className }: { value: number; size?: number; tone?: "blaze" | "cobalt" | "cream"; className?: string }) {
   const r = 18;
   const c = 2 * Math.PI * r;
-  const color = tone === "blaze" ? "var(--blaze)" : "var(--cobalt-glow)";
+  const color = tone === "blaze" ? "var(--blaze)" : tone === "cream" ? "#FFF4DC" : "var(--cobalt-glow)";
   return (
     <span className={[home.ring, className].filter(Boolean).join(" ")} style={{ width: size, height: size }} aria-label={`Brand fit ${value}`} role="img">
       <svg viewBox="0 0 44 44" width={size} height={size}>
