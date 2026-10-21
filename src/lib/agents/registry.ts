@@ -55,6 +55,10 @@ export type VersionInfo = { version: string; note: string | null; createdAt: str
 
 const WORKSPACE_ID = /^[a-z0-9][a-z0-9_-]{1,63}$/;
 
+export function isWorkspaceId(id: unknown): id is string {
+  return typeof id === "string" && WORKSPACE_ID.test(id);
+}
+
 function bodyOf(spec: AgentSpec | AgentBody): AgentBody {
   return Object.fromEntries(BODY_KEYS.map((k) => [k, spec[k]])) as AgentBody;
 }
@@ -203,7 +207,7 @@ export class AgentRegistry {
   /* ---------- helpers ---------- */
 
   private checkWorkspace(workspaceId: string) {
-    if (typeof workspaceId !== "string" || !WORKSPACE_ID.test(workspaceId)) {
+    if (!isWorkspaceId(workspaceId)) {
       throw new RegistryError(
         "invalid_workspace",
         `Workspace id ${JSON.stringify(workspaceId)} is not valid. Use 2 to 64 lowercase letters, digits, _ or -.`,

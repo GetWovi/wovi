@@ -33,3 +33,12 @@ export function scanTemplate(template: string): TemplateScan {
 
   return { placeholders, problems };
 }
+
+/**
+ * Replaces every placeholder in one pass with what `resolve` returns for its
+ * name. One pass means a filled-in value that itself contains {{...}} is never
+ * expanded again.
+ */
+export function fillTemplate(template: string, resolve: (name: string) => string): string {
+  return template.replace(PLACEHOLDER, (_match, name: string) => resolve(name));
+}

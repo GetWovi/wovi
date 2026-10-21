@@ -16,21 +16,28 @@ export type ModelRoute = {
   modality: ModelModality;
   tier: ModelTier;
   /**
-   * The provider and provider model this route maps to. Not chosen yet (an
-   * open decision in the product doc), so phase 3 fills these in. Agents never
-   * change when they do.
+   * The provider and provider model this route maps to. Null means nothing
+   * serves the route yet. Agents never change when these do.
    */
   provider: string | null;
   model: string | null;
 };
 
+/**
+ * THE place to choose models. Defaults are OpenRouter model ids (one key, many
+ * models), picked from OpenRouter's public list on 2026-10-21. Each model
+ * needs a row in src/lib/runs/prices.ts. text-fast is on a different vendor
+ * than text-standard, so the common standard to fast fallback still works when
+ * one vendor is down. Only text routes run in phase 3; the image and audio
+ * picks are placeholders for later phases, and OpenRouter has no video model.
+ */
 export const MODEL_ROUTES: readonly ModelRoute[] = [
-  { id: "text-fast", modality: "text", tier: "fast", provider: null, model: null },
-  { id: "text-standard", modality: "text", tier: "standard", provider: null, model: null },
-  { id: "text-strong", modality: "text", tier: "strong", provider: null, model: null },
-  { id: "image-standard", modality: "image", tier: "standard", provider: null, model: null },
+  { id: "text-fast", modality: "text", tier: "fast", provider: "openrouter", model: "openai/gpt-6-luna" },
+  { id: "text-standard", modality: "text", tier: "standard", provider: "openrouter", model: "anthropic/claude-sonnet-5.5" },
+  { id: "text-strong", modality: "text", tier: "strong", provider: "openrouter", model: "anthropic/claude-opus-5.5" },
+  { id: "image-standard", modality: "image", tier: "standard", provider: "openrouter", model: "google/gemini-3.1-flash-image" },
   { id: "video-standard", modality: "video", tier: "standard", provider: null, model: null },
-  { id: "audio-standard", modality: "audio", tier: "standard", provider: null, model: null },
+  { id: "audio-standard", modality: "audio", tier: "standard", provider: "openrouter", model: "openai/gpt-audio-mini" },
 ];
 
 export function findModelRoute(id: string): ModelRoute | undefined {

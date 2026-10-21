@@ -12,7 +12,8 @@
     "brand": "npm run brand:svg && npm run brand:png",
     "check:contrast": "tsx scripts/contrast.mjs",
     "test": "vitest run",
-    "agents:seed": "tsx scripts/seed-agents.ts"
+    "agents:seed": "tsx scripts/seed-agents.ts",
+    "agents:try": "tsx scripts/try-agent.ts"
   },
   "dependencies": {
     "gsap": "^3.15.0",

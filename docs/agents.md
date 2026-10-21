@@ -72,7 +72,7 @@ Errors read like `tools[0]: Unknown tool "web_scrape". Allowed tools: trend_look
 
 ### Model routes
 
-The spec never names a provider. It names a route like `text-standard`, and `MODEL_ROUTES` in `catalog.ts` maps each route to a provider and model. Those mappings are empty until the providers are chosen, so swapping a model later is a one-line change in one file and no agent changes.
+The spec never names a provider. It names a route like `text-standard`, and `MODEL_ROUTES` in `catalog.ts` maps each route to a provider and model. Phase 3 filled the text routes with OpenRouter model ids (see [engine.md](engine.md#models-owners-choice)); swapping a model is a one-line change in that file plus a price row in `src/lib/runs/prices.ts`, and no agent changes.
 
 ## The registry
 
@@ -102,16 +102,9 @@ The store sits behind the `AgentStore` interface (five methods). `memoryStore()`
 
 `npm run agents:seed` puts the eight launch agents into the platform workspace `ws_wovi`, owned by `creator_wovi`: Hook Writer, Caption Writer, Trend Scout, Script Writer, Hashtag Picker and Repurposer live; Storyboarder and Voice and Cut hidden until their drop. Running it again is safe: missing agents are created, a seed with a higher version is saved as a new version, the rest are left alone.
 
-## How phase 3 uses this
+## How the run engine uses this
 
-The run engine takes a workspace, an agent id (and a pinned version or the current one) and the user's form values. It then:
-
-1. Loads the spec with `registry.get`.
-2. Checks the values against `inputs` (types, required, limits).
-3. Loads the declared `brandBrain` parts for the chosen Brand Brain and fills `instructions`.
-4. Resolves `routing.model` through `MODEL_ROUTES`, with `routing.fallback` if it fails, and stops the run when spend reaches `maxCostUsd`.
-5. Lets the model call only the tools in `tools`.
-6. Runs the `guardrails`, then checks the result against `output`.
+The run engine (phase 3, [engine.md](engine.md)) takes a workspace, an agent id (and a pinned version or the current one) and the user's form values. It loads the exact version with `registry.get`, checks the values against `inputs`, fills `instructions` with the inputs and the declared `brandBrain` parts as delimited data, routes `routing.model` (then `routing.fallback`) through `MODEL_ROUTES` within `maxCostUsd`, parses the answer into `output`, and runs the `guardrails`. Declared `tools` are not called yet.
 
 Pipelines pin `agentId@version`, which `get(ws, id, version)` serves even after later saves or a rollback.
 
@@ -119,3 +112,4 @@ Pipelines pin `agentId@version`, which `get(ws, id, version)` serves even after 
 
 - `npm test` runs the vitest suite.
 - `npm run agents:seed` seeds the local store. Data lives in `.data/` (git-ignored); set `WOVI_DATA_DIR` to put it elsewhere.
+- `npm run agents:try -- <agent-id>` runs a launch agent end to end on the fake provider.
