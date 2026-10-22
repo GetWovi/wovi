@@ -1,0 +1,99 @@
+#!/bin/zsh
+# Launches $WOVI on Pons through the burn pot, from the deployer wallet, with the opening buy inside the same
+# transaction.
+#
+#   contracts/token-launch.sh
+#
+# One thing is asked for: the deployer wallet's private key, at forge's own prompt (nothing shows). Everything else is
+# read: the contracts from contracts/broadcast/token.env (written by token-deploy.sh), the shares from
+# contracts/split.local.json (to check the splitter), the launch fee from Pons, the name, ticker, picture link,
+# description and links from contracts/launch.json, and the opening buy as the dollars written there (openingBuyUsd;
+# "0" for none) turned into ETH at Chainlink's ETH price at that moment. Its tokens go to the deployer wallet.
+#
+# Run it only once the site has the burn pot's and the splitter's addresses and the keeper's key, and /token says the
+# contracts are live: fees start arriving with the first trade.
+#
+# Steps, each printed as it starts:
+#   1/4 the deployment, the launch file and the opening buy   3/4 the launch (the key)
+#   2/4 a dry run, with what it costs                         4/4 $WOVI read back from the chain
+#
+# Pons' launch fee must be the launchFeeWei written in launch.json, and the hash of its launch terms that the dry run
+# saw is handed to the real run and into the launch itself, so if Pons changes its terms in between, it stops.
+# Nothing is sent before step 3. What is fixed for good once it runs: everything in launch.json, the creator tax and
+# where the fees go (the splitter).
+. "$(dirname "$0")/lib.sh"
+JSON=${WOVI_LAUNCH_FILE:-$HERE/launch.json}
+TMP=$(mktemp -t wovi-launch); trap 'rm -f $TMP' EXIT
+
+step "1/4 the deployment, the launch file and the opening buy"
+chain_or_die
+load_split
+load_token
+DEPLOYER=$WOVI_DEPLOYER
+TOKEN=$(cast call $WOVI_BURN_POT_ADDRESS "token()(address)" --rpc-url "$RPC") || die "could not read the burn pot"
+[ "$TOKEN" = "$ZERO" ] || die "\$WOVI is already launched: $TOKEN. A second launch is not possible."
+[ -f "$JSON" ] || die "contracts/launch.json is missing"
+python3 - "$JSON" <<'PY' || die "contracts/launch.json is not ready. Nothing was sent."
+import json, sys
+d = json.load(open(sys.argv[1]))
+bad = [k for k in ("name", "symbol", "logo", "description", "website", "twitter") if not isinstance(d.get(k), str) or not d[k].strip()]
+if bad: print("  missing:", ", ".join(bad)); sys.exit(1)
+if any("REPLACE" in str(d[k]) for k in d): print("  it still holds a REPLACE ME placeholder (the picture's link or the X link)"); sys.exit(1)
+if d["symbol"] != "WOVI": print("  the ticker is not WOVI"); sys.exit(1)
+if not d["logo"].startswith("https://"): print("  the picture's link is not https://"); sys.exit(1)
+if "Robinhood" in d["name"] + d["description"]: print("  the name or description says 'Robinhood' as one word"); sys.exit(1)
+if chr(8212) in d["name"] + d["description"] or chr(8211) in d["name"] + d["description"]: print("  the description has a long dash in it"); sys.exit(1)
+import re
+if re.search(r"\d+\s*(%|percent)", d["description"]): print("  the description gives a percentage: it never shows how the fees are shared"); sys.exit(1)
+if not isinstance(d.get("openingBuyUsd"), str) or not d["openingBuyUsd"].isdigit(): print("  openingBuyUsd must be whole dollars as digits in quotes (\"0\" for none)"); sys.exit(1)
+if not isinstance(d.get("launchFeeWei"), str) or not d["launchFeeWei"].isdigit(): print("  launchFeeWei must be Pons' launch fee in wei, as digits in quotes"); sys.exit(1)
+PY
+NAME=$(python3 -c "import json; print(json.load(open('$JSON'))['name'])")
+OPENING_BUY_USD=$(python3 -c "import json; print(int(json.load(open('$JSON'))['openingBuyUsd']))")
+LOGO=$(python3 -c "import json; print(json.load(open('$JSON'))['logo'])")
+if [ "$RPC" = "$LIVE" ]; then
+  KIND=$(curl -s -m 20 -o /dev/null -w '%{http_code} %{content_type}' "$LOGO")
+  case "$KIND" in "200 image/"*) ;; *) die "the picture's link does not answer with a picture yet ($LOGO gave: $KIND). Nothing was sent." ;; esac
+fi
+FEE=$(cast call $FACTORY "launchFee()(uint256)" --rpc-url "$RPC" | num) || die "could not read the launch fee"
+ROUND=$(cast call $ETH_USD_FEED "latestRoundData()(uint80,int256,uint256,uint256,uint80)" --rpc-url "$RPC") || die "could not read the ETH price from Chainlink"
+USD=$(echo "$ROUND" | sed -n 2p | num)
+python3 -c "import sys; sys.exit(0 if 10000000000 < int('$USD') < 100000000000000 else 1)" || die "the ETH price read from Chainlink does not look right ($USD)"
+# whole numbers only: dollars times 10^26, over the price with its 8 decimals, is wei
+OPENING_BUY=$(python3 -c "print($OPENING_BUY_USD * 10**26 // int('$USD'))")
+BAL=$(cast balance $DEPLOYER --rpc-url "$RPC")
+echo "  burn pot $WOVI_BURN_POT_ADDRESS, splitter $WOVI_SPLITTER_ADDRESS"
+echo "  deployer wallet $DEPLOYER holds $(eth $BAL) ETH"
+echo "  $NAME (\$WOVI)  $LOGO"
+echo "  launch fee $(eth $FEE) ETH; opening buy \$$OPENING_BUY_USD = $(eth $OPENING_BUY) ETH"
+
+step "2/4 a dry run: the whole launch against the chain as it is now, nothing sent"
+export WOVI_OPENING_BUY_WEI=$OPENING_BUY WOVI_LAUNCH_JSON="$(cat $JSON)"
+forge script script/LaunchToken.s.sol --rpc-url "$RPC" --sender $DEPLOYER > $TMP 2>&1 || { tail -15 $TMP; die "the dry run failed, so nothing was sent"; }
+read_estimate $TMP
+ECON=$(grep "WOVI_EXPECTED_ECONOMICS=" $TMP | tail -1 | sed 's/.*WOVI_EXPECTED_ECONOMICS=//')
+[[ "$ECON" =~ '^0x[0-9a-fA-F]{64}$' ]] || { tail -15 $TMP; die "the dry run did not say what Pons' launch terms are, so nothing was sent"; }
+export WOVI_EXPECTED_ECONOMICS=$ECON
+ALL=$(python3 -c "print(int('$FEE') + int('$OPENING_BUY') + int('$NEED_WEI'))")
+grep -E "Opening buy:" $TMP | sed 's/^ */  /'
+echo "  one transaction, about $GAS gas; in all the wallet needs $(eth $ALL) ETH (fee + opening buy + up to $NEED ETH of gas, about \$$(usd $ALL $USD))"
+if [ -n "$DRY" ]; then
+  python3 -c "import sys; sys.exit(0 if int('$BAL') >= int('$ALL') else 1)" || echo "  note: the deployer holds $(eth $BAL) ETH; the launch needs $(eth $ALL) ETH"
+  echo; echo "DRY RUN ONLY (WOVI_DRY is set). Nothing was sent and no key was asked for."; exit 0
+fi
+python3 -c "import sys; sys.exit(0 if int('$BAL') >= int('$ALL') else 1)" || die "the deployer holds $(eth $BAL) ETH and the launch needs $(eth $ALL) ETH. Nothing was sent."
+
+step "3/4 the launch: forge now asks for the deployer wallet's private key (nothing shows as it is typed or pasted)"
+forge script script/LaunchToken.s.sol --rpc-url "$RPC" --broadcast --interactive --sender $DEPLOYER \
+  || die "the launch did not go through. Read the lines above; if no transaction was sent, it is safe to run this again."
+
+step "4/4 \$WOVI, read back from the chain"
+TOKEN=$(cast call $WOVI_BURN_POT_ADDRESS "token()(address)" --rpc-url "$RPC")
+[ "$TOKEN" != "$ZERO" ] || die "the burn pot has no token: the launch transaction did not go through"
+forge script script/LaunchToken.s.sol --sig "check()" --rpc-url "$RPC" > $TMP 2>&1 || { tail -15 $TMP; die "\$WOVI is launched ($TOKEN) but it does not read back as meant"; }
+grep -E "OK:|opening buy" $TMP | sed 's/^ */  /'
+grep -v "^WOVI_TOKEN_ADDRESS=" "$TOKEN_OUT" > $TMP; echo "WOVI_TOKEN_ADDRESS=$TOKEN" >> $TMP; cp $TMP "$TOKEN_OUT"
+echo "  written to $TOKEN_OUT"
+echo
+echo "DONE. \$WOVI is live: $TOKEN. Last: set WOVI_TOKEN_ADDRESS=$TOKEN on the site (it drives the burn panel's supply,"
+echo "credits and the holder badge; nothing in the burn path waits on it)."

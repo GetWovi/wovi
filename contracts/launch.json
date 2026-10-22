@@ -1,0 +1,10 @@
+{
+  "name": "WOVI",
+  "symbol": "WOVI",
+  "logo": "https://wovi.app/brand/wovi-mark.png",
+  "description": "The token of WOVI, the marketplace of single-purpose AI agents for social content. Part of every trade's fee buys $WOVI on the market and burns it, so the supply only goes down.",
+  "website": "https://wovi.app",
+  "twitter": "https://x.com/WOVI",
+  "launchFeeWei": "500000000000000",
+  "openingBuyUsd": "30"
+}

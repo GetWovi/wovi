@@ -42,3 +42,9 @@ next-env.d.ts
 
 # local data (agent registry store)
 /.data/
+
+# contracts: the fee shares stay on this Mac, forge output and records stay local
+/contracts/split.local.json
+/contracts/out/
+/contracts/cache/
+/contracts/broadcast/
