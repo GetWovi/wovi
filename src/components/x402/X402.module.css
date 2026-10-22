@@ -1,0 +1,296 @@
+/* The owner's x402 page (phase 15). Built on the tokens. */
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+.light {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding-inline: 18px 20px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.02em;
+  background: var(--text-tint);
+  color: var(--text-muted);
+}
+.light::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.on {
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+}
+.statusText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+.statusText b {
+  font-size: var(--fs-lg);
+}
+.statusText span {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.missing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.missing li {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-start;
+  font-size: var(--fs-sm);
+}
+.missing li > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--blaze-text);
+}
+.missing .done > svg {
+  color: var(--cobalt-glow);
+}
+
+.top,
+.bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--s-5);
+  align-items: start;
+}
+.top {
+  align-items: stretch;
+}
+.top > div {
+  display: flex;
+  flex-direction: column;
+}
+.top > div > section:only-child {
+  flex: 1;
+}
+@media (max-width: 1000px) {
+  .top,
+  .bottom {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  border: var(--stroke) solid var(--line);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+}
+.tile > span {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.tile > b {
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  font-weight: var(--fw-bold);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.tile > small {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.tileHot {
+  background: var(--blaze);
+  border-color: var(--blaze);
+  color: var(--on-blaze);
+}
+.tileHot > span,
+.tileHot > small {
+  color: var(--on-blaze);
+  opacity: 0.85;
+}
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: var(--fs-sm);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+.row {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--hairline);
+  font-size: var(--fs-sm);
+}
+.row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.row > span:first-child {
+  color: var(--text-muted);
+}
+.row > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.table th {
+  text-align: left;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  padding: 0 var(--s-3) var(--s-2) 0;
+  white-space: nowrap;
+}
+.table td {
+  padding: var(--s-3) var(--s-3) var(--s-3) 0;
+  border-top: 1px solid var(--hairline);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.table td.wrap {
+  white-space: normal;
+  min-width: 10rem;
+}
+.tableWrap {
+  overflow-x: auto;
+  margin-inline: -2px;
+}
+.sub {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding-inline: 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--text-tint);
+  color: var(--text-muted);
+}
+.tag-running {
+  background: var(--cobalt-tint);
+  color: var(--cobalt-glow);
+}
+.tag-settled {
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+}
+.tag-not_started,
+.tag-rejected,
+.tag-owed {
+  background: var(--blaze-tint);
+  color: var(--blaze-text);
+}
+
+.refunds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.refund {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  border: var(--stroke) solid var(--line);
+}
+.refundTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.refundTop b {
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
+}
+.paidForm {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.paidForm > fieldset {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-end;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.paidForm > fieldset > div:first-of-type {
+  flex: 1 1 18rem;
+}
+.empty {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.foot {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-start;
+  margin: auto 0 0;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--hairline);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.foot > svg {
+  flex: none;
+  margin-top: 2px;
+}

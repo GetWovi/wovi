@@ -7,6 +7,7 @@ import { z } from "zod";
 import { API_ERROR_CODES, CODE_WORDS, STATUS } from "./errors";
 import { ROUTES } from "./routes";
 import * as S from "./schemas";
+import { RECEIPT_SCHEME, X402_NAMED, withX402, x402Paths } from "@/lib/x402/openapi";
 
 /** Named schemas, as components. Anything they share is a $ref. */
 const NAMED: [string, z.ZodType][] = [
@@ -65,7 +66,7 @@ const capital = (s: string) => s[0].toUpperCase() + s.slice(1);
 export function openApiDocument(appUrl: string): Json {
   const visible = ROUTES.filter((r) => !r.hidden);
   // Responses like { data: Agent[] } get a name from their route: ListAgentsResponse.
-  const { schemas, ref } = components(visible.map((r) => [`${capital(r.operationId)}Response`, r.response]));
+  const { schemas, ref } = components([...visible.map((r): [string, z.ZodType] => [`${capital(r.operationId)}Response`, r.response]), ...X402_NAMED]);
 
   const errorResponse = (description: string) => ({ description, content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } });
 
@@ -91,8 +92,10 @@ export function openApiDocument(appUrl: string): Json {
         ...(r.method !== "GET" ? { "403": errorResponse(CODE_WORDS.forbidden) } : {}),
       },
     };
-    paths[r.path] = { ...(paths[r.path] as Json | undefined), [r.method.toLowerCase()]: op };
+    // The two starts also take x402: no key, a 402 with the price, then X-PAYMENT (phase 15).
+    paths[r.path] = { ...(paths[r.path] as Json | undefined), [r.method.toLowerCase()]: r.starts ? withX402(op) : op };
   }
+  Object.assign(paths, x402Paths(ref(S.PickBody)));
 
   return {
     openapi: "3.1.0",
@@ -104,12 +107,14 @@ export function openApiDocument(appUrl: string): Json {
         "",
         "Authenticate with an API key from Settings, API: `Authorization: Bearer wovi_sk_...`. A key works in one workspace with one role. Keys never approve or reject results, top up credits or change limits.",
         "",
+        "No key? The two start endpoints also take x402: call without Authorization, get a 402 with the price, pay on Robinhood Chain, send the call again with X-PAYMENT. See GET /x402. MCP stays on API keys.",
+        "",
         `Errors: ${API_ERROR_CODES.map((c) => `\`${c}\` (${STATUS[c]})`).join(", ")}.`,
       ].join("\n"),
     },
     servers: [{ url: `${appUrl.replace(/\/$/, "")}/api/v1` }],
     security: [{ apiKey: [] }],
-    tags: ["Key", "Agents", "Runs", "Pipelines", "Brand Brains", "Credits", "Webhooks"].map((name) => ({ name })),
+    tags: ["Key", "Agents", "Runs", "Pipelines", "Brand Brains", "Credits", "Webhooks", "x402"].map((name) => ({ name })),
     paths,
     webhooks: {
       "run.finished": webhookOp("A run finished: it succeeded, failed or was stopped. data.run is the run."),
@@ -117,7 +122,7 @@ export function openApiDocument(appUrl: string): Json {
       "pipeline.finished": webhookOp("A pipeline is ready for approval, failed or was stopped. data.pipelineRun is the run."),
     },
     components: {
-      securitySchemes: { apiKey: { type: "http", scheme: "bearer", bearerFormat: "wovi_sk_...", description: "An API key from Settings, API." } },
+      securitySchemes: { apiKey: { type: "http", scheme: "bearer", bearerFormat: "wovi_sk_...", description: "An API key from Settings, API." }, receipt: RECEIPT_SCHEME },
       schemas,
     },
   };

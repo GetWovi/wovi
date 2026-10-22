@@ -9,7 +9,7 @@ import { Icon } from "@/components/ui/Icon";
 import { API_ERROR_CODES, CODE_WORDS, STATUS } from "@/lib/api/errors";
 import { DEFAULT_API_LIMITS } from "@/lib/api/limits";
 import { openApiDocument } from "@/lib/api/openapi";
-import { appUrl } from "@/lib/api/server";
+import { appUrl, appX402 } from "@/lib/api/server";
 import { VERIFY_SNIPPET } from "@/lib/api/snippets";
 import { appPage } from "@/lib/app/server";
 import { EVENT_WORDS, WEBHOOK_EVENTS } from "@/lib/webhooks/types";
@@ -78,6 +78,27 @@ export default async function ReferencePage() {
   const ops = Object.entries(doc.paths).flatMap(([path, methods]) => Object.entries(methods).map(([method, op]) => ({ path, method: method.toUpperCase(), op })));
   const tags = doc.tags.map((t) => t.name).filter((t) => ops.some((o) => o.op.tags.includes(t)));
   const l = DEFAULT_API_LIMITS;
+  const pay = await appX402().discovery();
+  const x402Snippet = {
+    title: "Pay per call with curl",
+    where: "No key. Your wallet pays on Robinhood Chain.",
+    code: [
+      "# 1. Ask without a key: the answer is 402 with the price in accepts",
+      `curl -s -X POST ${base}/api/v1/agents/hook-writer/runs \\`,
+      `  -H "Content-Type: application/json" -d @body.json | jq '.accepts[0]'`,
+      "",
+      "# 2. Send accepts[0].maxAmountRequired (wei) to accepts[0].payTo from your wallet",
+      "# 3. Sign accepts[0].extra.sign with {txHash} filled in, with the same wallet",
+      "# 4. Send the same request again with the payment",
+      `curl -s -i -X POST ${base}/api/v1/agents/hook-writer/runs \\`,
+      `  -H "Content-Type: application/json" -d @body.json \\`,
+      `  -H "X-PAYMENT: $(base64 < payment.json)"`,
+      "",
+      "# 202 with the run, X-PAYMENT-RESPONSE and X-Receipt-Token. Read it with:",
+      `curl -s ${base}/api/v1/x402/runs/RUN_ID -H "Authorization: Bearer $RECEIPT"`,
+    ].join("\n"),
+    note: 'payment.json: { "x402Version": 1, "scheme": "tx-hash", "network": "eip155:4663", "payload": { "nonce", "txHash", "payer", "asset", "signature" } }',
+  };
 
   return (
     <AppShell info={info} active="settings">
@@ -102,6 +123,7 @@ export default async function ReferencePage() {
         <nav className={s.toc} aria-label="On this page">
           <span className={s.tocHead}>Start</span>
           <a href="#basics">Keys, limits, errors</a>
+          <a href="#x402">Pay per call (x402)</a>
           {tags.map((t) => (
             <span key={t} style={{ display: "contents" }}>
               <span className={s.tocHead}>{t}</span>
@@ -170,6 +192,78 @@ export default async function ReferencePage() {
                 </tbody>
               </table>
             </div>
+          </section>
+
+          <section id="x402" className={[styles.panel, styles.stack].join(" ")} aria-label="Pay per call with x402">
+            <div className={s.panelHead}>
+              <div>
+                <h2>Pay per call with x402</h2>
+                <p>
+                  Agents and software with no account can pay for each call. Start a run or a pipeline run without a key and the answer is HTTP 402 with the price; pay it on Robinhood Chain, then send the call again with X-PAYMENT. A call is never charged more than its quote, and what it does not use is owed back.
+                </p>
+              </div>
+              <span className={s.role}>{pay.enabled ? (pay.test ? "On, test mode" : "On") : "Off on this server"}</span>
+            </div>
+            <div className={s.tableWrap}>
+              <table className={s.fields}>
+                <thead>
+                  <tr>
+                    <th>Endpoint</th>
+                    <th>Credits</th>
+                    <th>Price</th>
+                    <th>What it is</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pay.endpoints.flatMap((e) =>
+                    e.prices.map((p) => (
+                      <tr key={`${e.path}:${p.id}`}>
+                        <td>
+                          POST {e.path.replace("{id}", p.id)}
+                        </td>
+                        <td>{p.credits}</td>
+                        <td>${p.usd}</td>
+                        <td>{p.name}</td>
+                      </tr>
+                    )),
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className={s.tableWrap}>
+              <table className={s.fields}>
+                <tbody>
+                  <tr>
+                    <td>402</td>
+                    <td>body</td>
+                    <td>{"{ x402Version: 1, error, code, accepts: [{ scheme: \"tx-hash\", network: \"eip155:4663\", maxAmountRequired, payTo, asset, extra: { nonce, expiresAt, credits, priceUsd, sign } }] }"}</td>
+                  </tr>
+                  <tr>
+                    <td>X-PAYMENT</td>
+                    <td>header</td>
+                    <td>Base64 JSON: the quote&apos;s nonce, your transaction hash, your address, the asset, and your wallet&apos;s signature of extra.sign. One transaction pays once; one quote is used once.</td>
+                  </tr>
+                  <tr>
+                    <td>X-PAYMENT-RESPONSE</td>
+                    <td>header</td>
+                    <td>Base64 JSON: success, transaction, network, payer.</td>
+                  </tr>
+                  <tr>
+                    <td>X-Receipt-Token</td>
+                    <td>header</td>
+                    <td>Reads, stops or picks in that one run at /x402/runs/&#123;id&#125; or /x402/pipeline-runs/&#123;id&#125;, as Authorization: Bearer wovi_rt_...</td>
+                  </tr>
+                  <tr>
+                    <td>Rules</td>
+                    <td>checks</td>
+                    <td>
+                      Quotes last {Math.round(pay.quoteSeconds / 60)} minutes. Pay in {pay.assets.map((a) => a.symbol).join(" or ") || "ETH"} on Robinhood Chain ({pay.network}), {pay.confirmations} confirmations. Limits per address and per wallet. MCP stays on API keys.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <CodeBlock snippet={x402Snippet} />
           </section>
 
           {tags.map((t) => (

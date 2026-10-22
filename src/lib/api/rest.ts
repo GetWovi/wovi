@@ -25,6 +25,11 @@ export type RestOptions = {
   appUrl: string;
   now?: () => number;
   log?: (line: string) => void;
+  /**
+   * x402 (phase 15): answers the calls that need no key (an unauthenticated
+   * start while x402 is on, and /x402/...), or null to leave it to the API.
+   */
+  x402?: { handle(req: Request, path: string): Promise<Response | null> } | null;
 };
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
@@ -115,6 +120,13 @@ export class RestApi {
       if (path === "/openapi.json" || path === "/openapi.json/") {
         if (req.method !== "GET") throw new ApiError("method_not_allowed", "Use GET.");
         return json(200, openApiDocument(this.o.appUrl), requestId, null, { "Access-Control-Allow-Origin": "*" });
+      }
+      if (this.o.x402) {
+        const paid = await this.o.x402.handle(req, path);
+        if (paid) {
+          paid.headers.set("X-Request-Id", requestId);
+          return paid;
+        }
       }
       const caller = await this.authenticate(req.headers);
       const found = matchRoute(req.method, path);

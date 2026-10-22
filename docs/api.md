@@ -64,6 +64,8 @@ All JSON, under `/api/v1`. Lists come back as `{ "data": [...] }`.
 | POST | `/webhooks/{id}/test` | Sends a ping now. |
 | GET | `/openapi.json` | The OpenAPI document. No key needed. |
 
+Without a key, the two starts (`POST /agents/{id}/runs`, `POST /pipelines/{id}/runs`) also take x402 payments once the owner switches it on: a 402 with the price, then X-PAYMENT. See [x402.md](x402.md). With x402 off they answer 401, as above.
+
 ### Starting a run
 
 ```
@@ -192,6 +194,6 @@ It signs in through the email flow, skips onboarding, runs `scripts/seed-credits
 - SDKs (TypeScript, Python) generated from the OpenAPI document.
 - An event stream (server-sent events) beside webhooks, as the doc's "webhooks and server-sent events".
 - File uploads through the API (`POST /assets`); file inputs are described but need assets already in WOVI.
-- x402 per-call payment for swarms and the depth limit for agents calling agents (the doc's swarm section). Calls already carry the caller and a spending limit through credits.
+- The depth limit for agents calling agents (the doc's swarm section). Per-call payment without a key is x402 (phase 15, [x402.md](x402.md)).
 - DNS checks at send time against rebinding; the URL checks cover literal addresses and names.
 - Shared rate-limit counters (Redis) when there is more than one server.

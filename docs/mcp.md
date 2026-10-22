@@ -99,3 +99,4 @@ No account was made anywhere for any of these; they are instructions with placeh
 - OAuth for MCP clients that want it (ChatGPT's own connectors, Claude's remote connectors), beside API keys.
 - Progress notifications while a long run (video) goes, once media agents exist.
 - Agent-to-agent calls in a swarm with a depth limit.
+- x402 on MCP. For now MCP stays on API keys: `/mcp` answers 401 without one, with x402 on or off. Per-call payment without a key is on the REST starts ([x402.md](x402.md)).

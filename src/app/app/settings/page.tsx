@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/ui/Icon";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { accounts } from "@/lib/accounts/server";
 import { appPage } from "@/lib/app/server";
+import { PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
 
 export const metadata: Metadata = { title: "Settings", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -18,6 +19,8 @@ export default async function SettingsPage() {
   const current = workspaces.find((w) => w.id === workspaceId);
   const brains = await api.brains(me, workspaceId);
   const builder = a.isBuilder(info.user);
+  // x402 is platform money: only the owner of WOVI sees its page (phase 15).
+  const platformOwner = (await a.roleIn(me, PLATFORM_WORKSPACE_ID)) === "owner";
 
   const cards: { href: string; icon: IconName; title: string; text: string; foot: string }[] = [
     { href: "/brand-brain", icon: "bulb", title: "Brand Brains", text: brains.length ? `${brains.length} in ${current?.name ?? "this workspace"}. Voice, references, mood board, dos and don'ts.` : "None yet. Build one from your past posts, or start blank.", foot: brains.length ? "Open" : "Build one" },
@@ -40,6 +43,11 @@ export default async function SettingsPage() {
           <p className={styles.lead}>Everything the agents lean on, in one place.</p>
         </div>
         <div className={styles.actions}>
+          {platformOwner && (
+            <ButtonLink href="/app/settings/x402" variant="secondary" size="sm" leading={<Icon name="coin" size={16} />}>
+              x402 payments
+            </ButtonLink>
+          )}
           {builder && (
             <ButtonLink href="/builder" variant="secondary" size="sm" leading={<Icon name="sliders" size={16} />}>
               Agent Builder

@@ -157,7 +157,7 @@ The earlier phases' screenshot scripts run agents from a workspace with no credi
 
 ## Later
 
-- A real payment provider: Stripe for cards (owners do not need a wallet), x402 for agents and power users. The interface is in place.
+- A real payment provider: Stripe for cards (owners do not need a wallet). Agents and software without an account pay per call with x402 since phase 15 ([x402.md](x402.md)): each paid call lands in the `ws_x402` workspace as a top-up of its quote and settles like any run.
 - Holder credits (phase 17) through `grant`, with expiry and one allocation per verified person. Nothing grants yet.
 - Swaps and creator payouts only after the legal check.
 - A small starter pack or a low first top-up for new users outside crypto, as the doc says to revisit.

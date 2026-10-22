@@ -543,6 +543,19 @@ export class Credits implements RunBilling {
     return e;
   }
 
+  /**
+   * Credits paid for per call with x402 (phase 15): the quote lands as a
+   * top-up once per payment, in the x402 workspace, just before its run
+   * holds it. What the run does not use leaves again through `adjust`.
+   */
+  async payX402(workspaceId: string, input: { paymentId: string; credits: number; label: string; test: boolean }): Promise<LedgerEntry> {
+    if (!POSITIVE_INT(input.credits)) throw new CreditError("invalid_request", "An x402 payment is a whole number of credits.");
+    const [e] = await this.lock(workspaceId, () =>
+      this.write(workspaceId, [{ key: `x402:${input.paymentId}`, kind: "top_up", amount: input.credits, ref: { type: "top_up", id: input.paymentId }, by: "x402", label: input.label, test: input.test }]),
+    );
+    return e;
+  }
+
   /** A correction by support, plus or minus. Never takes the balance below zero. */
   async adjust(workspaceId: string, input: { amount: number; key: string; by: string; note: string }): Promise<LedgerEntry> {
     if (!Number.isInteger(input.amount) || input.amount === 0) throw new CreditError("invalid_request", "An adjustment is a whole number of credits, not zero.");
