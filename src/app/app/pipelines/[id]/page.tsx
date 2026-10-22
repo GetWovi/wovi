@@ -9,6 +9,7 @@ import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
 import { pipelineExamples } from "@/lib/app/pipeline-examples";
 import { appPage } from "@/lib/app/server";
+import { brainChoices } from "@/lib/team/brand-pick";
 
 export const metadata: Metadata = { title: "Pipeline", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export default async function PipelineStartPage({ params }: { params: Promise<{ 
           <span className={styles.chip}>v{pipeline.spec.version}</span>
         </div>
       </div>
-      <PipelineStart csrf={csrf} info={pipeline} brains={brains.map((b) => ({ id: b.id, name: b.name, isDefault: b.isDefault }))} editor={editor} examples={pipelineExamples(pipeline.spec)} />
+      <PipelineStart csrf={csrf} info={pipeline} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={pipelineExamples(pipeline.spec)} />
     </AppShell>
   );
 }

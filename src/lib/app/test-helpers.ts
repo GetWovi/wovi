@@ -21,6 +21,8 @@ import { memoryPipelineStore } from "@/lib/pipelines/store";
 import { RunEngine, type EngineOptions } from "@/lib/runs/engine";
 import { fakeProvider, type FakeOptions } from "@/lib/runs/providers/fake";
 import { memoryRunStore } from "@/lib/runs/store";
+import { memoryTeamStore } from "@/lib/team/store";
+import { Team } from "@/lib/team/team";
 import { AppApi } from "./api";
 import { memoryAppStore } from "./store";
 
@@ -70,7 +72,9 @@ export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<Engin
   const pipelines = new GuardedPipelines(pipelineEngine, t.accounts);
   const launchAuthor = await ensureLaunchAuthor(t.accounts);
   if ((opts.launch ?? true) && (opts.templates ?? true)) await installPipelineTemplates(pipelines, launchAuthor, LAUNCH_AUTHOR_ID);
-  const api = new AppApi({ accounts: t.accounts, agents, runs, brands, store, pipelines, now });
+  const teamStore = memoryTeamStore();
+  const teamReview = new Team({ accounts: t.accounts, runs: engine, pipelines: pipelineEngine, registry, brands, app: store, store: teamStore, now });
+  const api = new AppApi({ accounts: t.accounts, agents, runs, brands, store, pipelines, team: teamReview, now });
 
   const ada = (await t.signUp("ada@example.com")).user;
   const eve = (await t.signUp("eve@example.com")).user;
@@ -83,7 +87,7 @@ export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<Engin
   };
   const seedTeamBrains = () => seedBrains(brandStore, files, team.id, { now: () => now().toISOString() });
 
-  return { ...t, registry, engine, fake, agents, runs, brands, brandStore, store, api, ada, eve, team, join, seedTeamBrains, pipelineStore, pipelineRegistry, pipelineEngine, pipelines, launchAuthor };
+  return { ...t, registry, engine, fake, agents, runs, brands, brandStore, store, api, ada, eve, team, join, seedTeamBrains, pipelineStore, pipelineRegistry, pipelineEngine, pipelines, launchAuthor, teamReview, teamStore };
 }
 
 export const POSTS = [

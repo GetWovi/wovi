@@ -55,7 +55,7 @@ export async function rerun(csrf: string, runId: string, editId: string): Promis
 }
 
 /** The human approve step. */
-export async function reviewRun(csrf: string, runId: string, decision: ReviewDecision, note: string): Promise<Result<ReviewRow>> {
+export async function reviewRun(csrf: string, runId: string, decision: ReviewDecision, note: string): Promise<Result<ReviewRow | null>> {
   return appCall(csrf, ({ api, me, workspaceId }) => api.review(me, workspaceId, runId, decision, note), { refresh: "/app" });
 }
 

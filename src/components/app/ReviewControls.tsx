@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { clearReview, reviewRun } from "@/app/app/make/actions";
@@ -22,8 +23,11 @@ export function ReviewButtons({ csrf, runId, compact = false, onDone }: { csrf: 
     const r = await reviewRun(csrf, runId, decision, "");
     setBusy(null);
     if (!r.ok) return toast({ tone: "warning", title: r.error });
-    toast({ tone: decision === "approved" ? "success" : "info", title: decision === "approved" ? "Approved" : "Rejected" });
-    onDone?.(r.value);
+    if (!r.value) toast({ tone: "info", title: "Your yes is in. It needs one more." });
+    else {
+      toast({ tone: decision === "approved" ? "success" : "info", title: decision === "approved" ? "Approved" : "Rejected" });
+      onDone?.(r.value);
+    }
     router.refresh();
   }
 
@@ -55,8 +59,13 @@ export function ReviewPanel({ csrf, runId, review, editor, needsReview, by }: { 
     const r = await reviewRun(csrf, runId, decision, note);
     setBusy(null);
     if (!r.ok) return toast({ tone: "warning", title: r.error });
-    setCurrent(r.value);
     setNote("");
+    if (!r.value) {
+      toast({ tone: "info", title: "Your yes is in. This workspace needs one more before it is approved." });
+      router.refresh();
+      return;
+    }
+    setCurrent(r.value);
     toast({ tone: decision === "approved" ? "success" : "info", title: decision === "approved" ? "Approved. Post it when you are ready." : "Rejected. Run it again or change the input." });
     router.refresh();
   }
@@ -75,7 +84,12 @@ export function ReviewPanel({ csrf, runId, review, editor, needsReview, by }: { 
       <div className={styles.review}>
         <div className={styles.reviewHead}>
           <b>Your decision</b>
-          <StateTag state={current.decision} />
+          <span className={styles.actions}>
+            <Link href={`/app/review/${runId}`} className={styles.small}>
+              In review
+            </Link>
+            <StateTag state={current.decision} />
+          </span>
         </div>
         <div className={styles.decided}>
           <span className={styles.muted}>
@@ -97,7 +111,9 @@ export function ReviewPanel({ csrf, runId, review, editor, needsReview, by }: { 
     <div className={styles.review}>
       <div className={styles.reviewHead}>
         <b>{needsReview ? "A check flagged this. Your call." : "Happy with it?"}</b>
-        <span className={[styles.muted, styles.small].join(" ")}>Nothing is posted by WOVI. Approve means it is ready for you to use.</span>
+        <span className={[styles.muted, styles.small].join(" ")}>
+          Nothing is posted by WOVI. Approve means it is ready for you to use. <Link href={`/app/review/${runId}`}>Comments and the team&apos;s say</Link>
+        </span>
       </div>
       {editor ? (
         <div className={styles.reviewRow}>

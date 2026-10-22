@@ -144,6 +144,10 @@
 .wsSelect:focus-visible {
   border-radius: var(--r-pill);
 }
+.wsSelectOn {
+  border-color: var(--blaze);
+  background: var(--blaze-tint);
+}
 .wsChevron {
   position: absolute;
   right: 10px;
@@ -186,6 +190,80 @@
   gap: var(--s-3);
 }
 
+/* The bell (phase 11) */
+.bell {
+  position: relative;
+}
+.bell[aria-current="page"] {
+  background: var(--text-tint);
+}
+.bellCount {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 5px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  background: var(--blaze);
+  color: var(--on-blaze);
+  font-size: 11px;
+  font-weight: var(--fw-bold);
+  line-height: 1;
+}
+.tabIcon {
+  position: relative;
+  display: inline-flex;
+}
+.tabDot {
+  position: absolute;
+  top: -1px;
+  right: -4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--blaze);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+/* Phase 11 put Review, the bell and the client switch in the header: make room on smaller desktops. */
+.navMid {
+  display: none;
+}
+@media (max-width: 1560px) {
+  .avatarName,
+  .wsRole,
+  .navFull {
+    display: none;
+  }
+  .navMid {
+    display: inline;
+  }
+  .avatarLink {
+    padding: 4px;
+  }
+  .nav {
+    gap: 0;
+  }
+  .navLink {
+    padding: 8px 9px;
+  }
+  .headerInner {
+    gap: var(--s-4);
+  }
+  .clientSwitch .wsSelect {
+    max-width: 140px;
+  }
+}
+@media (max-width: 1180px) and (min-width: 761px) {
+  .clientSwitch,
+  .headerIcons {
+    display: none;
+  }
+}
+
 /* The phone tab bar */
 .tabs {
   display: none;
@@ -194,7 +272,9 @@
   .nav,
   .wsRole,
   .avatarName,
-  .headerIcons {
+  .headerIcons,
+  .clientSwitch,
+  .right .theme {
     display: none;
   }
   .headerInner {
@@ -209,7 +289,7 @@
     inset: auto 0 0 0;
     z-index: 40;
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     height: 68px;
     padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
     background: var(--bg);
@@ -819,6 +899,15 @@
 .state-ready {
   background: var(--cobalt);
   color: var(--on-cobalt);
+}
+/* Review states (phase 11) */
+.state-draft {
+  background: var(--text-tint);
+  color: var(--text);
+}
+.state-changes_requested {
+  background: var(--cobalt-tint);
+  color: var(--cobalt-glow);
 }
 
 /* ---------- Onboarding ---------- */

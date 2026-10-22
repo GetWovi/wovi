@@ -284,7 +284,16 @@ export class PipelineEngine {
   async waitUntilSettled(workspaceId: string, id: string): Promise<PipelineRun> {
     const pr = await this.require(workspaceId, id);
     if (SETTLED.includes(pr.status)) return pr;
-    return new Promise((resolve) => this.waiters.set(id, [...(this.waiters.get(id) ?? []), resolve]));
+    return new Promise((resolve) => {
+      this.waiters.set(id, [...(this.waiters.get(id) ?? []), resolve]);
+      // It may have settled while it was being read; look once more so the waiter is never lost.
+      void this.get(workspaceId, id).then((now) => {
+        if (!now || !SETTLED.includes(now.status)) return;
+        const list = this.waiters.get(id);
+        this.waiters.delete(id);
+        list?.forEach((r) => r(structuredClone(now)));
+      });
+    });
   }
 
   /** Resolves when no pipeline run is being driven in this process. */

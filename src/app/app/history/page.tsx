@@ -14,6 +14,8 @@ import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
 import { STATE_LABELS, type RunState } from "@/lib/app/results";
 import { appPage } from "@/lib/app/server";
+import { readClientFilter } from "@/lib/team/client-filter";
+import { appTeam } from "@/lib/team/server";
 
 export const metadata: Metadata = { title: "History", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -34,10 +36,14 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     agent && !onlyPipelines ? Promise.resolve([]) : api.pipelineRuns(me, workspaceId, { q, state: picked }),
     api.pipelineRuns(me, workspaceId),
   ]);
+  // Working for one client (phase 11): only that client's brands.
+  const clientId = await readClientFilter(workspaceId);
+  const client = clientId ? ((await appTeam().clients(me, workspaceId)).find((c) => c.id === clientId) ?? null) : null;
+  const forClient = (brand: { id: string } | null) => !client || Boolean(brand && client.brandBrainIds.includes(brand.id));
   const open = all.filter((v) => v.state === "needs_review" || v.state === "ready").length + allPipes.filter((v) => v.state === "needs_review" || v.state === "ready" || v.state === "waiting").length;
   const total = all.length + allPipes.length;
   // Runs and pipeline runs together, newest first. A pipeline's own step runs show inside it.
-  const rows = [...runs.map((v) => ({ kind: "run" as const, at: v.run.createdAt, v })), ...pipes.map((v) => ({ kind: "pipeline" as const, at: v.run.createdAt, v }))].sort((a, b) => b.at.localeCompare(a.at));
+  const rows = [...runs.filter((v) => forClient(v.run.brandBrain)).map((v) => ({ kind: "run" as const, at: v.run.createdAt, v })), ...pipes.filter((v) => forClient(v.run.brandBrain)).map((v) => ({ kind: "pipeline" as const, at: v.run.createdAt, v }))].sort((a, b) => b.at.localeCompare(a.at));
   const now = currentTime();
   const filtered = Boolean(q || picked !== "all" || agent);
 
@@ -50,6 +56,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           <p className={styles.lead}>
             {total === 0 ? "Nothing yet." : `${total} run${total === 1 ? "" : "s"} in this workspace${allPipes.length ? `, ${allPipes.length} of them pipelines` : ""}.`}
             {open > 0 ? ` ${open} waiting for a decision.` : ""} A result flagged by a check needs your review before it goes anywhere.
+            {client ? ` Showing ${client.name} only; pick All clients at the top to see everything.` : ""}
           </p>
         </div>
       </div>

@@ -61,13 +61,14 @@ export function PipelineFollow({ csrf, initial, editor, decidedBy, now }: { csrf
 
   const apply = (next: PublicPipelineRun) => setView({ run: next, state: pipelineState(next), title: pipelineTitle(next) });
 
-  async function call(key: string, fn: () => Promise<{ ok: true; value: PublicPipelineRun } | { ok: false; error: string }>, done?: string) {
+  async function call(key: string, fn: () => Promise<{ ok: true; value: PublicPipelineRun } | { ok: false; error: string }>, done?: string | ((next: PublicPipelineRun) => string)) {
     setBusy(key);
     const r = await fn();
     setBusy(null);
     if (!r.ok) return toast({ tone: "warning", title: r.error });
     apply(r.value);
-    if (done) toast({ tone: "success", title: done });
+    const said = typeof done === "function" ? done(r.value) : done;
+    if (said) toast({ tone: "success", title: said });
     router.refresh();
   }
 
@@ -84,7 +85,7 @@ export function PipelineFollow({ csrf, initial, editor, decidedBy, now }: { csrf
       )}
 
       {run.package && (state === "ready" || state === "needs_review" || state === "approved" || state === "rejected") && (
-        <PackagePanel run={run} editor={editor} decidedBy={decidedBy} busy={busy} onDecide={(d, note) => call(d, () => decidePipeline(csrf, run.id, d, note), d === "approved" ? "Approved. Post it when you are ready." : "Rejected. Start it again with a new idea.")} onClear={() => call("clear", () => clearPipelineDecision(csrf, run.id))} />
+        <PackagePanel run={run} editor={editor} decidedBy={decidedBy} busy={busy} onDecide={(d, note) => call(d, () => decidePipeline(csrf, run.id, d, note), (next) => (d === "rejected" ? "Rejected. Start it again with a new idea." : next.status === "approved" ? "Approved. Post it when you are ready." : "Your yes is in. This workspace needs one more."))} onClear={() => call("clear", () => clearPipelineDecision(csrf, run.id))} />
       )}
 
       <section className={styles.section}>
@@ -250,7 +251,9 @@ function PackagePanel({ run, editor, decidedBy, busy, onDecide, onClear }: { run
         <div className={styles.stackTight}>
           <span className="eyebrow">The package</span>
           <h2>Your post, in one place</h2>
-          <span className={[styles.muted, styles.small].join(" ")}>Each part is copyable, with its brand fit. A draft until you approve it.</span>
+          <span className={[styles.muted, styles.small].join(" ")}>
+            Each part is copyable, with its brand fit. A draft until you approve it. <Link href={`/app/review/${run.id}`}>Comments and the team&apos;s say</Link>
+          </span>
         </div>
         <CopyButton text={packageText(run)} label="Copy everything" />
       </div>
@@ -298,21 +301,22 @@ function PackagePanel({ run, editor, decidedBy, busy, onDecide, onClear }: { run
   );
 }
 
-function Part({ part }: { part: PackageItem }) {
+/** One part of a package, copyable, with its brand fit and flags. `plain` drops the fit and the flags (the client view). */
+export function Part({ part, plain = false }: { part: PackageItem; plain?: boolean }) {
   const text = partText(part);
   return (
     <div className={p.part}>
       <div className={p.partHead}>
         <span className={p.partName}>
           <h3>{part.label}</h3>
-          {part.brandFit !== null && <Badge score={part.brandFit} label="Brand fit" size="sm" />}
-          {part.brandFit !== null && <span className={styles.fine}>{fitWords(part.brandFit)}</span>}
+          {!plain && part.brandFit !== null && <Badge score={part.brandFit} label="Brand fit" size="sm" />}
+          {!plain && part.brandFit !== null && <span className={styles.fine}>{fitWords(part.brandFit)}</span>}
         </span>
         <span className={p.partTools}>
           <CopyButton text={text} />
         </span>
       </div>
-      {part.flags.length > 0 && (
+      {!plain && part.flags.length > 0 && (
         <div className={p.partFlags}>
           {part.flags.map((f) => (
             <span key={f} className={p.partFlag}>

@@ -43,7 +43,9 @@ export function pipelineTitle(run: Pick<PublicPipelineRun, "inputs" | "spec">, m
     if (i.type !== "text" && i.type !== "long_text") continue;
     const v = run.inputs[i.key];
     if (typeof v === "string" && v.trim()) {
-      const line = v.replace(/\s+/g, " ").trim();
+      // A change request's note (phase 11) is not part of the title.
+      const cut = v.lastIndexOf(`\n\nNote for this run: `);
+      const line = (cut === -1 ? v : v.slice(0, cut)).replace(/\s+/g, " ").trim();
       return line.length > max ? `${line.slice(0, max - 1).trimEnd()}...` : line;
     }
   }

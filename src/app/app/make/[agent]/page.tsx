@@ -11,6 +11,7 @@ import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
 import { appPage } from "@/lib/app/server";
 import { LAUNCH_SAMPLES } from "@/lib/launch/samples";
+import { brainChoices } from "@/lib/team/brand-pick";
 
 export const metadata: Metadata = { title: "Make", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -52,7 +53,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           <span className={styles.chip}>v{spec.version}</span>
         </div>
       </div>
-      <AgentRun key={shown?.run.id ?? "form"} csrf={csrf} agent={spec} brains={brains.map((b) => ({ id: b.id, name: b.name, isDefault: b.isDefault }))} editor={editor} examples={examples} initialRun={shown} reviewer={reviewer} now={currentTime()} />
+      <AgentRun key={shown?.run.id ?? "form"} csrf={csrf} agent={spec} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={examples} initialRun={shown} reviewer={reviewer} now={currentTime()} />
     </AppShell>
   );
 }

@@ -16,6 +16,13 @@ export const ACTIONS = [
   "manage_members",
   "manage_api_keys",
   "manage_workspace",
+  // Review and teams (phase 11)
+  "comment",
+  "send_for_review",
+  "assign",
+  "decide",
+  "manage_review_rules",
+  "manage_clients",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -29,13 +36,22 @@ export const MIN_ROLE: Record<Action, Role> = {
   manage_members: "admin",
   manage_api_keys: "admin",
   manage_workspace: "owner",
+  comment: "viewer",
+  send_for_review: "editor",
+  assign: "editor",
+  // The workspace's approval rules can raise this to admin (phase 11, team/rules.ts).
+  decide: "editor",
+  manage_review_rules: "admin",
+  manage_clients: "admin",
 };
 
 /**
  * What an API key may do, whatever its role. A leaked key can run agents and
  * read results, but never add people, mint more keys or change the workspace.
+ * Keys may comment, send drafts for review and assign them, but never approve,
+ * reject or ask for changes: people approve.
  */
-export const API_KEY_ACTIONS: readonly Action[] = ["view", "run_agents", "edit_agents", "edit_brand_brain", "see_costs"];
+export const API_KEY_ACTIONS: readonly Action[] = ["view", "run_agents", "edit_agents", "edit_brand_brain", "see_costs", "comment", "send_for_review", "assign"];
 
 /** Roles an API key can carry. */
 export const API_KEY_ROLES = ["admin", "editor", "viewer"] as const;
@@ -86,4 +102,10 @@ export const ACTION_WORDS: Record<Action, string> = {
   manage_members: "manage members",
   manage_api_keys: "manage API keys",
   manage_workspace: "change workspace settings",
+  comment: "comment",
+  send_for_review: "send drafts for review",
+  assign: "assign drafts",
+  decide: "approve, reject or ask for changes",
+  manage_review_rules: "change the approval rules",
+  manage_clients: "manage clients and their links",
 };

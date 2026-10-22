@@ -12,6 +12,12 @@ describe("permission policy", () => {
       manage_members: ["owner", "admin"],
       manage_api_keys: ["owner", "admin"],
       manage_workspace: ["owner"],
+      comment: ["owner", "admin", "editor", "viewer"],
+      send_for_review: ["owner", "admin", "editor"],
+      assign: ["owner", "admin", "editor"],
+      decide: ["owner", "admin", "editor"],
+      manage_review_rules: ["owner", "admin"],
+      manage_clients: ["owner", "admin"],
     };
     for (const action of ACTIONS) {
       expect(ROLES.filter((r) => can(r, action))).toEqual(table[action]);

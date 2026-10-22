@@ -234,9 +234,9 @@ export function runTitle(run: Pick<PublicRun, "inputs">, spec: Pick<AgentSpec, "
   for (const k of keys) {
     const v = run.inputs[k];
     if (typeof v === "string" && v.trim()) {
-      const line = v.replace(/\s+/g, " ").trim();
-      const cut = line.lastIndexOf(`\n\nNote for this run: `);
-      const clean = cut === -1 ? line : line.slice(0, cut);
+      // The note a quick edit or a change request added is not part of the title. Cut it before folding the whitespace.
+      const cut = v.lastIndexOf(`\n\nNote for this run: `);
+      const clean = (cut === -1 ? v : v.slice(0, cut)).replace(/\s+/g, " ").trim();
       return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}...` : clean;
     }
   }

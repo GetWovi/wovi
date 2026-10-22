@@ -6,6 +6,7 @@ import { accounts } from "@/lib/accounts/server";
 import { AppError } from "@/lib/app/api";
 import { appAction } from "@/lib/app/server";
 import { BrandError } from "@/lib/brand/brains";
+import { TeamError } from "@/lib/team/team";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string; code?: string; issues?: string[] };
 
@@ -16,7 +17,7 @@ export async function appCall<T>(csrf: string, fn: (ctx: Awaited<ReturnType<type
     if (opts.refresh) revalidatePath(opts.refresh, "layout");
     return { ok: true, value };
   } catch (err) {
-    if (err instanceof AppError || err instanceof BrandError) return { ok: false, error: err.message, code: err.code, issues: err.issues };
+    if (err instanceof AppError || err instanceof BrandError || err instanceof TeamError) return { ok: false, error: err.message, code: err.code, issues: err.issues };
     if (err instanceof AccountError) return { ok: false, error: err.message, code: err.code };
     throw err;
   }

@@ -197,7 +197,11 @@ export class RunEngine {
     const run = await this.getRun(workspaceId, runId);
     if (!run) throw new RunError("not_found", `No run "${runId}" in this workspace.`);
     if (FINISHED.includes(run.status)) return run;
-    return new Promise((resolve) => this.waiters.set(runId, [...(this.waiters.get(runId) ?? []), resolve]));
+    return new Promise((resolve) => {
+      this.waiters.set(runId, [...(this.waiters.get(runId) ?? []), resolve]);
+      // The run may have finished while it was being read; look once more so the waiter is never lost.
+      void this.getRun(workspaceId, runId).then((now) => now && this.notify(now));
+    });
   }
 
   /** Resolves when the queue has nothing waiting or running. */

@@ -21,6 +21,9 @@ export default async function SettingsPage() {
 
   const cards: { href: string; icon: IconName; title: string; text: string; foot: string }[] = [
     { href: "/brand-brain", icon: "bulb", title: "Brand Brains", text: brains.length ? `${brains.length} in ${current?.name ?? "this workspace"}. Voice, references, mood board, dos and don'ts.` : "None yet. Build one from your past posts, or start blank.", foot: brains.length ? "Open" : "Build one" },
+    { href: "/app/settings/team", icon: "inbox", title: "Team and approvals", text: "Who may approve, ask for changes or reject, how many yeses it takes, and everyone's role.", foot: "Open the rules" },
+    { href: "/app/clients", icon: "users", title: "Clients", text: "For agencies: each client with their Brand Brains, a default brand, and a link that shows them their own work only.", foot: "Open clients" },
+    { href: "/app/notifications", icon: "bell", title: "Notifications", text: "Assigned to you, mentioned, changes asked and approved. In the app, and by email when the workspace wants it.", foot: "Open the list" },
     { href: "/account", icon: "user", title: "Workspace and members", text: `${current?.name ?? "This workspace"}, you are ${current?.role ?? "a member"}. Rename it, invite people, set roles, or make a new workspace for a client.`, foot: "Open account" },
     { href: "/account", icon: "link", title: "API keys", text: "Keys for using these agents from your own software or assistant. One workspace each, revoke any time.", foot: "Manage keys" },
     { href: "/account", icon: "check-circle", title: "Sign-in and wallet", text: info.user.email ? `A link and a code to ${info.user.email}. Add a passkey or link a wallet.` : "Passkey account. Add another passkey or link a wallet.", foot: "Open account" },

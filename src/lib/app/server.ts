@@ -10,13 +10,14 @@ import { accounts, actionSession, appAgents, appRuns, csrfFor, readSession, requ
 import type { SessionInfo } from "@/lib/accounts/sessions";
 import { appBrands } from "@/lib/brand/server";
 import { appPipelines } from "@/lib/pipelines/server";
+import { appTeam } from "@/lib/team/server";
 import { AppApi } from "./api";
 import { jsonFileAppStore } from "./store";
 
 const g = globalThis as { __woviApp?: AppApi };
 
 export function appApi(): AppApi {
-  return (g.__woviApp ??= new AppApi({ accounts: accounts(), agents: appAgents(), runs: appRuns(), brands: appBrands(), store: jsonFileAppStore(join(dataDirFromEnv(), "app.json")), pipelines: appPipelines() }));
+  return (g.__woviApp ??= new AppApi({ accounts: accounts(), agents: appAgents(), runs: appRuns(), brands: appBrands(), store: jsonFileAppStore(join(dataDirFromEnv(), "app.json")), pipelines: appPipelines(), team: appTeam() }));
 }
 
 export type AppContext = { info: SessionInfo; me: Principal; workspaceId: string; csrf: string; api: AppApi };

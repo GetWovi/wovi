@@ -19,6 +19,7 @@ import { PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
 import { PipelineError } from "@/lib/pipelines/errors";
 import type { GuardedPipelines } from "@/lib/pipelines/guard";
 import type { PublicPipelineRun } from "@/lib/pipelines/run";
+import type { Team } from "@/lib/team/team";
 import type { PipelineSpec } from "@/lib/pipelines/spec";
 import type { AgentSpec } from "@/lib/agents/spec";
 import { BrandError, publicProposal, type BrainSummary, type BrandBrains, type ProposalEdits, type PublicProposal } from "@/lib/brand/brains";
@@ -75,6 +76,11 @@ export type AppApiOptions = {
   store: AppStore;
   /** Pipelines (phase 10). Left out, the pipeline calls say not found. */
   pipelines?: GuardedPipelines;
+  /**
+   * Review and teams (phase 11). When set, every decision goes through its
+   * approval rules and the item records who made each run.
+   */
+  team?: Team;
   now?: () => Date;
 };
 
@@ -264,7 +270,9 @@ export class AppApi {
       ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
     };
     try {
-      return await this.o.runs.submitRun(caller, req);
+      const run = await this.o.runs.submitRun(caller, req);
+      await this.o.team?.recordMade(caller, workspaceId, run.id, "run");
+      return run;
     } catch (err) {
       if (err instanceof RunError) {
         if (err.code === "not_found") throw new AppError("not_found", "No such agent.");
@@ -371,7 +379,7 @@ export class AppApi {
     const info = await this.pipeline(caller, workspaceId, input.pipelineId);
     if (!info) throw new AppError("not_found", "No such pipeline.");
     try {
-      return await this.pl.submit(caller, {
+      const run = await this.pl.submit(caller, {
         workspaceId,
         pipelineId: input.pipelineId,
         pipelineWorkspaceId: input.pipelineWorkspaceId ?? info.workspaceId,
@@ -379,6 +387,8 @@ export class AppApi {
         ...(input.confirmations ? { confirmations: input.confirmations } : {}),
         ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
       });
+      await this.o.team?.recordMade(caller, workspaceId, run.id, "pipeline");
+      return run;
     } catch (err) {
       throw pipelineAppError(err);
     }
@@ -436,8 +446,15 @@ export class AppApi {
     }
   }
 
-  /** The approve step at the end of a pipeline run. */
+  /** The approve step at the end of a pipeline run. With teams (phase 11) it goes through the workspace's approval rules. */
   async decidePipeline(caller: Principal, workspaceId: string, id: string, decision: ReviewDecision, note = ""): Promise<PublicPipelineRun> {
+    if (this.o.team) {
+      await this.o.accounts.authorize(caller, workspaceId, "decide");
+      if (!REVIEW_DECISIONS.includes(decision)) throw new AppError("invalid_request", "Approve or reject.");
+      if (!(await this.pl.getRun(caller, workspaceId, id))) throw new AppError("not_found", "No such pipeline run.");
+      await this.o.team.decide(caller, workspaceId, id, decision === "approved" ? "approve" : "reject", note);
+      return (await this.pl.getRun(caller, workspaceId, id))!;
+    }
     if (!REVIEW_DECISIONS.includes(decision)) throw new AppError("invalid_request", "Approve or reject.");
     try {
       return await this.pl.decide(caller, workspaceId, id, decision, note);
@@ -447,6 +464,10 @@ export class AppApi {
   }
 
   async clearPipelineDecision(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {
+    if (this.o.team) {
+      await this.o.team.reopen(caller, workspaceId, id);
+      return (await this.pl.getRun(caller, workspaceId, id))!;
+    }
     try {
       return await this.pl.clearDecision(caller, workspaceId, id);
     } catch (err) {
@@ -474,8 +495,21 @@ export class AppApi {
     return r && r.workspaceId === workspaceId ? r : null;
   }
 
-  /** Approves or rejects a finished run, with a note. Deciding again replaces the decision. */
-  async review(caller: Principal, workspaceId: string, runId: string, decision: ReviewDecision, note = ""): Promise<ReviewRow> {
+  /**
+   * Approves or rejects a finished run, with a note. Deciding again replaces
+   * the decision. With teams (phase 11) it goes through the workspace's
+   * approval rules, and the answer is null while a second yes is still needed.
+   */
+  async review(caller: Principal, workspaceId: string, runId: string, decision: ReviewDecision, note = ""): Promise<ReviewRow | null> {
+    if (this.o.team) {
+      await this.o.accounts.authorize(caller, workspaceId, "decide");
+      if (!REVIEW_DECISIONS.includes(decision)) throw new AppError("invalid_request", "Approve or reject.");
+      const run = await this.o.runs.getRun(caller, workspaceId, runId);
+      if (!run) throw new AppError("not_found", "No such run.");
+      if (run.status !== "succeeded") throw new AppError("not_ready", "Only a finished run can be approved or rejected.");
+      await this.o.team.decide(caller, workspaceId, runId, decision === "approved" ? "approve" : "reject", note);
+      return this.reviewOf(workspaceId, runId);
+    }
     await this.o.accounts.authorize(caller, workspaceId, "run_agents");
     if (!REVIEW_DECISIONS.includes(decision)) throw new AppError("invalid_request", "Approve or reject.");
     const run = await this.o.runs.getRun(caller, workspaceId, runId);
@@ -489,6 +523,10 @@ export class AppApi {
 
   /** Takes a decision back, so the run waits again. */
   async clearReview(caller: Principal, workspaceId: string, runId: string): Promise<void> {
+    if (this.o.team) {
+      await this.o.team.reopen(caller, workspaceId, runId);
+      return;
+    }
     await this.o.accounts.authorize(caller, workspaceId, "run_agents");
     if (!(await this.reviewOf(workspaceId, runId))) throw new AccountError("not_found", "No decision on that run.");
     await this.o.store.reviews.delete(runId);

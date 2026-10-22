@@ -3,6 +3,10 @@ import type { SVGProps } from "react";
 /* Bold icons on a 24 grid, 2.5 stroke, round caps. No hairlines. */
 const PATHS = {
   check: "M5 12.5l4.5 4.5L19 7.5",
+  bell: "M6 16.5V11a6 6 0 1 1 12 0v5.5l1.6 2H4.4zM10 21.2h4",
+  users: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20.5a6.5 6.5 0 0 1 13 0M16 4.4a3.5 3.5 0 0 1 0 6.3M18 14.2a6.5 6.5 0 0 1 3.5 6.3",
+  chat: "M4 5h16v11H10l-6 4.5z",
+  inbox: "M4 13.5L6.5 5h11L20 13.5V19H4zM4 13.5h4.5l1.2 2.5h4.6l1.2-2.5H20",
   close: "M6 6l12 12M18 6L6 18",
   "chevron-down": "M6 9.5l6 6 6-6",
   "chevron-right": "M9.5 6l6 6-6 6",

@@ -77,6 +77,8 @@ One state per run: in the queue, running, failed, cancelled, needs review (a gua
 
 WOVI posts nothing. Approve means the draft is ready for the person to use.
 
+Since phase 11 these buttons go through the workspace's approval rules (who decides, one or two yeses), and the review queue, comments, assignments and clients live in `docs/review-and-teams.md`.
+
 ## The homepage cards
 
 The agent cards on `/` now show the phase 8 lineup: Idea Generator, Hook Writer, Script Writer, Caption Writer, Hashtag Optimizer and Platform Repurposer live, Trend Scout as coming, Storyboarder and Voice and Cut as next. Nine cards in three rows of three. The seeds test ties the cards to the lineup people actually get (`npm run agents:launch`: the launch specs over the phase 2 seeds): names, jobs and statuses (live, coming is a draft, next is hidden). `SEED_AGENTS` itself stays the phase 2 base, because the launch set is saved as new versions on top of it and the launch tests depend on that.
