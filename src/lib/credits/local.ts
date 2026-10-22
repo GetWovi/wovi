@@ -6,7 +6,7 @@
 import { join } from "node:path";
 import { dataDirFromEnv } from "@/lib/accounts/local";
 import { localRegistry } from "@/lib/agents/registry";
-import { CREDITS } from "./config";
+import { CREDITS, holderSpendOrderFromEnv } from "./config";
 import { Credits } from "./credits";
 import { paymentProviderFromEnv } from "./payments";
 import { jsonFileCreditStore } from "./store";
@@ -17,7 +17,7 @@ export function creditsEnabled(env: Record<string, string | undefined> = process
 }
 
 export function localCredits(dataDir = dataDirFromEnv()): Credits {
-  return new Credits({ store: jsonFileCreditStore(join(dataDir, "credits.json")), payments: paymentProviderFromEnv(), registry: localRegistry(dataDir) });
+  return new Credits({ store: jsonFileCreditStore(join(dataDir, "credits.json")), payments: paymentProviderFromEnv(), registry: localRegistry(dataDir), config: { holderSpendOrder: holderSpendOrderFromEnv() } });
 }
 
 const g = globalThis as { __woviCredits?: Credits };

@@ -5,7 +5,7 @@ import type { ActivityItem } from "@/lib/credits/credits";
 import { creditWords } from "@/lib/credits/config";
 import styles from "./Credits.module.css";
 
-const ICONS: Record<ActivityItem["type"], IconName> = { run: "bolt", pipeline_run: "layers", top_up: "plus", grant: "spark", refund: "refresh", adjustment: "sliders" };
+const ICONS: Record<ActivityItem["type"], IconName> = { run: "bolt", pipeline_run: "layers", top_up: "plus", grant: "spark", refund: "refresh", adjustment: "sliders", expire: "clock" };
 
 /** What happened to the credits of one line, in words. */
 function detail(a: ActivityItem): string {
@@ -13,10 +13,12 @@ function detail(a: ActivityItem): string {
     const held = a.held ?? 0;
     if (a.state === "held") return `${creditWords(held)} held while it runs`;
     if (a.state === "refunded") return a.reason === "failed" ? `Failed, so all ${held} came back` : a.reason === "cancelled" ? `Stopped, so all ${held} came back` : `Nothing used, all ${held} came back`;
-    return (a.back ?? 0) > 0 ? `Held ${held}, ${a.back} came back` : `Held ${held}, all used`;
+    const used = (a.back ?? 0) > 0 ? `Held ${held}, ${a.back} came back` : `Held ${held}, all used`;
+    return a.holder > 0 ? `${used}, ${a.holder} of it holder credits` : used;
   }
   if (a.type === "top_up") return a.test ? "Test top-up, no money moved" : "Top-up";
-  if (a.type === "grant") return "Given";
+  if (a.type === "grant") return a.holder > 0 ? "Holder credits: for runs only, gone at the end of the month" : "Given";
+  if (a.type === "expire") return "Holder credits left at the end of their month";
   return a.note ?? (a.type === "refund" ? "Refunded" : "Adjusted");
 }
 

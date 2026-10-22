@@ -4,24 +4,32 @@
  *
  * The ledger is append-only. A workspace's balance is the sum of its entries:
  *
- *   top_up      + credits bought (a payment provider said paid)
- *   grant       + credits given (the hook for holder credits, phase 17; nothing grants yet)
+ *   top_up      + credits bought (a payment provider said paid, an x402 payment, $WOVI sent to the burn pot)
+ *   grant       + credits given: support, or a $WOVI holder's monthly credits (phase 17)
  *   hold        - the estimate, reserved when a run or pipeline starts
  *   release     + what a hold gives back: all of it when the run ends (paired
  *                 with the charge), or a part of a pipeline's hold per step
  *   charge      - what a finished run really costs, never more than it held
  *   refund      + a charge given back afterwards (support, by a script)
  *   adjustment  +/- a correction (support, by a script)
+ *   expire      - holder credits left at the end of their month (phase 17)
+ *
+ * Two pools, never mixed (phase 17): paid credits, and holder credits. Every
+ * entry says how much of its amount is holder credits (`holder`) and for
+ * which month (`period`); the rest is paid. Holder credits are spendable on
+ * runs only, never moved, swapped or paid out, and expire at the end of their
+ * month (UTC). A hold takes from the two pools in the configured order and
+ * gives back to the pool it took from.
  *
  * So a run that held 4 and cost 1 writes hold -4, then release +4 and
  * charge -1 together: 1 spent, 3 back. A run that failed writes release +4
  * and nothing else. The balance never goes below zero.
  */
 
-export const LEDGER_KINDS = ["top_up", "grant", "hold", "release", "charge", "refund", "adjustment"] as const;
+export const LEDGER_KINDS = ["top_up", "grant", "hold", "release", "charge", "refund", "adjustment", "expire"] as const;
 export type LedgerKind = (typeof LEDGER_KINDS)[number];
 
-/** Where a grant comes from. Holder credits are phase 17; nothing grants yet. */
+/** Where a grant comes from: holder credits (phase 17, through grantHolder only) or support. */
 export const GRANT_SOURCES = ["holder", "support"] as const;
 export type GrantSource = (typeof GRANT_SOURCES)[number];
 
@@ -56,8 +64,23 @@ export type LedgerEntry = {
   test: boolean;
   /** For charges: the real model cost behind it, in micro-dollars. Builders and support only. */
   costMicroUsd: number | null;
+  /**
+   * The part of `amount` that is holder credits, with the same sign (phase 17).
+   * Zero or missing: all of it is paid credits. Older rows have none.
+   */
+  holder?: number;
+  /** The month ("2026-10", UTC) the holder part belongs to. Null when there is none. */
+  period?: string | null;
+  /** On a holder grant: when what is left of it expires. */
+  expiresAt?: string | null;
   createdAt: string;
 };
+
+/** The holder part of an entry: zero for paid-only entries and rows from before phase 17. */
+export const holderPart = (e: Pick<LedgerEntry, "holder">): number => e.holder ?? 0;
+
+/** Which pool a hold takes from first. */
+export type HolderSpendOrder = "after_paid" | "before_paid";
 
 export type TopUpStatus = "pending" | "paid" | "failed";
 
@@ -134,12 +157,23 @@ export type HoldState = {
   label: string;
   ref: LedgerRef | null;
   createdAt: string;
+  /** The holder credits in `amount` (phase 17), the part of them not yet given back or charged, and their month. */
+  holder: number;
+  holderOpen: number;
+  period: string | null;
 };
 
 export type Balance = {
   workspaceId: string;
-  /** What can be spent now. */
+  /** What can be spent now: paid credits plus this month's holder credits. */
   available: number;
+  /** Paid credits that can be spent now. */
+  paid: number;
+  /**
+   * Holder credits (phase 17): spendable on runs only, never moved or paid
+   * out, gone at the end of their month. `available` is this month's.
+   */
+  holder: { available: number; period: string; expiresAt: string };
   /** Held for runs and pipelines in progress. */
   held: number;
   /** Spent this calendar month (charges minus refunds), plus what is held now. */
@@ -174,4 +208,5 @@ export const KIND_LABELS: Record<LedgerKind, string> = {
   charge: "Charged",
   refund: "Refund",
   adjustment: "Adjustment",
+  expire: "Expired",
 };

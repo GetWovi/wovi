@@ -2,12 +2,15 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { BrandIcon } from "@/components/ui/Icon";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { tokenConfigFromEnv } from "@/lib/token/config";
 import styles from "./Site.module.css";
 
 export type NavLink = { href: string; label: string };
 
 /** Site chrome: logo left, links in the middle, GitHub and X top right. */
-export function SiteHeader({ active, links = [] }: { active?: "home" | "design"; links?: NavLink[] }) {
+export function SiteHeader({ active, links = [] }: { active?: "home" | "design" | "token"; links?: NavLink[] }) {
+  // The $WOVI page (phase 17) is linked only while it is on.
+  const token = tokenConfigFromEnv().pageOn;
   return (
     <header className={styles.header}>
       <div className={["container", styles.headerInner].join(" ")}>
@@ -20,6 +23,11 @@ export function SiteHeader({ active, links = [] }: { active?: "home" | "design";
               {l.label}
             </a>
           ))}
+          {token && (
+            <Link href="/token" className={styles.navLink} aria-current={active === "token" ? "page" : undefined}>
+              $WOVI
+            </Link>
+          )}
           <Link href="/design" className={styles.navLink} aria-current={active === "design" ? "page" : undefined}>
             Design
           </Link>

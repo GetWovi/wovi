@@ -11,6 +11,8 @@ import { readClientFilter } from "@/lib/team/client-filter";
 import { appTeam } from "@/lib/team/server";
 import { appCredits } from "@/lib/credits/server";
 import { CreditPill } from "@/components/ui/CreditPill";
+import { Sparkle } from "@/components/brand/Accents";
+import { holderBadgeFor } from "@/lib/token/local";
 import c from "@/components/credits/Credits.module.css";
 import styles from "./App.module.css";
 import { ClientSwitch } from "./ClientSwitch";
@@ -55,6 +57,8 @@ export async function AppShell({ info, active, children }: { info: SessionInfo; 
   const balance = await appCredits()
     .balance(me, workspaceId)
     .catch(() => null);
+  // $WOVI (phase 17): the holder mark on the avatar, from the stored status. False while holders are off.
+  const holder = await holderBadgeFor(info.user.id);
 
   return (
     <div className={styles.page}>
@@ -92,8 +96,15 @@ export async function AppShell({ info, active, children }: { info: SessionInfo; 
               <Icon name="bell" size={22} />
               {unread > 0 && <span className={styles.bellCount}>{unread > 9 ? "9+" : unread}</span>}
             </Link>
-            <Link href="/account" className={styles.avatarLink} title={who}>
-              <Avatar name={who} size={32} />
+            <Link href="/account" className={styles.avatarLink} title={holder ? `${who}, $WOVI holder` : who}>
+              <span className={styles.avatarWrap}>
+                <Avatar name={who} size={32} />
+                {holder && (
+                  <span className={styles.holderDot} aria-label="$WOVI holder">
+                    <Sparkle size={10} color="var(--on-blaze)" />
+                  </span>
+                )}
+              </span>
               <span className={styles.avatarName}>{who}</span>
             </Link>
             <span className={styles.headerIcons}>

@@ -54,7 +54,19 @@ Limits (all in `DEFAULT_CONFIG`): 5 requests per address and 20 per IP per 15 mi
 
 **Passkeys.** A signed-in user adds one from the account page. After that, "Sign in with a passkey" works with no email (discoverable credentials). Each ceremony uses a server challenge that lives 5 minutes and works once; origin and relying party id come from `WOVI_APP_URL`.
 
-**Wallet linking.** A signed-in user may link a wallet so holder features can read it later. The server writes an EIP-4361 message with a single-use nonce and the statement "Signing this message does not send funds or approve any transaction"; the wallet signs it with `personal_sign`; the server recovers the signer with viem, offline. Nothing ever asks a wallet for a transaction. One wallet links to one account. Plain key wallets only; smart contract wallets (EIP-1271) would need a chain call and are not supported yet. On a phone without a wallet in the browser, the button opens the page in MetaMask's browser.
+**Wallet linking.** A signed-in user may link a wallet so holder features can read it (phase 17, [token.md](token.md#holders)). The server writes an EIP-4361 message with a single-use nonce and the statement "Signing this message does not send funds or approve any transaction"; the wallet signs it with `personal_sign`; the server recovers the signer with viem, offline. Nothing ever asks a wallet for a transaction. One wallet links to one account. Plain key wallets only; smart contract wallets (EIP-1271) would need a chain call and are not supported yet.
+
+- **Single use and any case.** Each challenge is the whole readable message, stored as is, and works once: a
+  replayed signature, one signed for another person's challenge, or an old signature over a new message (a new nonce)
+  is refused. Addresses are kept with a lower-case id and shown checksummed, so the same wallet typed in any case is
+  one wallet linked to one account.
+- **In the browser** (`WalletLink`, `wallet-browser.ts`): the wallet is asked for its address, its network id and one
+  `personal_sign`, with each step on screen ("Open your wallet to connect", "Sign the message in your wallet",
+  "Checking the signature"). On a phone (a coarse pointer and a phone's user agent, read at the tap) with no wallet in
+  the browser, the button opens this page inside MetaMask's browser with `?link=wallet`, where linking starts again by
+  itself after signing in there. On a desktop with no wallet it opens MetaMask's download page.
+- **Holder status** (phase 17): after a link or an unlink the person's $WOVI is read again, and the account page shows
+  a "$WOVI holder" card with the badge, their own holding (to them only), the holder credit tiers and this month's.
 
 ## Sessions
 

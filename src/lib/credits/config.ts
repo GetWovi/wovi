@@ -1,3 +1,5 @@
+import type { HolderSpendOrder } from "./types";
+
 /**
  * Every credit decision in one place, so each one is a one-line change.
  * Client-safe: no storage, no Node imports.
@@ -6,8 +8,10 @@
  * - One credit is worth a fixed $0.01. There is no floating price.
  * - Credits are only for running agents. They are never swapped for anything
  *   and never paid out. That waits for a legal check.
- * - Nobody gets free credits. Grants exist as a ledger type for later
- *   (holder credits are phase 17), but nothing gives one yet.
+ * - Nobody gets free credits. $WOVI holders may get a monthly allocation of
+ *   holder credits (phase 17, off until the owner sets the tiers): their own
+ *   pool, spendable on runs only, never moved, swapped or paid out, gone at
+ *   the end of the month.
  * - A run costs its real cost times the margin, rounded up to whole credits,
  *   at least one credit. The estimate shown before a run is the most it can
  *   be charged.
@@ -26,6 +30,8 @@ export type CreditsConfig = {
   maxMonthlyLimit: number;
   swappable: false;
   starterCredits: number;
+  /** Which pool a run takes from first (phase 17): paid credits first by default, holder credits for the rest. */
+  holderSpendOrder: HolderSpendOrder;
 };
 
 export const CREDITS: CreditsConfig = {
@@ -53,7 +59,22 @@ export const CREDITS: CreditsConfig = {
   swappable: false,
   /** Non-holders: no free credits (the product doc, decided for now). */
   starterCredits: 0,
+  /** Holder credits are spent after paid credits. WOVI_HOLDER_CREDITS_ORDER=before_paid spends them first. */
+  holderSpendOrder: "after_paid",
 };
+
+/** WOVI_HOLDER_CREDITS_ORDER: after_paid (the default) or before_paid. */
+export function holderSpendOrderFromEnv(env: Record<string, string | undefined> = process.env): HolderSpendOrder {
+  return env.WOVI_HOLDER_CREDITS_ORDER?.trim() === "before_paid" ? "before_paid" : "after_paid";
+}
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** "October 2026" for "2026-10". */
+export function monthWords(period: string): string {
+  const [y, m] = period.split("-").map(Number);
+  return MONTHS[m - 1] ? `${MONTHS[m - 1]} ${y}` : period;
+}
 
 /** A credit amount in plain words: "1 credit", "1,250 credits". */
 export function creditWords(n: number): string {

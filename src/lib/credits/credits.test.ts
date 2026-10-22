@@ -145,9 +145,10 @@ describe("credits: the ledger", () => {
     expect((await t.balance()).available).toBe(525);
     await rejectsCode(t.c.adjust(t.ws, { amount: -600, key: "fix-2", by: "support", note: "Too much" }), "not_enough_credits");
     expect((await t.balance()).available).toBe(525);
-    // The grant hook (holder credits are phase 17): one per source id, nothing grants on its own.
-    const g1 = await t.c.grant(t.ws, { credits: 50, source: "holder", sourceId: "2026-11", by: "test" });
-    expect((await t.c.grant(t.ws, { credits: 50, source: "holder", sourceId: "2026-11", by: "test" })).id).toBe(g1.id);
+    // Support grants: one per source id. Holder credits only come in through grantHolder (phase 17).
+    const g1 = await t.c.grant(t.ws, { credits: 50, source: "support", sourceId: "2026-11", by: "test" });
+    expect((await t.c.grant(t.ws, { credits: 50, source: "support", sourceId: "2026-11", by: "test" })).id).toBe(g1.id);
+    await rejectsCode(t.c.grant(t.ws, { credits: 50, source: "holder", sourceId: "2026-11", by: "test" }), "invalid_request");
     expect((await t.balance()).available).toBe(575);
     // Every balanceAfter adds up.
     const entries = await t.c.entries(t.ws);

@@ -48,6 +48,11 @@ export default async function SettingsPage() {
               x402 payments
             </ButtonLink>
           )}
+          {platformOwner && (
+            <ButtonLink href="/app/settings/token" variant="secondary" size="sm" leading={<Icon name="flame" size={16} />}>
+              $WOVI keeper
+            </ButtonLink>
+          )}
           {builder && (
             <ButtonLink href="/builder" variant="secondary" size="sm" leading={<Icon name="sliders" size={16} />}>
               Agent Builder

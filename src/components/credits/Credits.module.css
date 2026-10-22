@@ -423,3 +423,107 @@
   color: var(--text);
   font-weight: var(--fw-semibold);
 }
+
+/* ---------- $WOVI (phase 17): holder credits and paying with $WOVI ---------- */
+.holderPool {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.holderNum {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+.holderNum b {
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.holderNum span {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+.split > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--text-tint);
+}
+.split span {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.split b {
+  font-size: var(--fs-lg);
+  font-variant-numeric: tabular-nums;
+}
+.wovi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.woviFine {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.woviQuote {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.woviSend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--blaze);
+  color: var(--on-blaze);
+}
+.woviSend > span {
+  font-size: var(--fs-sm);
+}
+.woviSend b {
+  font-size: clamp(24px, 2.6vw, 32px);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.woviAddr {
+  color: inherit;
+  text-decoration: underline;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+.woviActions {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.woviPaste {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s-2);
+  align-items: end;
+}
+.woviStage {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  font-size: var(--fs-sm);
+  color: var(--cobalt-glow);
+}
+.woviError {
+  font-size: var(--fs-sm);
+  color: var(--blaze-text);
+}

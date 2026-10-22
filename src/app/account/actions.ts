@@ -11,6 +11,13 @@ import type { KeyRole } from "@/lib/accounts/api-keys";
 import type { Role } from "@/lib/accounts/policy";
 import { SESSION_COOKIE, accounts, actionSession, clearSessionCookie } from "@/lib/accounts/server";
 import type { SessionInfo } from "@/lib/accounts/sessions";
+import { tokenServices } from "@/lib/token/local";
+
+/** A person's $WOVI holder status, read again after their wallets change (phase 17). Never fails the action. */
+async function recheckHolder(userId: string) {
+  const s = tokenServices();
+  if (s.config.holder.on) await s.holders.refreshUser(userId).catch(() => false);
+}
 
 type Ctx = SessionInfo & { me: Principal; ws: string };
 
@@ -156,6 +163,7 @@ export async function walletMessage(csrf: string, address: string, chainId: numb
 export async function walletLink(csrf: string, challengeId: string, signature: string): Promise<ActionState> {
   return act(csrf, async ({ user }) => {
     await accounts().wallets.verifyLink(user.id, challengeId, signature);
+    await recheckHolder(user.id);
     return "Wallet linked.";
   });
 }
@@ -163,5 +171,6 @@ export async function walletLink(csrf: string, challengeId: string, signature: s
 export async function unlinkWallet(_prev: ActionState, fd: FormData) {
   return act(fd, async ({ user }) => {
     await accounts().wallets.unlink(user.id, field(fd, "address"));
+    await recheckHolder(user.id);
   });
 }

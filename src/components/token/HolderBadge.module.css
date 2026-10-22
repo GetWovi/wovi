@@ -1,0 +1,24 @@
+/* The $WOVI holder badge (phase 17): a small blaze pill with the sparkle. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding-inline: 8px 11px;
+  border-radius: var(--r-pill);
+  background: var(--blaze-tint);
+  color: var(--blaze-text);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--blaze) 55%, transparent);
+}
+.md {
+  height: 34px;
+  padding-inline: 10px 14px;
+  font-size: var(--fs-sm);
+}
+.badge svg {
+  flex: none;
+}

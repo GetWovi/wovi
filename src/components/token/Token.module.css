@@ -1,0 +1,584 @@
+/* The $WOVI page (phase 17). Built on the WOVI tokens: night ground, big
+   rounded panels, orange eyebrows, cream headlines, Wovi and the stickers. */
+
+.main {
+  padding-bottom: var(--s-7);
+}
+.section {
+  padding: clamp(28px, 4vw, 56px) 0 0;
+}
+
+/* Hero */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+  padding-top: clamp(32px, 5vw, 72px);
+}
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  min-width: 0;
+}
+.h1 {
+  font-size: clamp(44px, 6.2vw, 84px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.h1 em {
+  font-style: normal;
+  color: var(--blaze-text);
+}
+.lead {
+  font-size: clamp(17px, 1.4vw, 20px);
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 54ch;
+  text-wrap: pretty;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  align-items: center;
+}
+.soonBuy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding-inline: 20px;
+  border-radius: var(--r-pill);
+  border: var(--stroke) dashed var(--line);
+  color: var(--text-muted);
+  font-weight: var(--fw-semibold);
+}
+.stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  height: 34px;
+  padding-inline: 14px 16px;
+  border-radius: var(--r-pill);
+  background: var(--text-tint);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+}
+.stage::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.stageLive {
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+}
+
+/* The big counter */
+.counter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-height: 360px;
+  padding: clamp(26px, 3vw, 44px);
+  border-radius: var(--r-xl);
+  background: var(--blaze);
+  color: var(--on-blaze);
+  overflow: hidden;
+}
+.counterCalm {
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+}
+.counterLabel {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.counterNum {
+  font-size: clamp(56px, 8vw, 112px);
+  font-weight: var(--fw-bold);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.counterNum small {
+  font-size: 0.32em;
+  letter-spacing: 0;
+  margin-left: 0.25em;
+}
+.counterText {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-medium);
+  max-width: 27ch;
+}
+.counterMascot {
+  position: absolute;
+  right: clamp(12px, 2vw, 28px);
+  bottom: -6px;
+}
+/* On the blaze counter Wovi stands on a night disc, so the w never melts into the panel. */
+.counterDisc {
+  position: absolute;
+  right: clamp(14px, 2.4vw, 34px);
+  bottom: clamp(14px, 2.4vw, 30px);
+  display: grid;
+  place-items: center;
+  width: 136px;
+  height: 136px;
+  border-radius: 50%;
+  background: var(--bg);
+}
+.counterSticker {
+  position: absolute;
+  right: clamp(18px, 3vw, 40px);
+  top: clamp(18px, 3vw, 34px);
+}
+.counterSparkle {
+  position: absolute;
+  left: 52%;
+  bottom: 30%;
+}
+
+/* Tiles */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: clamp(18px, 2vw, 24px);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+}
+.tile:nth-child(even) {
+  background: var(--surface-alt);
+}
+.tile > span {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.tile > b {
+  font-size: clamp(26px, 2.6vw, 36px);
+  font-weight: var(--fw-bold);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.tile > small {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.bar {
+  height: 10px;
+  margin-top: var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--text-tint);
+  overflow: hidden;
+}
+.bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blaze);
+}
+
+/* Panels */
+.two {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--s-5);
+  align-items: stretch;
+}
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+  padding: clamp(22px, 2.6vw, 36px);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+.panelAlt {
+  background: var(--surface-alt);
+}
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+.panelHead > div {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.panelHead h2 {
+  font-size: clamp(24px, 2.4vw, 32px);
+}
+.panelHead p {
+  color: var(--text-muted);
+  margin-top: 4px;
+  max-width: 60ch;
+}
+.eyebrowSm {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blaze-text);
+  margin-bottom: var(--s-2);
+}
+
+/* Next burn */
+.next {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.nextWhen {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nextWhen b {
+  font-size: clamp(26px, 2.6vw, 34px);
+  line-height: 1.1;
+}
+.nextWhen span {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.pairs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.pair {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--text-tint);
+}
+.pair span {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.pair b {
+  font-size: var(--fs-xl);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.fine {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+/* How it works */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.steps li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: var(--s-3);
+  align-items: start;
+}
+.steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+  font-weight: var(--fw-bold);
+}
+.steps b {
+  display: block;
+  font-size: var(--fs-lg);
+}
+.steps span {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* Burns */
+.tableWrap {
+  overflow-x: auto;
+  margin-inline: calc(-1 * clamp(8px, 1vw, 12px));
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.table th {
+  text-align: left;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 12px 10px;
+}
+.table td {
+  padding: 14px 12px;
+  border-top: 1px solid var(--hairline);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.table td b {
+  font-size: var(--fs-md);
+}
+.num {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  height: 28px;
+  padding-inline: 8px;
+  border-radius: var(--r-pill);
+  background: var(--blaze-tint);
+  color: var(--blaze-text);
+  font-weight: var(--fw-bold);
+}
+.mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.92em;
+}
+.empty {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--text-tint);
+}
+.empty b {
+  display: block;
+  font-size: var(--fs-lg);
+}
+.empty span {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* Addresses */
+.addresses {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.address {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) auto;
+  gap: var(--s-4);
+  align-items: center;
+  padding: var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--text-tint);
+}
+.address > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.address > span:first-child b {
+  font-size: var(--fs-md);
+}
+.address > span:first-child small {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+.addressValue {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.addressTools {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+.explorer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding-inline: 10px;
+  border-radius: var(--r-pill);
+  border: var(--stroke) solid var(--line);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+.explorer:hover {
+  color: var(--text);
+  text-decoration: none;
+  border-color: var(--text-muted);
+}
+
+/* Perks */
+.perks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+.perk {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--text-tint);
+}
+.perk h3 {
+  font-size: var(--fs-lg);
+}
+.perk p {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.perkIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+}
+
+/* Own risk */
+.risk {
+  display: flex;
+  gap: var(--s-4);
+  align-items: flex-start;
+  padding: clamp(20px, 2.4vw, 30px);
+  border-radius: var(--r-xl);
+  border: var(--stroke) solid var(--line);
+}
+.risk > svg {
+  flex: none;
+  color: var(--blaze-text);
+  margin-top: 2px;
+}
+.risk b {
+  display: block;
+  font-size: var(--fs-lg);
+  margin-bottom: 4px;
+}
+.risk p {
+  color: var(--text-muted);
+}
+
+.stale {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--blaze-tint);
+  font-size: var(--fs-sm);
+}
+
+@media (max-width: 1080px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .perks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 900px) {
+  .hero,
+  .two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .counter {
+    min-height: 300px;
+  }
+  .address {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--s-2);
+  }
+}
+@media (max-width: 640px) {
+  /* The burns as stacked cards on a phone: no sideways scroll. */
+  .tableWrap {
+    margin-inline: 0;
+  }
+  .table thead {
+    display: none;
+  }
+  .table,
+  .table tbody {
+    display: block;
+  }
+  .table tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px var(--s-3);
+    padding: var(--s-4) 0;
+    border-top: 1px solid var(--hairline);
+  }
+  .table td {
+    display: block;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+  .table td:first-child {
+    grid-row: span 4;
+  }
+  .table td[data-label]::before {
+    content: attr(data-label) " ";
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
+  }
+  .counterDisc {
+    width: 120px;
+    height: 120px;
+  }
+}
+@media (max-width: 520px) {
+  .pairs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .counter {
+    min-height: 390px;
+  }
+  .counterMascot {
+    transform: scale(0.72);
+    transform-origin: right bottom;
+  }
+}

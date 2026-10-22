@@ -35,6 +35,7 @@ The engine side is `src/lib/runs/billing.ts` (the `RunBilling` hook); the pipeli
 | `maxMonthlyLimit` | 10,000,000 | The highest limit an owner can set. |
 | `swappable` | false | Credits never turn into tokens or money, either way. |
 | `starterCredits` | 0 | Non-holders get no free credits. |
+| `holderSpendOrder` | `after_paid` | Which pool a run takes from first (phase 17). `WOVI_HOLDER_CREDITS_ORDER=before_paid` spends holder credits first. |
 | `enabled` | true | Off (or `WOVI_CREDITS=off`) turns billing off for the local app. |
 
 ## Pricing
@@ -55,19 +56,59 @@ Append-only, per workspace. The balance is the sum of the entries.
 
 | Kind | Amount | When |
 |---|---|---|
-| `top_up` | + | A payment provider said paid. Test top-ups are marked `test`. |
-| `grant` | + | Credits given, one per source id. The hook for holder credits (phase 17). Nothing grants yet. |
+| `top_up` | + | A payment provider said paid, an x402 payment (phase 15), or $WOVI sent to the burn pot (phase 17). Test top-ups are marked `test`. |
+| `grant` | + | Credits given, one per source id: support (paid credits), or a $WOVI holder's monthly holder credits (phase 17, `grantHolder` only). |
 | `hold` | - | The estimate, held when a run or pipeline starts. |
 | `release` | + | Gives a hold back: all of it when the run ends (paired with the charge), or part of a pipeline's hold per step. Its reason: settled, failed, cancelled, step, ended. |
 | `charge` | - | What a finished run really cost, never more than it held. Keeps the real model cost for support. |
 | `refund` | + | A charge given back afterwards, once per run (support). |
-| `adjustment` | +/- | A correction with a note (support). |
+| `adjustment` | +/- | A correction with a note (support). Paid credits only. |
+| `expire` | - | Holder credits left at the end of their month (phase 17). |
 
 A run that held 4 and cost 2 writes `hold -4`, then `release +4` and `charge -2` together: 2 spent, 2 back. A failed run writes `release +4` and nothing else.
 
-- **Idempotent.** Every entry has a key that is unique in its workspace (`hold:run:<id>`, `charge:run:<id>`, `topup:<id>`, `grant:holder:<source id>`). Writing a key again returns the first entry; the same key with another amount is refused (`conflict`).
+- **Idempotent.** Every entry has a key that is unique in its workspace (`hold:run:<id>`, `charge:run:<id>`, `topup:<id>`, `grant:holder:<person>:<month>`, `wovi:<chain>:<transaction>`, `expire:holder:<month>:<n>`). Writing a key again returns the first entry; the same key with another amount is refused (`conflict`).
 - **Never negative.** Writes for one workspace run one at a time, and the balance check and the write are one step. Any entry that would take the balance below zero refuses the whole write (`not_enough_credits`). Every entry stores the balance after it.
 - In Postgres: a unique index on `(workspace_id, key)` and a row lock on the workspace per write.
+
+## Holder credits (phase 17)
+
+A second pool beside paid credits, never mixed with it. The product doc: "spendable on agents only, never swappable
+or withdrawable, and they expire, so they cannot be cycled back into tokens." How holders get them is in
+[token.md](token.md#holders); this is how the ledger keeps them.
+
+- **Every entry carries its holder part.** `holder` is the part of `amount` that is holder credits (same sign, never
+  more than the amount) and `period` the month it belongs to ("2026-10", UTC); the rest is paid. Rows from before
+  phase 17 have none and are all paid. So the paid balance is the sum of `amount - holder`, and each month's holder
+  balance the sum of `holder` for that month. `balanceAfter` stays the whole.
+- **Only `grantHolder` brings them in**: one grant per person and month (`grant:holder:<person>:<month>`), for the
+  current month only, into the person's personal workspace, with `expiresAt` at the month's end. The support grant
+  refuses the holder source. Top-ups, x402, $WOVI payments, adjustments and refunds of paid charges are paid credits,
+  so support can never take holder credits away or turn them into anything.
+- **Spendable** is paid credits plus this month's holder credits. Holder credits from a month that has ended do not
+  count, even before they are written off. Both pools together must cover a hold, and neither pool may ever go below
+  zero (the write refuses it, like the whole balance).
+- **Spend order.** A hold takes from the two pools in the configured order: after paid credits by default (paid first,
+  holder credits for the rest), or before them (`WOVI_HOLDER_CREDITS_ORDER=before_paid`). The hold records its holder
+  part and month.
+- **Give-backs go home.** A run's release gives back each pool what it took; its charge takes from the hold's two
+  parts in the same order. A pipeline step is charged inside the pipeline's hold the same way, and the end of a
+  pipeline gives back what is left of each part. A refund of a charge returns to the pool and month the charge came
+  from.
+- **Expiry.** What is left of a month's holder credits is written off by an `expire` entry once the month has ended:
+  before the next hold or holder grant in that workspace, and by the hourly holder job. A hold made in one month and
+  ended in the next is charged from its own month's holder credits, and what it gives back is written off afterwards
+  (a month can expire more than once, each with its own key).
+- **On screens**: the Available tile says how much is paid and how much is holder credits; a Holder credits panel shows
+  this month's, until when, the two pools side by side and the rules in plain words; history shows a grant ("Holder
+  credits for October 2026"), an expiry, and how much of a run was holder credits. Holder credits count toward monthly
+  limits like any spend.
+
+## Paying with $WOVI (phase 17)
+
+Owners and admins can buy a pack with $WOVI sent from a linked wallet to the burn pot, checked on chain read only
+([token.md](token.md#paying-for-credits-with-wovi)). It lands as a `top_up` of paid credits keyed by the transaction
+(`wovi:4663:<hash>`), once ever per transaction.
 
 ## Runs
 
@@ -147,7 +188,7 @@ The earlier phases' screenshot scripts run agents from a workspace with no credi
 
 ## Tests
 
-`src/lib/credits/credits.test.ts` (22 tests) and the policy table in `src/lib/accounts/policy.test.ts`:
+`src/lib/credits/credits.test.ts` (22 tests), `src/lib/credits/holder-credits.test.ts` (12, phase 17: the holder pool) and the policy table in `src/lib/accounts/policy.test.ts`:
 
 - pricing: rounding up, the minimum, the margin, the estimate under the cap, the charge under the hold, the median; the fixed value, nothing swappable, nothing free, the words;
 - the ledger: test top-ups once per key, the minimum and packs only, closed and failing providers, the test provider only locally; keys written once and refused with another amount, never below zero, the grant hook, every balance adding up; racing holds never spending more than the balance;
@@ -158,7 +199,7 @@ The earlier phases' screenshot scripts run agents from a workspace with no credi
 ## Later
 
 - A real payment provider: Stripe for cards (owners do not need a wallet). Agents and software without an account pay per call with x402 since phase 15 ([x402.md](x402.md)): each paid call lands in the `ws_x402` workspace as a top-up of its quote and settles like any run.
-- Holder credits (phase 17) through `grant`, with expiry and one allocation per verified person. Nothing grants yet.
+- Holder credits are in since phase 17 (above). One allocation per account; one person with several accounts is not caught yet.
 - Swaps and creator payouts only after the legal check.
 - A small starter pack or a low first top-up for new users outside crypto, as the doc says to revisit.
 - Credits for MCP and REST calls (phase 14) go through the same guarded engine, so they are billed already.

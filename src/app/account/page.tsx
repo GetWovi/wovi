@@ -3,6 +3,11 @@ import { ActionForm } from "@/components/account/ActionForm";
 import styles from "@/components/account/Account.module.css";
 import { PasskeyAdd } from "@/components/account/PasskeyAdd";
 import { WalletLink } from "@/components/account/WalletLink";
+import { HolderBadge } from "@/components/token/HolderBadge";
+import { creditWords, monthWords } from "@/lib/credits/config";
+import { monthEnd } from "@/lib/credits/pricing";
+import { tokenServices } from "@/lib/token/local";
+import { utcWords, wholeWords } from "@/lib/token/words";
 import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -47,6 +52,10 @@ export default async function AccountPage() {
   const keys = can(role, "manage_api_keys") ? (await a.apiKeys.list(me, wsId)).filter((k) => !k.revokedAt) : [];
   const passkeys = await a.passkeys.list(info.user.id);
   const wallets = await a.wallets.list(info.user.id);
+  // $WOVI (phase 17): the person's own holder status, from the stored reading. Null while holders are off.
+  const ts = tokenServices();
+  const holder = ts.config.holder.on ? await ts.holders.view(info.user.id) : null;
+  const period = new Date().toISOString().slice(0, 7);
   const invitable = ROLES.filter((r) => canAssign(role, null, r));
   const lastOwner = role === "owner" && members.filter((m) => m.role === "owner").length === 1;
 
@@ -262,10 +271,53 @@ export default async function AccountPage() {
           </ul>
           <div className={styles.headActions}>
             <PasskeyAdd csrf={csrf} />
-            <WalletLink csrf={csrf} />
+            {!holder && <WalletLink csrf={csrf} />}
           </div>
           <p className={styles.fine}>Linking a wallet only signs a message to prove it is yours. It never sends funds or approves a transaction.</p>
         </Card>
+
+        {holder && (
+          <Card title="$WOVI holder" className={styles.section}>
+            <div id="wovi" className={styles.holder}>
+              <div className={styles.holderHead}>
+                {holder.holder ? <HolderBadge size="md" /> : <span className={styles.holderOff}>Not a holder yet</span>}
+                <span className={styles.itemMeta}>
+                  {wallets.length === 0
+                    ? `Link a wallet holding at least ${Number(holder.minWhole).toLocaleString("en-US")} $WOVI and your account shows the holder badge.`
+                    : holder.totalWei === null
+                      ? "Your wallets have not been read yet. They are read again within a few hours."
+                      : `Your linked wallets hold ${wholeWords(holder.totalWei)} $WOVI${holder.checkedAt ? `, read ${utcWords(Date.parse(holder.checkedAt))}` : ""}. The badge shows from ${Number(holder.minWhole).toLocaleString("en-US")}.`}
+                </span>
+              </div>
+              {holder.creditsOn && (
+                <ul className={styles.holderFacts}>
+                  <li>
+                    <b>Holder credits</b>
+                    <span>{holder.tiers.map((t) => `${Number(t.minWhole).toLocaleString("en-US")} $WOVI: ${creditWords(t.credits)} a month`).join(". ")}.</span>
+                  </li>
+                  <li>
+                    <b>This month</b>
+                    <span>
+                      {holder.thisMonth
+                        ? holder.thisMonth.credits > 0
+                          ? `${creditWords(holder.thisMonth.credits)} in your personal workspace for ${monthWords(period)}, from the snapshot on ${utcWords(Date.parse(holder.thisMonth.at))}.`
+                          : `The ${monthWords(period)} snapshot (${utcWords(Date.parse(holder.thisMonth.at))}) did not include a holding of yours. The next one is taken after ${utcWords(Date.parse(monthEnd(period)))}.`
+                        : `The ${monthWords(period)} snapshot has not been taken yet.`}
+                      {holder.monthlyCredits > 0 ? ` Your holding now would bring ${creditWords(holder.monthlyCredits)} at the next one.` : ""}
+                    </span>
+                  </li>
+                </ul>
+              )}
+              <div className={styles.headActions}>
+                <WalletLink csrf={csrf} label={wallets.length ? "Link another wallet" : "Link a wallet"} variant={wallets.length ? "secondary" : "primary"} />
+              </div>
+              <p className={styles.fine}>
+                {holder.creditsOn ? "Holder credits are a perk for using WOVI: they run agents and nothing else, never move, swap or pay out, and expire at the end of their month. " : ""}
+                Your balance is only shown to you. Others see the badge and nothing else.
+              </p>
+            </div>
+          </Card>
+        )}
       </div>
     </AppShell>
   );

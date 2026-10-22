@@ -105,6 +105,23 @@
   background: var(--text-tint);
   text-decoration: none;
 }
+/* The $WOVI holder mark on the avatar (phase 17). */
+.avatarWrap {
+  position: relative;
+  display: inline-flex;
+}
+.holderDot {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--blaze);
+  box-shadow: 0 0 0 2px var(--bg);
+}
 .avatarName {
   overflow: hidden;
   text-overflow: ellipsis;

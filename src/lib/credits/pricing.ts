@@ -63,3 +63,9 @@ export function chargeFor(costMicroUsd: number, held: number, cfg: PricingConfig
 export function monthOf(iso: string): string {
   return iso.slice(0, 7);
 }
+
+/** When a month ends (UTC): "2026-10" ends at 2026-11-01T00:00:00.000Z. Holder credits expire then. */
+export function monthEnd(period: string): string {
+  const [y, m] = period.split("-").map(Number);
+  return new Date(Date.UTC(y, m, 1)).toISOString();
+}

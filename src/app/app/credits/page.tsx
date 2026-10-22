@@ -13,6 +13,10 @@ import { accounts } from "@/lib/accounts/server";
 import { appPage } from "@/lib/app/server";
 import { CREDITS, creditWords, priceWords } from "@/lib/credits/config";
 import { appCredits } from "@/lib/credits/server";
+import { PayWithWovi } from "@/components/credits/PayWithWovi";
+import { HolderBadge } from "@/components/token/HolderBadge";
+import { tokenServices } from "@/lib/token/local";
+import { utcWords } from "@/lib/token/words";
 
 export const metadata: Metadata = { title: "Credits", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -27,6 +31,12 @@ export default async function CreditsPage() {
   const [activity, usage] = summary.seesCosts ? await Promise.all([g.activity(me, workspaceId, { limit: 40 }), g.usage(me, workspaceId, members.map((m) => m.userId))]) : [[], {} as Record<string, number>];
   const now = currentTime();
   const low = balance.available < 10;
+  // $WOVI (phase 17): holder credits beside paid credits, and paying with $WOVI. Both off unless switched on.
+  const ts = tokenServices();
+  const holderView = ts.config.holder.on ? await ts.holders.view(info.user.id) : null;
+  const showHolder = balance.holder.available > 0 || Boolean(holderView?.creditsOn);
+  const pay = ts.pay?.status().on ? ts.pay.status() : null;
+  const myWallets = pay ? (await accounts().wallets.list(info.user.id)).map((w) => w.address) : [];
 
   return (
     <AppShell info={info} active="credits">
@@ -44,7 +54,7 @@ export default async function CreditsPage() {
       </div>
 
       <div className={c.tiles}>
-        <StatTile label="Available" value={balance.available.toLocaleString("en-US")} hint={low ? "Low: runs may not start" : "credits to spend"} emphasis />
+        <StatTile label="Available" value={balance.available.toLocaleString("en-US")} hint={low ? "Low: runs may not start" : balance.holder.available > 0 ? `${balance.paid.toLocaleString("en-US")} paid, ${balance.holder.available.toLocaleString("en-US")} holder credits` : "credits to spend"} emphasis />
         <StatTile label="Held for runs in progress" value={balance.held.toLocaleString("en-US")} hint={balance.held ? "comes back if a run uses less" : "nothing running"} />
         <StatTile
           label={summary.seesCosts ? "Used this month" : "You used this month"}
@@ -88,6 +98,24 @@ export default async function CreditsPage() {
             )}
           </section>
 
+          {pay && summary.canManage && (
+            <section id="pay-wovi" className={[styles.panel, styles.stack].join(" ")} aria-label="Pay with $WOVI">
+              <div className={c.panelHead}>
+                <div>
+                  <h2>Pay with $WOVI</h2>
+                  <p>Send $WOVI from a linked wallet to the burn pot. It is burned with the next burn, and the credits land here.</p>
+                </div>
+              </div>
+              {myWallets.length ? (
+                <PayWithWovi csrf={csrf} packs={pay.packs} wallets={myWallets} source={pay.source} explorer={ts.config.explorer} />
+              ) : (
+                <p className={styles.muted}>
+                  Link a wallet on <a href="/account#wovi">your account</a> first: the $WOVI has to come from a wallet linked to you.
+                </p>
+              )}
+            </section>
+          )}
+
           <section className={[styles.panel, styles.stack].join(" ")} aria-label="History">
             <div className={c.panelHead}>
               <div>
@@ -108,6 +136,50 @@ export default async function CreditsPage() {
         </div>
 
         <div className={styles.stack}>
+          {showHolder && (
+            <section id="holder-credits" className={[styles.panel, styles.stack].join(" ")} aria-label="Holder credits">
+              <div className={c.panelHead}>
+                <div>
+                  <h2>Holder credits</h2>
+                  <p>A monthly perk for $WOVI holders, kept apart from paid credits.</p>
+                </div>
+                {holderView?.holder && <HolderBadge />}
+              </div>
+              <div className={c.holderPool}>
+                <div className={c.holderNum}>
+                  <b>{balance.holder.available.toLocaleString("en-US")}</b>
+                  <span>holder credits left, until {utcWords(Date.parse(balance.holder.expiresAt))}</span>
+                </div>
+                <div className={c.split}>
+                  <div>
+                    <span>Paid credits</span>
+                    <b>{balance.paid.toLocaleString("en-US")}</b>
+                  </div>
+                  <div>
+                    <span>Holder credits</span>
+                    <b>{balance.holder.available.toLocaleString("en-US")}</b>
+                  </div>
+                </div>
+                <ul className={c.rules}>
+                  <li>
+                    <b>For runs only.</b> They pay for agents and nothing else: never moved, swapped or paid out.
+                  </li>
+                  <li>
+                    <b>Used {g.credits.cfg.holderSpendOrder === "after_paid" ? "after" : "before"} paid credits.</b> A run takes {g.credits.cfg.holderSpendOrder === "after_paid" ? "paid credits first, then holder credits" : "holder credits first, then paid credits"}, and anything it gives back returns to the pool it came from.
+                  </li>
+                  <li>
+                    <b>Gone at the end of the month.</b> What is left expires; the next month&apos;s come from a new snapshot.
+                  </li>
+                </ul>
+                {holderView && !holderView.holder && (
+                  <p className={styles.muted}>
+                    Link a wallet holding $WOVI on <a href="/account#wovi">your account</a> to get them in your personal workspace each month.
+                  </p>
+                )}
+              </div>
+            </section>
+          )}
+
           <section id="limits" className={[styles.panel, styles.stack].join(" ")} aria-label="Monthly limits">
             <div className={c.panelHead}>
               <div>

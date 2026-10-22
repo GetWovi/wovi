@@ -12,6 +12,13 @@
  *   the write are one step, so the balance never goes below zero.
  * - A run is never charged more than it held, and what it held is never more
  *   than the estimate the person was shown.
+ * - Two pools, never mixed (phase 17): paid credits and holder credits. Each
+ *   entry carries its holder part and that part's month. A hold takes from
+ *   the pools in the configured order (`holderSpendOrder`) and every release,
+ *   charge and refund goes back to, or out of, the pool and month it came
+ *   from. Neither pool ever goes below zero. Holder credits only come in
+ *   through `grantHolder`, are never moved, swapped or paid out, and what is
+ *   left of a month's at its end is written off by an `expire` entry.
  */
 import { randomUUID } from "node:crypto";
 import type { AgentRegistry } from "@/lib/agents/registry";
@@ -20,11 +27,11 @@ import type { AgentSpec } from "@/lib/agents/spec";
 import { BillingRefusal, type RunBilling, type RunBillingRequest } from "@/lib/runs/billing";
 import { toMicroUsd } from "@/lib/runs/prices";
 import type { Run } from "@/lib/runs/run";
-import { CREDITS, centsFor, creditWords, priceWords, type CreditsConfig } from "./config";
+import { CREDITS, centsFor, creditWords, monthWords, priceWords, type CreditsConfig } from "./config";
 import type { PaymentProvider } from "./payments";
-import { chargeFor, creditsForCost, estimateCredits, median, monthOf, staticRunMicroUsd } from "./pricing";
+import { chargeFor, creditsForCost, estimateCredits, median, monthEnd, monthOf, staticRunMicroUsd } from "./pricing";
 import type { CreditStore } from "./store";
-import type { Balance, CreditLimits, GrantSource, HoldState, LedgerEntry, LedgerKind, LedgerRef, PipelineCredits, ReleaseReason, RunCredits, TopUp } from "./types";
+import { holderPart, type Balance, type CreditLimits, type GrantSource, type HoldState, type LedgerEntry, type LedgerKind, type LedgerRef, type PipelineCredits, type ReleaseReason, type RunCredits, type TopUp } from "./types";
 
 export type { CreditsConfig };
 
@@ -65,7 +72,7 @@ type Draft = Pick<LedgerEntry, "key" | "kind" | "amount"> & Partial<Omit<LedgerE
 /** One line of the credits page: a run, a pipeline, a top-up or a support entry, with its entries folded together. */
 export type ActivityItem = {
   id: string;
-  type: "run" | "pipeline_run" | "top_up" | "grant" | "refund" | "adjustment";
+  type: "run" | "pipeline_run" | "top_up" | "grant" | "refund" | "adjustment" | "expire";
   label: string;
   /** The change to the balance once it is settled; the hold while it runs. */
   amount: number;
@@ -79,8 +86,16 @@ export type ActivityItem = {
   by: string | null;
   test: boolean;
   note: string | null;
+  /** Holder credits in it (phase 17): a holder grant, an expiry, or the holder part a run used. */
+  holder: number;
   at: string;
 };
+
+/** The two pools as the ledger stands: paid credits, and holder credits per month. */
+type Pools = { total: number; paid: number; holder: Map<string, number> };
+
+/** What a hold can take now: paid credits and this month's holder credits. */
+type Spendable = { paid: number; holder: number; period: string; available: number };
 
 const POSITIVE_INT = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n > 0;
 
@@ -143,21 +158,31 @@ export class Credits implements RunBilling {
     const all = await this.entries(workspaceId);
     const byKey = new Map(all.map((e) => [e.key, e]));
     let balance = this.sum(all);
+    const pools = this.pools(all);
     const out: LedgerEntry[] = [];
     const fresh: LedgerEntry[] = [];
     const at = this.iso();
     for (const d of drafts) {
       if (!Number.isInteger(d.amount)) throw new CreditError("invalid_request", "Credits are whole numbers.");
+      const h = d.holder ?? 0;
+      // The holder part is whole, on the same side as the amount, never more than it, and always names its month.
+      if (!Number.isInteger(h) || (h !== 0 && (Math.sign(h) !== Math.sign(d.amount) || Math.abs(h) > Math.abs(d.amount) || !d.period))) {
+        throw new CreditError("invalid_request", "The holder part of an entry must be a whole part of its amount, with its month.");
+      }
       const have = byKey.get(d.key);
       if (have) {
-        if (have.kind !== d.kind || have.amount !== d.amount) throw new CreditError("conflict", `The ledger already has "${d.key}" with another amount.`);
+        if (have.kind !== d.kind || have.amount !== d.amount || holderPart(have) !== h) throw new CreditError("conflict", `The ledger already has "${d.key}" with another amount.`);
         out.push(have);
         continue;
       }
+      const available = this.spendableOf(pools).available;
       balance += d.amount;
-      if (balance < 0) {
-        const available = balance - d.amount;
-        throw new BillingRefusal("not_enough_credits", `This needs ${creditWords(-d.amount)}. The workspace has ${creditWords(available)}.`, { needed: -d.amount, available });
+      pools.paid += d.amount - h;
+      const month = h ? (pools.holder.get(d.period!) ?? 0) + h : 0;
+      if (h) pools.holder.set(d.period!, month);
+      // Neither the whole nor either pool may go below zero.
+      if (balance < 0 || pools.paid < 0 || month < 0) {
+        throw new BillingRefusal("not_enough_credits", `This needs ${creditWords(-d.amount)}. The workspace has ${creditWords(Math.max(0, available))}.`, { needed: -d.amount, available });
       }
       const entry: LedgerEntry = {
         id: this.newId(),
@@ -176,6 +201,9 @@ export class Credits implements RunBilling {
         grantSource: d.grantSource ?? null,
         test: d.test ?? false,
         costMicroUsd: d.costMicroUsd ?? null,
+        holder: h,
+        period: h ? d.period! : null,
+        expiresAt: d.expiresAt ?? null,
         createdAt: at,
       };
       byKey.set(d.key, entry);
@@ -195,7 +223,100 @@ export class Credits implements RunBilling {
     const released = mine.filter((e) => e.kind === "release").reduce((t, e) => t + e.amount, 0);
     const charged = mine.filter((e) => e.kind === "charge").reduce((t, e) => t - e.amount, 0);
     const closed = mine.some((e) => e.kind === "release" && e.reason !== "step");
-    return { holdId, workspaceId: hold.workspaceId, amount, released, charged, open: closed ? 0 : amount - released, closed, userId: hold.userId, label: hold.label, ref: hold.ref, createdAt: hold.createdAt };
+    const holder = -holderPart(hold);
+    const holderReleased = mine.filter((e) => e.kind === "release").reduce((t, e) => t + holderPart(e), 0);
+    return {
+      holdId,
+      workspaceId: hold.workspaceId,
+      amount,
+      released,
+      charged,
+      open: closed ? 0 : amount - released,
+      closed,
+      userId: hold.userId,
+      label: hold.label,
+      ref: hold.ref,
+      createdAt: hold.createdAt,
+      holder,
+      holderOpen: closed ? 0 : holder - holderReleased,
+      period: hold.period ?? null,
+    };
+  }
+
+  /* ---------- The two pools (phase 17) ---------- */
+
+  private pools(entries: LedgerEntry[]): Pools {
+    const holder = new Map<string, number>();
+    let total = 0;
+    let paid = 0;
+    for (const e of entries) {
+      const h = holderPart(e);
+      total += e.amount;
+      paid += e.amount - h;
+      if (h) holder.set(e.period!, (holder.get(e.period!) ?? 0) + h);
+    }
+    return { total, paid, holder };
+  }
+
+  /** Paid credits plus this month's holder credits. Holder credits from a month that has ended do not count. */
+  private spendableOf(p: Pools): Spendable {
+    const period = monthOf(this.iso());
+    const holder = Math.max(0, p.holder.get(period) ?? 0);
+    const paid = Math.max(0, p.paid);
+    return { paid, holder, period, available: paid + holder };
+  }
+
+  /**
+   * How much of `amount` comes out of the holder pool, given what is there in
+   * each: after paid credits by default (paid first, holder credits for the
+   * rest), or before them.
+   */
+  private holderTake(amount: number, paid: number, holder: number): number {
+    if (this.cfg.holderSpendOrder === "before_paid") return Math.min(holder, amount);
+    return Math.min(holder, Math.max(0, amount - paid));
+  }
+
+  /**
+   * Entries that write off holder credits left in months that have ended.
+   * A hold that gave its holder part back after its month ended leaves some
+   * again, so a month can expire more than once; each time has its own key.
+   */
+  private expiryDrafts(entries: LedgerEntry[]): Draft[] {
+    const now = monthOf(this.iso());
+    const out: Draft[] = [];
+    for (const [period, left] of this.pools(entries).holder) {
+      if (period >= now || left <= 0) continue;
+      const n = entries.filter((e) => e.kind === "expire" && e.period === period).length;
+      out.push({ key: `expire:holder:${period}:${n + 1}`, kind: "expire", amount: -left, holder: -left, period, label: `Holder credits for ${monthWords(period)} expired`, ref: { type: "grant", id: period } });
+    }
+    return out;
+  }
+
+  /** Writes off holder credits left from months that have ended. Returns what expired. Safe to call any time. */
+  async expireHolder(workspaceId: string): Promise<number> {
+    return this.lock(workspaceId, async () => {
+      const drafts = this.expiryDrafts(await this.entries(workspaceId));
+      if (!drafts.length) return 0;
+      await this.write(workspaceId, drafts);
+      return drafts.reduce((t, d) => t - d.amount, 0);
+    });
+  }
+
+  /** Every workspace that has ever had holder credits: for the month-end expiry. */
+  async workspacesWithHolderCredits(): Promise<string[]> {
+    const grants = await this.o.store.ledger.find({ kind: "grant", grantSource: "holder" });
+    return [...new Set(grants.map((e) => e.workspaceId))];
+  }
+
+  /**
+   * Takes `amount` for a new hold from the two pools, after writing off any
+   * expired holder credits. Refuses when the two together are short.
+   */
+  private holdDrafts(entries: LedgerEntry[], amount: number): { expire: Draft[]; holder: number; period: string } {
+    const expire = this.expiryDrafts(entries);
+    const s = this.spendableOf(this.pools(entries));
+    if (amount > s.available) throw new BillingRefusal("not_enough_credits", `This needs ${creditWords(amount)}. The workspace has ${creditWords(s.available)}.`, { needed: amount, available: s.available });
+    return { expire, holder: this.holderTake(amount, s.paid, s.holder), period: s.period };
   }
 
   async hold(workspaceId: string, holdId: string): Promise<HoldState | null> {
@@ -212,7 +333,8 @@ export class Credits implements RunBilling {
   async balance(workspaceId: string): Promise<Balance> {
     const entries = await this.entries(workspaceId);
     const held = this.openHolds(entries).reduce((t, h) => t + h.open, 0);
-    return { workspaceId, available: this.sum(entries), held, usedThisMonth: this.used(entries, null) };
+    const s = this.spendableOf(this.pools(entries));
+    return { workspaceId, available: s.available, paid: s.paid, holder: { available: s.holder, period: s.period, expiresAt: monthEnd(s.period) }, held, usedThisMonth: this.used(entries, null) };
   }
 
   /**
@@ -286,7 +408,7 @@ export class Credits implements RunBilling {
       if (err instanceof BillingRefusal) return err;
       throw err;
     }
-    const available = this.sum(entries);
+    const available = this.spendableOf(this.pools(entries)).available;
     return available < add ? new BillingRefusal("not_enough_credits", `This needs ${creditWords(add)}. The workspace has ${creditWords(available)}.`, { needed: add, available }) : null;
   }
 
@@ -359,8 +481,10 @@ export class Credits implements RunBilling {
     const holdId = `run:${runId}`;
     return this.lock(workspaceId, async () => {
       const entries = await this.entries(workspaceId);
-      if (!entries.some((e) => e.key === `hold:${holdId}`)) await this.checkLimits(workspaceId, userId, estimate, entries);
-      await this.write(workspaceId, [{ key: `hold:${holdId}`, kind: "hold", amount: -estimate, holdId, ref: { type: "run", id: runId }, userId, label: spec.name }]);
+      if (entries.some((e) => e.key === `hold:${holdId}`)) return { mode: "own", estimate, holdId, state: "held", charged: null, back: null, userId };
+      await this.checkLimits(workspaceId, userId, estimate, entries);
+      const take = this.holdDrafts(entries, estimate);
+      await this.write(workspaceId, [...take.expire, { key: `hold:${holdId}`, kind: "hold", amount: -estimate, holder: -take.holder, period: take.period, holdId, ref: { type: "run", id: runId }, userId, label: spec.name }]);
       return { mode: "own", estimate, holdId, state: "held", charged: null, back: null, userId };
     });
   }
@@ -386,9 +510,12 @@ export class Credits implements RunBilling {
         const hold = this.holdFrom(entries, holdId);
         const amount = paid && hold ? Math.min(chargeFor(run.costMicroUsd, c.estimate, this.cfg), hold.open) : 0;
         if (amount <= 0) return { ...c, state: "refunded", charged: 0, back: null };
+        // The step is charged inside the pipeline's hold, from the hold's two parts in the same order as any spend.
+        const h = this.holderTake(amount, hold!.open - hold!.holderOpen, hold!.holderOpen);
+        const period = hold!.period ?? undefined;
         await this.write(ws, [
-          { key: `step:run:${run.id}`, kind: "release", amount, holdId, ref: { type: "run", id: run.id }, userId: c.userId, label: hold!.label, reason: "step" },
-          { key: `charge:run:${run.id}`, kind: "charge", amount: -amount, holdId, ref: { type: "run", id: run.id }, userId: c.userId, label: hold!.label, costMicroUsd: run.costMicroUsd },
+          { key: `step:run:${run.id}`, kind: "release", amount, holder: h, period, holdId, ref: { type: "run", id: run.id }, userId: c.userId, label: hold!.label, reason: "step" },
+          { key: `charge:run:${run.id}`, kind: "charge", amount: -amount, holder: -h, period, holdId, ref: { type: "run", id: run.id }, userId: c.userId, label: hold!.label, costMicroUsd: run.costMicroUsd },
         ]);
         return { ...c, state: "charged", charged: amount, back: null };
       });
@@ -401,9 +528,12 @@ export class Credits implements RunBilling {
       if (hold.closed) return { ...c, state: hold.charged > 0 ? "charged" : "refunded", charged: hold.charged, back: hold.amount - hold.charged };
       const amount = paid ? chargeFor(run.costMicroUsd, hold.amount, this.cfg) : 0;
       const reason: ReleaseReason = run.status === "succeeded" ? "settled" : run.status === "failed" ? "failed" : "cancelled";
+      // Everything goes back to the pools it came from; the charge takes from the hold's two parts in spend order.
+      const h = this.holderTake(amount, hold.amount - hold.holder, hold.holder);
+      const period = hold.period ?? undefined;
       await this.write(ws, [
-        { key: `release:${holdId}`, kind: "release", amount: hold.amount, holdId, ref: hold.ref, userId: hold.userId, label: hold.label, reason },
-        ...(amount > 0 ? [{ key: `charge:${holdId}`, kind: "charge" as const, amount: -amount, holdId, ref: hold.ref, userId: hold.userId, label: hold.label, costMicroUsd: run.costMicroUsd }] : []),
+        { key: `release:${holdId}`, kind: "release", amount: hold.amount, holder: hold.holder, period, holdId, ref: hold.ref, userId: hold.userId, label: hold.label, reason },
+        ...(amount > 0 ? [{ key: `charge:${holdId}`, kind: "charge" as const, amount: -amount, holder: -h, period, holdId, ref: hold.ref, userId: hold.userId, label: hold.label, costMicroUsd: run.costMicroUsd }] : []),
       ]);
       return { ...c, state: amount > 0 ? "charged" : "refunded", charged: amount, back: hold.amount - amount };
     });
@@ -418,8 +548,10 @@ export class Credits implements RunBilling {
     const holdId = `pip:${pipelineRunId}:${attempt}`;
     await this.lock(workspaceId, async () => {
       const entries = await this.entries(workspaceId);
-      if (!entries.some((e) => e.key === `hold:${holdId}`)) await this.checkLimits(workspaceId, userId, estimate, entries);
-      await this.write(workspaceId, [{ key: `hold:${holdId}`, kind: "hold", amount: -estimate, holdId, ref: { type: "pipeline_run", id: pipelineRunId }, userId, label }]);
+      if (entries.some((e) => e.key === `hold:${holdId}`)) return;
+      await this.checkLimits(workspaceId, userId, estimate, entries);
+      const take = this.holdDrafts(entries, estimate);
+      await this.write(workspaceId, [...take.expire, { key: `hold:${holdId}`, kind: "hold", amount: -estimate, holder: -take.holder, period: take.period, holdId, ref: { type: "pipeline_run", id: pipelineRunId }, userId, label }]);
     });
     const prev = input.previous;
     return { holdId, holdIds: [...(prev?.holdIds ?? []), holdId], estimate: (prev?.estimate ?? 0) + estimate, state: "held", charged: prev?.charged ?? 0, back: prev?.back ?? 0, userId };
@@ -447,7 +579,7 @@ export class Credits implements RunBilling {
       const hold = this.holdFrom(await this.entries(workspaceId), c.holdId);
       if (!hold || hold.closed) return;
       // Zero still closes it, so the hold reads as ended.
-      await this.write(workspaceId, [{ key: `release:${c.holdId}`, kind: "release", amount: hold.open, holdId: c.holdId, ref: hold.ref, userId: hold.userId, label: hold.label, reason }]);
+      await this.write(workspaceId, [{ key: `release:${c.holdId}`, kind: "release", amount: hold.open, holder: hold.holderOpen, period: hold.period ?? undefined, holdId: c.holdId, ref: hold.ref, userId: hold.userId, label: hold.label, reason }]);
     });
     return this.pipelineTotals(workspaceId, c);
   }
@@ -531,16 +663,46 @@ export class Credits implements RunBilling {
   }
 
   /**
-   * The hook for credits given rather than bought: holder credits (phase 17)
-   * will call this. Nothing calls it yet. One grant per source id.
+   * Paid credits given rather than bought, by support. One grant per source
+   * id. Holder credits never come in this way: they are their own pool and
+   * only `grantHolder` writes them.
    */
   async grant(workspaceId: string, input: { credits: number; source: GrantSource; sourceId: string; by: string; note?: string }): Promise<LedgerEntry> {
     if (!POSITIVE_INT(input.credits)) throw new CreditError("invalid_request", "A grant is a whole number of credits.");
+    if (input.source === "holder") throw new CreditError("invalid_request", "Holder credits are granted with grantHolder.");
     if (!/^[A-Za-z0-9_.:-]{1,100}$/.test(input.sourceId)) throw new CreditError("invalid_request", "The grant needs a source id.");
     const [e] = await this.lock(workspaceId, () =>
       this.write(workspaceId, [{ key: `grant:${input.source}:${input.sourceId}`, kind: "grant", amount: input.credits, ref: { type: "grant", id: input.sourceId }, by: input.by, label: `Grant, ${creditWords(input.credits)}`, grantSource: input.source, note: input.note ?? null }]),
     );
     return e;
+  }
+
+  /**
+   * A $WOVI holder's credits for one month (phase 17), into their personal
+   * workspace: the holder pool, spendable on runs only, never moved, swapped
+   * or paid out, and written off at the end of `period` (UTC). Once per
+   * person and month (`sourceId`); the same call again returns the first.
+   * Any holder credits left from months that have ended expire first.
+   */
+  async grantHolder(workspaceId: string, input: { credits: number; period: string; sourceId: string; by: string; label?: string; note?: string }): Promise<LedgerEntry> {
+    if (!POSITIVE_INT(input.credits)) throw new CreditError("invalid_request", "Holder credits are a whole number above zero.");
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(input.period)) throw new CreditError("invalid_request", "A month looks like 2026-10.");
+    if (input.period !== monthOf(this.iso())) throw new CreditError("invalid_request", "Holder credits are granted for the current month only.");
+    if (!/^[A-Za-z0-9_.:-]{1,100}$/.test(input.sourceId)) throw new CreditError("invalid_request", "The grant needs a source id.");
+    return this.lock(workspaceId, async () => {
+      const entries = await this.entries(workspaceId);
+      const key = `grant:holder:${input.sourceId}`;
+      const have = entries.find((e) => e.key === key);
+      if (have) {
+        if (have.amount !== input.credits) throw new CreditError("conflict", `The ledger already has "${key}" with another amount.`);
+        return have;
+      }
+      const out = await this.write(workspaceId, [
+        ...this.expiryDrafts(entries),
+        { key, kind: "grant", amount: input.credits, holder: input.credits, period: input.period, expiresAt: monthEnd(input.period), ref: { type: "grant", id: input.sourceId }, by: input.by, label: input.label ?? `Holder credits for ${monthWords(input.period)}`, grantSource: "holder", note: input.note ?? null },
+      ]);
+      return out[out.length - 1];
+    });
   }
 
   /**
@@ -552,6 +714,18 @@ export class Credits implements RunBilling {
     if (!POSITIVE_INT(input.credits)) throw new CreditError("invalid_request", "An x402 payment is a whole number of credits.");
     const [e] = await this.lock(workspaceId, () =>
       this.write(workspaceId, [{ key: `x402:${input.paymentId}`, kind: "top_up", amount: input.credits, ref: { type: "top_up", id: input.paymentId }, by: "x402", label: input.label, test: input.test }]),
+    );
+    return e;
+  }
+
+  /**
+   * Paid credits bought with $WOVI sent to the burn pot (phase 17): once per
+   * transaction, checked on chain before this is called (token/pay.ts).
+   */
+  async payWithToken(workspaceId: string, input: { paymentId: string; credits: number; by: string; label: string }): Promise<LedgerEntry> {
+    if (!POSITIVE_INT(input.credits)) throw new CreditError("invalid_request", "A $WOVI payment is a whole number of credits.");
+    const [e] = await this.lock(workspaceId, () =>
+      this.write(workspaceId, [{ key: `wovi:${input.paymentId}`, kind: "top_up", amount: input.credits, ref: { type: "top_up", id: input.paymentId }, by: input.by, label: input.label }]),
     );
     return e;
   }
@@ -572,7 +746,8 @@ export class Credits implements RunBilling {
       const entries = await this.entries(workspaceId);
       const charge = entries.find((e) => e.kind === "charge" && e.ref?.type === "run" && e.ref.id === runId);
       if (!charge) throw new CreditError("not_found", "That run was not charged.");
-      const [e] = await this.write(workspaceId, [{ key: `refund:run:${runId}`, kind: "refund", amount: -charge.amount, ref: charge.ref, userId: charge.userId, by: input.by, label: charge.label, note: input.note.trim() || null }]);
+      // Back to the pool the charge came from: holder credits return to their month (and expire with it).
+      const [e] = await this.write(workspaceId, [{ key: `refund:run:${runId}`, kind: "refund", amount: -charge.amount, holder: -holderPart(charge), period: charge.period ?? undefined, ref: charge.ref, userId: charge.userId, by: input.by, label: charge.label, note: input.note.trim() || null }]);
       return e;
     });
   }
@@ -612,12 +787,13 @@ export class Credits implements RunBilling {
           by: null,
           test: false,
           note: null,
+          holder: h.closed ? -entries.filter((x) => x.holdId === e.holdId && x.kind === "charge").reduce((t, x) => t + holderPart(x), 0) : h.holder,
           at: h.createdAt,
         });
         continue;
       }
-      const type = e.kind === "top_up" ? "top_up" : e.kind === "grant" ? "grant" : e.kind === "refund" ? "refund" : "adjustment";
-      items.push({ id: e.id, type, label: e.label, amount: e.amount, held: null, charged: null, back: null, state: e.amount >= 0 ? "added" : "removed", reason: null, ref: e.ref, userId: e.userId, by: e.by, test: e.test, note: e.note, at: e.createdAt });
+      const type = e.kind === "top_up" ? "top_up" : e.kind === "grant" ? "grant" : e.kind === "refund" ? "refund" : e.kind === "expire" ? "expire" : "adjustment";
+      items.push({ id: e.id, type, label: e.label, amount: e.amount, held: null, charged: null, back: null, state: e.amount >= 0 ? "added" : "removed", reason: null, ref: e.ref, userId: e.userId, by: e.by, test: e.test, note: e.note, holder: holderPart(e), at: e.createdAt });
     }
     const out = items.reverse();
     return opts.limit ? out.slice(0, opts.limit) : out;

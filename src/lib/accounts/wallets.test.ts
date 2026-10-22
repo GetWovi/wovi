@@ -62,4 +62,43 @@ describe("wallet links", () => {
     expect(await accounts.wallets.list(ada.id)).toEqual([]);
     await link(bo.id);
   });
+
+  it("never takes the same signature twice: a replayed link, or one signed message for another account, is refused (phase 17)", async () => {
+    const { accounts, signUp } = testAccounts();
+    const ada = (await signUp("ada@example.com")).user;
+    const bo = (await signUp("bo@example.com")).user;
+    const w = wallet();
+    const { challengeId, message } = await accounts.wallets.linkMessage(ada.id, w.address, 4663);
+    const signature = await w.signMessage({ message });
+    await accounts.wallets.verifyLink(ada.id, challengeId, signature);
+    // The same challenge and signature again: used up.
+    await rejectsCode(accounts.wallets.verifyLink(ada.id, challengeId, signature), "invalid_signature");
+    await rejectsCode(accounts.wallets.verifyLink(bo.id, challengeId, signature), "invalid_signature");
+    // An old signature over another challenge's message: the message differs (its nonce), so it is not from that wallet.
+    const fresh = await accounts.wallets.linkMessage(bo.id, w.address, 4663);
+    expect(fresh.message).not.toBe(message);
+    await rejectsCode(accounts.wallets.verifyLink(bo.id, fresh.challengeId, signature), "invalid_signature");
+    expect(await accounts.wallets.list(bo.id)).toEqual([]);
+  });
+
+  it("treats an address the same in any case: one wallet, one account, stored checksummed with a lower-case id (phase 17)", async () => {
+    const { accounts, signUp, store } = testAccounts();
+    const ada = (await signUp("ada@example.com")).user;
+    const bo = (await signUp("bo@example.com")).user;
+    const w = wallet();
+    const lower = w.address.toLowerCase();
+    const upper = `0x${w.address.slice(2).toUpperCase()}`;
+    const one = await accounts.wallets.linkMessage(ada.id, lower, 4663);
+    // The message carries the checksummed form, which is what the wallet shows and signs.
+    expect(one.message).toContain(w.address);
+    await accounts.wallets.verifyLink(ada.id, one.challengeId, await w.signMessage({ message: one.message }));
+    // Linking it again in another case is the same wallet: Ada keeps one link, Bo is refused.
+    const again = await accounts.wallets.linkMessage(ada.id, upper, 4663);
+    await accounts.wallets.verifyLink(ada.id, again.challengeId, await w.signMessage({ message: again.message }));
+    expect(await accounts.wallets.list(ada.id)).toHaveLength(1);
+    const theirs = await accounts.wallets.linkMessage(bo.id, upper, 4663);
+    await rejectsCode(accounts.wallets.verifyLink(bo.id, theirs.challengeId, await w.signMessage({ message: theirs.message })), "conflict");
+    const [row] = await store.wallets.find();
+    expect(row).toMatchObject({ id: lower, address: w.address, userId: ada.id });
+  });
 });
