@@ -1,7 +1,8 @@
 /**
- * A minimal Brand Brain, just enough for the run engine to fill prompts. The
- * real Brand Brain (onboarding, editing, versions) is phase 7; it will
- * implement BrandBrainSource and nothing in the engine changes.
+ * The Brand Brain as the run engine sees it: the parts an agent may read,
+ * already flattened to text and lists. The stored Brand Brain (phase 7,
+ * src/lib/brand) is richer: versions, files, reference notes. Its source
+ * turns the current version into this shape (see src/lib/brand/source.ts).
  */
 import { createHash } from "node:crypto";
 import type { BrandBrainPart } from "@/lib/agents/catalog";
@@ -13,6 +14,10 @@ export type BrandBrain = {
   updatedAt: string;
   /** How the brand sounds, in a few sentences. */
   voice: string;
+  /** The voice in detail, when the Brand Brain has it: tone tags, words to use and avoid, sample lines, topics. */
+  voiceDetail?: { tone: string[]; use: string[]; avoid: string[]; samples: string[]; topics: string[] };
+  /** Who it is for, in a few words. */
+  niche?: string;
   /** Words for the look: colours, light, pace, framing. */
   mood_board: string[];
   /** Past posts that worked. */
@@ -25,6 +30,8 @@ export type BrandBrain = {
 /** What a run records about the Brand Brain it used. */
 export type BrandBrainRef = {
   id: string;
+  /** The Brand Brain's name when the run started. */
+  name?: string;
   updatedAt: string;
   parts: BrandBrainPart[];
   /** Hash of the parts as they were filled in, so a later edit is visible. */
@@ -72,7 +79,7 @@ export function sampleBrandBrain(workspaceId: string, id = "bb_default"): BrandB
   };
 }
 
-/** Every workspace gets the sample brain as its default. Stands in until phase 7. */
+/** Every workspace gets the sample brain as its default. For tests only; the app reads the real store (src/lib/brand). */
 export function stubBrandBrains(): BrandBrainSource {
   return {
     async get(workspaceId, id) {
@@ -89,7 +96,7 @@ export function renderBrandPart(brain: BrandBrain | null, part: BrandBrainPart):
   if (!brain) return "Not set yet.";
   switch (part) {
     case "voice":
-      return brain.voice || "Not set yet.";
+      return renderVoice(brain);
     case "idea":
       return brain.idea || "Not set yet.";
     case "mood_board":
@@ -107,10 +114,24 @@ export function renderBrandPart(brain: BrandBrain | null, part: BrandBrainPart):
   }
 }
 
+function renderVoice(brain: BrandBrain): string {
+  const d = brain.voiceDetail;
+  const lines: string[] = [];
+  if (brain.voice) lines.push(brain.voice);
+  if (brain.niche) lines.push(`Niche: ${brain.niche}`);
+  if (d?.tone.length) lines.push(`Tone: ${d.tone.join(", ")}`);
+  if (d?.topics.length) lines.push(`Topics: ${d.topics.join(", ")}`);
+  if (d?.use.length) lines.push(`Words to use: ${d.use.join(", ")}`);
+  if (d?.avoid.length) lines.push(`Words to avoid: ${d.avoid.join(", ")}`);
+  if (d?.samples.length) lines.push("Lines that sound right:", list(d.samples));
+  return lines.length ? lines.join("\n") : "Not set yet.";
+}
+
 export function brandBrainRef(brain: BrandBrain, parts: readonly BrandBrainPart[]): BrandBrainRef {
   const filled = parts.map((p) => `${p}\n${renderBrandPart(brain, p)}`).join("\n\n");
   return {
     id: brain.id,
+    name: brain.name,
     updatedAt: brain.updatedAt,
     parts: [...parts],
     hash: createHash("sha256").update(filled).digest("hex").slice(0, 16),

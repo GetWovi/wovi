@@ -41,6 +41,9 @@ export type ModelCall = {
   at: string;
 };
 
+/** What a run asked for: a Brand Brain by id (null for the profile input or the default) and its own idea. */
+export type BrandPick = { id: string | null; idea: string | null };
+
 export type Run = {
   id: string;
   workspaceId: string;
@@ -50,6 +53,8 @@ export type Run = {
   confirmations: Confirmations;
   /** The Brand Brain used, by reference, with a hash of the parts as filled in. */
   brandBrain: BrandBrainRef | null;
+  /** The Brand Brain and idea the request named. Missing on runs from before phase 7. */
+  brandPick?: BrandPick | null;
   /** Set when a pipeline started this run. Pipelines are phase 10. */
   parent: { pipelineRunId: string; step: number } | null;
   idempotencyKey: string | null;
@@ -89,6 +94,7 @@ export function publicRunView(run: Run) {
     agent: { id: run.agent.id, version: run.agent.version },
     status: run.status,
     inputs: run.inputs,
+    brandBrain: run.brandBrain ? { id: run.brandBrain.id, name: run.brandBrain.name ?? null } : null,
     output: run.output,
     error: run.error,
     checks: run.checks,

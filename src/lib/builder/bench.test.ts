@@ -44,7 +44,7 @@ describe("the test bench", () => {
       expect((r.output as { items: string[] }).items).toHaveLength(10);
       expect(r.parsed).toBe("first");
       expect(r.model).toEqual({ route: "text-standard", model: "anthropic/claude-sonnet-5.5" });
-      expect(r.checks.map((c) => c.guardrail)).toEqual(["banned_phrases", "no_misleading_claims", "brand_voice_check", "specificity_check"]);
+      expect(r.checks.map((c) => c.guardrail)).toEqual(["banned_phrases", "no_misleading_claims", "brand_voice_check", "brand_voice_check", "specificity_check"]);
       expect(r.checks.every((c) => c.status === "pass")).toBe(true);
       expect(r.tokensIn).toBeGreaterThan(0);
       expect(r.costMicroUsd).toBeGreaterThan(0);

@@ -76,6 +76,8 @@ export type BenchView = {
   finishedAt: string | null;
   /** The scorecard of this version across every bench, not only this one. */
   scorecard: Scorecard;
+  /** The Brand Brain the runs used, as the first run recorded it. */
+  brandBrain: { id: string; name: string } | null;
 };
 
 export type BenchEstimate = {
@@ -94,6 +96,8 @@ export type BenchRequest = {
   sampleIds?: string[];
   /** One run from a form instead of samples. */
   adhoc?: { inputs: Record<string, unknown>; title?: string };
+  /** The Brand Brain of ws_wovi every run uses. The workspace default (or the sample's own pick) when left out. */
+  brandBrainId?: string;
 };
 
 export type BatchPlanAgent = { agentId: string; name: string; version: string; status: AgentSpec["status"]; samples: number; runs: number; estimateMicroUsd: number; capMicroUsd: number };
@@ -224,12 +228,13 @@ export class AgentBench {
       items = samples.map((s) => ({ sampleId: s.id, title: s.title, label: s.label, inputs: s.inputs, idealOutput: s.idealOutput }));
       kind = "samples";
     }
-    const bench = await this.start(user.id, spec, items, kind, null);
+    const brandBrainId = typeof req.brandBrainId === "string" && req.brandBrainId ? req.brandBrainId : null;
+    const bench = await this.start(user.id, spec, items, kind, null, brandBrainId);
     return this.view(bench);
   }
 
   /** Submits every item to the engine, saves the bench, and finishes it in the background when the last run ends. */
-  private async start(userId: string, spec: AgentSpec, items: Omit<BenchItem, "runId" | "error">[], kind: Bench["kind"], batchId: string | null): Promise<Bench> {
+  private async start(userId: string, spec: AgentSpec, items: Omit<BenchItem, "runId" | "error">[], kind: Bench["kind"], batchId: string | null, brandBrainId: string | null = null): Promise<Bench> {
     const confirmations = benchConfirmations(spec);
     const bench: Bench = {
       id: newId("bch"),
@@ -238,6 +243,7 @@ export class AgentBench {
       version: spec.version,
       kind,
       batchId,
+      brandBrainId,
       items: [],
       status: "running",
       estimateMicroUsd: 0,
@@ -248,7 +254,7 @@ export class AgentBench {
     };
     for (const item of items) {
       try {
-        const run = await this.engine.submitRun({ workspaceId: this.ws, agentId: spec.id, version: spec.version, inputs: item.inputs, confirmations });
+        const run = await this.engine.submitRun({ workspaceId: this.ws, agentId: spec.id, version: spec.version, inputs: item.inputs, confirmations, ...(brandBrainId ? { brandBrainId } : {}) });
         const e = estimateRunMicroUsd(spec, run.inputs);
         bench.estimateMicroUsd += e.estimate;
         bench.capMicroUsd += e.cap;
@@ -348,6 +354,8 @@ export class AgentBench {
     const byRun = new Map(ratings.map((r) => [r.runId, r]));
     const results = bench.items.map((item, index) => resultOf(index, item, item.runId ? (runs.get(item.runId) ?? null) : null, item.runId ? (byRun.get(item.runId) ?? null) : null));
     const allRuns = await this.engine.listRuns(this.ws, { agentId: bench.agentId });
+    const ref = [...runs.values()].find((r) => r.brandBrain)?.brandBrain;
+    const brandBrain = ref ? { id: ref.id, name: ref.name ?? ref.id } : bench.brandBrainId ? { id: bench.brandBrainId, name: bench.brandBrainId } : null;
     return {
       id: bench.id,
       agentId: bench.agentId,
@@ -364,6 +372,7 @@ export class AgentBench {
       createdAt: bench.createdAt,
       finishedAt: bench.finishedAt,
       scorecard: scorecard(bench.version, allRuns, ratings),
+      brandBrain,
     };
   }
 

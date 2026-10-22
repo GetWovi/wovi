@@ -29,7 +29,8 @@ describe("end to end on the fake provider", () => {
     expect(run.output?.kind).toBe(seed.output.kind);
     expect(parseOutput(seed.output as never, JSON.stringify(run.output)).ok).toBe(true);
     expect(run.checks.filter((c) => c.status === "fail")).toEqual([]);
-    expect(run.checks.map((c) => c.guardrail).sort()).toEqual([...(seed.guardrails ?? [])].sort());
+    // Every declared guardrail ran; brand_voice_check runs two checks (banned words and brand fit).
+    expect([...new Set(run.checks.map((c) => c.guardrail))].sort()).toEqual([...(seed.guardrails ?? [])].sort());
     expect(run.needsReview).toBe(false);
     expect(run.model?.route).toBe(seed.routing.model);
     expect(run.costMicroUsd).toBeGreaterThan(0);

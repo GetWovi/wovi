@@ -15,7 +15,8 @@
     "agents:seed": "tsx scripts/seed-agents.ts",
     "agents:try": "tsx scripts/try-agent.ts",
     "builder:code": "tsx scripts/builder-code.ts",
-    "builder:samples": "tsx scripts/seed-samples.ts"
+    "builder:samples": "tsx scripts/seed-samples.ts",
+    "brains:seed": "tsx scripts/seed-brains.ts"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^14.0.0",

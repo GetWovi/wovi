@@ -7,7 +7,8 @@ The run engine takes a run request for an agent and produces its typed output. I
 | `engine.ts` | `RunEngine`: `submitRun`, `getRun`, `cancelRun`, `listRuns`, `waitForRun`, `costTotals`, `recover`. `localEngine()` for dev. |
 | `run.ts` | The `Run` record, statuses, failure codes, `publicRunView`. |
 | `inputs.ts` | `validateRunInputs`: form values against the agent's typed inputs. |
-| `brand-brain.ts` | A minimal `BrandBrain` type, the `BrandBrainSource` interface, a stub source and the snapshot reference. Phase 7 replaces the stub. |
+| `brand-brain.ts` | The `BrandBrain` the engine reads, the `BrandBrainSource` interface, how each part renders, the snapshot reference, and a stub source for tests. The real source is phase 7 ([brand-brain.md](brand-brain.md)). |
+| `brand-fit.ts` | The deterministic brand-fit check: flags, similarity, score (phase 7). |
 | `prompt.ts` | Prompt assembly: engine rules, output format, the filled instruction template. |
 | `output.ts` | The output shape per kind, the example shown to the model, parsing, the repair instruction. |
 | `execute.ts` | One attempt: routing with fallback, spend cap, parse and repair, guardrails. |
@@ -35,7 +36,7 @@ submitRun ──> queued ──> running ──> succeeded   (needsReview when a
 2. The agent is loaded from the registry: the pinned `version`, or the current one. The run records the exact version. An agent from another workspace (like the platform's own in `ws_wovi`) runs only when it is public and live; an owner may run its own drafts.
 3. The agent must be runnable now: a text output kind (`text`, `list`, `script`, `caption_set`, `post_set`), text routes, a priced model and a provider for both routes. Image, storyboard and video need media tools from a later phase.
 4. Inputs are checked against the spec's typed inputs: required, unknown keys, text length, link format, choice options, number range and step, file count, size, type and length. Choice and number defaults are filled in. Every problem is listed at once (`invalid_input`).
-5. The Brand Brain is the one the agent's profile input names, or the workspace default. A named one that does not exist is refused. The source also gets the agent's identity, so it can add the agent's own references: since phase 5 the builder's mood board for the agent joins `mood_board` and `references` ([builder.md](builder.md#mood-boards)).
+5. The Brand Brain is the one `brandBrainId` names, else the one the agent's profile input names, else the workspace default. A named one that does not exist is refused. `brandIdea` replaces the standing idea for this run ([brand-brain.md](brand-brain.md#how-the-engine-reads-it)). The source also gets the agent's identity, so it can add the agent's own references: since phase 5 the builder's mood board for the agent joins `mood_board` and `references` ([builder.md](builder.md#mood-boards)).
 6. Guardrails that act before a run: `rights_confirmed` needs `confirmations.rights`, `voice_consent` needs `confirmations.voiceConsent`.
 7. Budget: the cap is the agent's `routing.maxCostUsd`, or lower when the caller passes `maxCostUsd`. If even the cheaper route's first call could cost more than the cap, the run is refused (`over_budget`).
 
@@ -77,7 +78,7 @@ Each guardrail the agent declares runs as a check function from `GUARDRAIL_CHECK
 | `no_fake_testimonials` | Review language and attributed quotes. |
 | `no_impersonation` | Impersonation phrases. |
 | `safe_content` | Unsafe advice phrases. The real classifier is phase 12. |
-| `brand_voice_check` | The Brand Brain's banned words. A note when there is no Brand Brain. |
+| `brand_voice_check` | Two checks: the Brand Brain's words to avoid, and brand fit (the don'ts, similarity to the voice's sample lines, a score). A note when there is no Brand Brain. |
 | `specificity_check` | The output names something from the user's text inputs, and no item repeats. |
 | `platform_policy` | Caption and thread lengths per platform. |
 | `ai_disclosure` | Always a note: label as AI where the platform asks. |

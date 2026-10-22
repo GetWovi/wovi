@@ -11,6 +11,7 @@
 import { GUARDRAIL_IDS, type Platform } from "@/lib/agents/catalog";
 import type { AgentBody } from "@/lib/agents/spec";
 import type { BrandBrain } from "./brand-brain";
+import { LOW_SIMILARITY, brandFit, describeFlag } from "./brand-fit";
 import type { RunInputs } from "./inputs";
 import { outputTexts, type RunOutput } from "./output";
 
@@ -121,6 +122,8 @@ export type CheckResult = {
   message: string;
   /** What was caught, like the phrases found. */
   findings?: string[];
+  /** A 0 to 100 reading, for checks that give one (brand fit). */
+  score?: number;
 };
 
 export type Confirmations = { rights?: boolean; voiceConsent?: boolean };
@@ -128,7 +131,7 @@ export type Confirmations = { rights?: boolean; voiceConsent?: boolean };
 export type BeforeContext = { spec: AgentBody; inputs: RunInputs; confirmations: Confirmations };
 export type AfterContext = { spec: AgentBody; inputs: RunInputs; output: RunOutput; texts: string[]; brain: BrandBrain | null };
 
-type Outcome = { status: CheckStatus; message: string; findings?: string[] };
+type Outcome = { status: CheckStatus; message: string; findings?: string[]; score?: number };
 
 export type GuardrailCheck =
   | { id: string; guardrail: string; stage: "before"; run: (ctx: BeforeContext) => Outcome }
@@ -178,6 +181,23 @@ export const GUARDRAIL_CHECKS: GuardrailCheck[] = [
       return found.length
         ? { status: "fail", message: "Uses words the brand never uses.", findings: found }
         : { status: "pass", message: "None of the brand's banned words." };
+    },
+  },
+  {
+    id: "brand_fit",
+    guardrail: "brand_voice_check",
+    stage: "after",
+    run: ({ texts, brain }) => {
+      if (!brain) return { status: "note", message: "No Brand Brain, so brand fit was not read." };
+      const fit = brandFit(texts, brain);
+      if (fit.flags.length) {
+        return { status: "fail", message: `Brand fit ${fit.score}. Breaks ${fit.flags.length} of the brand's rules.`, findings: fit.flags.map(describeFlag), score: fit.score };
+      }
+      if (fit.similarity === null) return { status: "pass", message: `Brand fit ${fit.score}. No sample lines to compare the voice with yet.`, score: fit.score };
+      if (fit.similarity < LOW_SIMILARITY) {
+        return { status: "note", message: `Brand fit ${fit.score}. Reads unlike the voice's sample lines.`, findings: [`Closest sample line: "${fit.closest}"`], score: fit.score };
+      }
+      return { status: "pass", message: `Brand fit ${fit.score}. Close to the voice's sample lines.`, findings: [`Closest sample line: "${fit.closest}"`], score: fit.score };
     },
   },
   {

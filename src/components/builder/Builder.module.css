@@ -1079,6 +1079,10 @@
   flex: 1 1 260px;
   max-width: 420px;
 }
+.controlRow > div:nth-child(2):not(:last-child) {
+  flex: 1 1 200px;
+  max-width: 300px;
+}
 .controlRow > div:last-child {
   padding-bottom: 2px;
 }

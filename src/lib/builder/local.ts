@@ -10,7 +10,9 @@ import type { Accounts } from "@/lib/accounts/accounts";
 import { GuardedAgents } from "@/lib/accounts/guard";
 import { dataDirFromEnv } from "@/lib/accounts/local";
 import { localRegistry } from "@/lib/agents/registry";
-import { stubBrandBrains, type BrandBrainSource } from "@/lib/runs/brand-brain";
+import { storeBrainSource } from "@/lib/brand/source";
+import { jsonFileBrandStore } from "@/lib/brand/store";
+import type { BrandBrainSource } from "@/lib/runs/brand-brain";
 import { localEngine, type RunEngine } from "@/lib/runs/engine";
 import { providersFromEnv } from "@/lib/runs/providers";
 import { boardBrandBrains } from "./board-brain";
@@ -36,10 +38,10 @@ export function localBuilder(accounts: Accounts, dataDir = dataDirFromEnv(), eng
   });
 }
 
-/** The Brand Brain source for the local engine: the stub brain plus each agent's mood board. */
+/** The Brand Brain source for the local engine: the workspace's Brand Brains (phase 7) plus each agent's mood board. */
 export function localBrandBrains(dataDir = dataDirFromEnv()): BrandBrainSource {
   const store = jsonFileBuilderStore(join(dataDir, "builder.json"));
-  return boardBrandBrains(stubBrandBrains(), {
+  return boardBrandBrains(storeBrainSource(jsonFileBrandStore(join(dataDir, "brand-brains.json"))), {
     async listForAgent(workspaceId, agentId) {
       return (await store.boardItems.find({ workspaceId, agentId })).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     },

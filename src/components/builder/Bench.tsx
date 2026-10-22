@@ -27,10 +27,13 @@ import { TuningPanel } from "./TuningPanel";
 const POLL_MS = 1000;
 
 /** The test bench page: pick a version and samples, run them through the engine, see each result beside its ideal, rate it, and tune beside it. */
-export function Bench({ csrf, spec, history, samples, latest, now }: { csrf: string; spec: AgentSpec; history: VersionEntry[]; samples: Sample[]; latest: BenchView | null; now: number }) {
+export type BenchBrain = { id: string; name: string; isDefault: boolean };
+
+export function Bench({ csrf, spec, history, samples, latest, now, brains = [] }: { csrf: string; spec: AgentSpec; history: VersionEntry[]; samples: Sample[]; latest: BenchView | null; now: number; brains?: BenchBrain[] }) {
   const router = useRouter();
   const { toast } = useToast();
   const [version, setVersion] = useState(spec.version);
+  const [brainId, setBrainId] = useState(latest?.brandBrain && brains.some((b) => b.id === latest.brandBrain!.id && !b.isDefault) ? latest.brandBrain.id : "");
   const [selected, setSelected] = useState<string[]>(samples.map((s) => s.id));
   const [mode, setMode] = useState<"samples" | "adhoc">(samples.length ? "samples" : "adhoc");
   const [adhoc, setAdhoc] = useState<InputValues>({});
@@ -78,7 +81,8 @@ export function Bench({ csrf, spec, history, samples, latest, now }: { csrf: str
   async function start() {
     setStarting(true);
     try {
-      const req = mode === "adhoc" ? { version, adhoc: { inputs: asRunInputs(spec, adhoc), title: "Ad-hoc run" } } : { version, sampleIds: selected };
+      const pick = brainId ? { brandBrainId: brainId } : {};
+      const req = mode === "adhoc" ? { version, adhoc: { inputs: asRunInputs(spec, adhoc), title: "Ad-hoc run" }, ...pick } : { version, sampleIds: selected, ...pick };
       const r = await runBench(csrf, spec.id, req);
       if (!r.ok) return toast({ tone: "warning", title: r.error });
       setBench(r.value);
@@ -116,6 +120,13 @@ export function Bench({ csrf, spec, history, samples, latest, now }: { csrf: str
         <Card className={styles.section} title="Run" actions={<span className="eyebrow">Builders only</span>}>
           <div className={styles.controlRow}>
             <Select label="Version" value={version} onChange={(e) => setVersion(e.target.value)} options={[...history].reverse().map((v) => ({ value: v.version, label: `v${v.version}${v.current ? " (current)" : ""}${v.note ? `: ${v.note}` : ""}` }))} />
+            <Select
+              label="Brand Brain"
+              value={brainId}
+              onChange={(e) => setBrainId(e.target.value)}
+              disabled={!brains.length}
+              options={[{ value: "", label: brains.length ? `Default (${brains.find((b) => b.isDefault)?.name ?? brains[0].name})` : "None in ws_wovi yet" }, ...brains.filter((b) => !b.isDefault).map((b) => ({ value: b.id, label: b.name }))]}
+            />
             <Tabs variant="pill" value={mode} onChange={(id) => setMode(id as "samples" | "adhoc")} items={[{ id: "samples", label: "Samples", count: samples.length }, { id: "adhoc", label: "Ad-hoc" }]} />
           </div>
 
@@ -181,7 +192,8 @@ export function Bench({ csrf, spec, history, samples, latest, now }: { csrf: str
                   {bench.version}
                 </span>
                 <span className={styles.hint}>
-                  {bench.kind === "adhoc" ? "Ad-hoc run" : bench.kind === "batch" ? "Part of a batch" : "Samples"} · started {ago(bench.createdAt, now)} · {money(bench.costMicroUsd)} so far
+                  {bench.kind === "adhoc" ? "Ad-hoc run" : bench.kind === "batch" ? "Part of a batch" : "Samples"}
+                  {bench.brandBrain ? ` with ${bench.brandBrain.name}` : ""} · started {ago(bench.createdAt, now)} · {money(bench.costMicroUsd)} so far
                   {bench.finishedAt && bench.createdAt ? ` · ${duration(Date.parse(bench.finishedAt) - Date.parse(bench.createdAt))} in all` : ""}
                 </span>
                 <div className={styles.progress} aria-hidden="true">

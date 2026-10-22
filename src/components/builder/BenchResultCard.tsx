@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
 import { GUARDRAILS } from "@/lib/agents/catalog";
+import type { CheckResult } from "@/lib/runs/guardrails";
 import type { BenchResult } from "@/lib/builder/bench";
 import type { Scorecard } from "@/lib/builder/scoring";
 import { BENCH_LIMITS, RATINGS, type RatingValue } from "@/lib/builder/types";
@@ -27,6 +28,13 @@ const STATUS: Record<BenchResult["status"], { label: string; tone: "neutral" | "
 };
 
 const guardrailLabel = (id: string) => GUARDRAILS.find((g) => g.id === id)?.label ?? id;
+
+/** The brand voice guardrail runs two checks; each gets its own name, and brand fit shows its score. */
+function checkLabel(c: CheckResult): string {
+  if (c.check === "brand_fit") return c.score === undefined ? "Brand fit" : `Brand fit ${c.score}`;
+  if (c.check === "brand_banned_words") return "Words to avoid";
+  return guardrailLabel(c.guardrail);
+}
 
 /** One bench result: the produced output beside the ideal one, the checks, the facts, and the builder's rating. */
 export function BenchResultCard({ csrf, agentId, result, onRated }: { csrf: string; agentId: string; result: BenchResult; onRated: (card: Scorecard) => void }) {
@@ -129,7 +137,7 @@ export function BenchResultCard({ csrf, agentId, result, onRated }: { csrf: stri
             </span>
             {r.checks.map((c) => (
               <span key={c.check} className={[styles.check, c.status === "pass" ? styles.checkPass : c.status === "fail" ? styles.checkFail : styles.checkNote].join(" ")} title={c.message}>
-                <Icon name={c.status === "pass" ? "check" : c.status === "fail" ? "close" : "info"} size={14} /> {guardrailLabel(c.guardrail)}
+                <Icon name={c.status === "pass" ? "check" : c.status === "fail" ? "close" : "info"} size={14} /> {checkLabel(c)}
               </span>
             ))}
           </div>
@@ -137,7 +145,7 @@ export function BenchResultCard({ csrf, agentId, result, onRated }: { csrf: stri
             <ul className={styles.checkList}>
               {fails.map((c) => (
                 <li key={c.check}>
-                  {guardrailLabel(c.guardrail)}: {c.message} {c.findings?.length ? `(${c.findings.slice(0, 3).join("; ")})` : ""}
+                  {checkLabel(c)}: {c.message} {c.findings?.length ? `(${c.findings.slice(0, 3).join("; ")})` : ""}
                 </li>
               ))}
             </ul>

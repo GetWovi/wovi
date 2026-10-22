@@ -82,6 +82,8 @@ export type Bench = {
   kind: BenchKind;
   /** Set when the bench is one agent of a batch. */
   batchId: string | null;
+  /** The Brand Brain the builder picked for every run (phase 7). Null for the default. Missing on older benches. */
+  brandBrainId?: string | null;
   items: BenchItem[];
   status: "running" | "done" | "cancelled";
   /** The sum of the first-call estimates, and the sum of the spend caps, in micro-dollars. */

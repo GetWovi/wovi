@@ -16,7 +16,9 @@ import { join } from "node:path";
 import { findModelRoute, type ModelRoute } from "@/lib/agents/catalog";
 import { AgentRegistry, RegistryError, isWorkspaceId, localRegistry } from "@/lib/agents/registry";
 import type { AgentSpec } from "@/lib/agents/spec";
-import { stubBrandBrains, type BrandBrain, type BrandBrainSource } from "./brand-brain";
+import { jsonFileBrandStore } from "@/lib/brand/store";
+import { storeBrainSource } from "@/lib/brand/source";
+import type { BrandBrain, BrandBrainSource } from "./brand-brain";
 import { RunAborted, executeRun, type ExecResult } from "./execute";
 import { runBeforeChecks, type Confirmations } from "./guardrails";
 import { validateRunInputs, type RunInputs } from "./inputs";
@@ -25,7 +27,7 @@ import { DEFAULT_MAX_OUTPUT_TOKENS, estimateCallMicroUsd, priceOf, toMicroUsd, t
 import { assemblePrompt, promptText } from "./prompt";
 import { providersFromEnv, type ModelProvider } from "./providers";
 import { InProcessQueue, type ConcurrencyLimits, type QueueJob, type RunQueue } from "./queue";
-import { FINISHED, type Run } from "./run";
+import { FINISHED, type BrandPick, type Run } from "./run";
 import { jsonFileRunStore, type RunFilter, type RunStore } from "./store";
 
 export type SubmitRequest = {
@@ -38,6 +40,13 @@ export type SubmitRequest = {
   agentWorkspaceId?: string;
   /** The form values. */
   inputs: Record<string, unknown>;
+  /**
+   * The Brand Brain to run with, in the run's workspace. Wins over the agent's
+   * profile input; the workspace default is used when neither names one.
+   */
+  brandBrainId?: string;
+  /** The idea for this run. Fills {{brand.idea}} in place of the Brand Brain's standing idea. */
+  brandIdea?: string;
   /** A second submit with the same key returns the first run instead of running again. */
   idempotencyKey?: string;
   confirmations?: Confirmations;
@@ -93,6 +102,8 @@ export type EngineOptions = {
 };
 
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9_.:-]{1,128}$/;
+/** The longest per-run idea, in characters. */
+export const MAX_BRAND_IDEA = 1000;
 
 const emptyTotal = (): CostTotal => ({ runs: 0, tokensIn: 0, tokensOut: 0, costMicroUsd: 0, costUsd: 0 });
 
@@ -226,8 +237,8 @@ export class RunEngine {
   /* ---------- Submit ---------- */
 
   private requestHash(req: SubmitRequest): string {
-    const { workspaceId, agentId, version, agentWorkspaceId, inputs, confirmations, maxCostUsd, parent } = req;
-    const body = { workspaceId, agentId, version, agentWorkspaceId, inputs, confirmations, maxCostUsd, parent };
+    const { workspaceId, agentId, version, agentWorkspaceId, inputs, confirmations, maxCostUsd, parent, brandBrainId, brandIdea } = req;
+    const body = { workspaceId, agentId, version, agentWorkspaceId, inputs, confirmations, maxCostUsd, parent, brandBrainId, brandIdea };
     return createHash("sha256").update(stableJson(body)).digest("hex");
   }
 
@@ -246,7 +257,8 @@ export class RunEngine {
     }
     const capMicroUsd = toMicroUsd(capUsd);
 
-    const brain = await this.loadBrain(req.workspaceId, req.agentWorkspaceId ?? req.workspaceId, spec, inputs);
+    const pick = this.checkBrandPick(req);
+    const brain = await this.loadBrain(req.workspaceId, req.agentWorkspaceId ?? req.workspaceId, spec, inputs, pick);
     const confirmations = req.confirmations ?? {};
     const before = runBeforeChecks({ spec, inputs, confirmations });
     const missing = before.filter((c) => c.status === "fail");
@@ -269,6 +281,7 @@ export class RunEngine {
       inputs,
       confirmations,
       brandBrain: null,
+      brandPick: pick,
       parent: req.parent ?? null,
       idempotencyKey,
       requestHash: this.requestHash(req),
@@ -328,12 +341,37 @@ export class RunEngine {
     return id ? (this.opts.providers[id] ?? null) : null;
   }
 
-  /** The Brand Brain picked by the agent's profile input, or the workspace default, with the agent's own references added by the source. */
-  private async loadBrain(workspaceId: string, agentWorkspaceId: string, spec: AgentSpec, inputs: RunInputs): Promise<BrandBrain | null> {
+  private checkBrandPick(req: SubmitRequest): BrandPick {
+    const { brandBrainId, brandIdea } = req;
+    if (brandBrainId !== undefined && (typeof brandBrainId !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(brandBrainId))) {
+      throw new RunError("invalid_request", "brandBrainId must be a Brand Brain id.");
+    }
+    if (brandIdea !== undefined && (typeof brandIdea !== "string" || brandIdea.length > MAX_BRAND_IDEA)) {
+      throw new RunError("invalid_request", `brandIdea must be text of at most ${MAX_BRAND_IDEA} characters.`);
+    }
+    const idea = brandIdea?.trim();
+    return { id: brandBrainId ?? null, idea: idea || null };
+  }
+
+  /**
+   * The Brand Brain for a run: the one the request names, else the one the
+   * agent's profile input names, else the workspace default. The source adds
+   * the agent's own references (its mood board). A per-run idea replaces the
+   * standing idea.
+   */
+  private async loadBrain(workspaceId: string, agentWorkspaceId: string, spec: AgentSpec, inputs: RunInputs, pick: BrandPick | null | undefined): Promise<BrandBrain | null> {
     const profile = spec.inputs.find((i) => i.type === "profile");
-    const picked = profile ? (inputs[profile.key] as string | undefined) : undefined;
-    const brain = await this.opts.brandBrains.get(workspaceId, picked, { workspaceId: agentWorkspaceId, id: spec.id });
-    if (picked && !brain) throw new RunError("invalid_input", "Some inputs are not valid.", [`${profile!.key}: No Brand Brain "${picked}" in this workspace.`]);
+    const fromInput = profile ? (inputs[profile.key] as string | undefined) : undefined;
+    const picked = pick?.id ?? fromInput;
+    let brain = await this.opts.brandBrains.get(workspaceId, picked, { workspaceId: agentWorkspaceId, id: spec.id });
+    if (picked && !brain) {
+      const where = pick?.id ? "brandBrainId" : profile!.key;
+      throw new RunError("invalid_input", "Some inputs are not valid.", [`${where}: No Brand Brain "${picked}" in this workspace.`]);
+    }
+    if (pick?.idea) {
+      brain ??= { id: "run_idea", workspaceId, name: "This run", updatedAt: new Date(0).toISOString(), voice: "", mood_board: [], references: [], dos_donts: { dos: [], donts: [], bannedWords: [] }, idea: "" };
+      brain = { ...brain, idea: pick.idea };
+    }
     return brain;
   }
 
@@ -362,7 +400,7 @@ export class RunEngine {
 
     let result: ExecResult;
     try {
-      const brain = await this.loadBrain(run.workspaceId, run.agent.workspaceId, spec, run.inputs).catch(() => null);
+      const brain = await this.loadBrain(run.workspaceId, run.agent.workspaceId, spec, run.inputs, run.brandPick).catch(() => null);
       result = await executeRun({
         spec,
         run,
@@ -443,7 +481,8 @@ export class RunEngine {
 
 /**
  * The engine on the local JSON stores in .data/ (or WOVI_DATA_DIR), with the
- * stub Brand Brain unless another source is given. Uses the fake provider
+ * workspace's Brand Brains from .data/brand-brains.json unless another source
+ * is given. Uses the fake provider
  * unless OPENROUTER_API_KEY is set, and always when `fake` is true.
  */
 export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource } = {}): RunEngine {
@@ -453,7 +492,7 @@ export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrain
   return new RunEngine({
     registry: localRegistry(dataDir),
     store: jsonFileRunStore(join(dataDir, "runs.json")),
-    brandBrains: opts.brandBrains ?? stubBrandBrains(),
+    brandBrains: opts.brandBrains ?? storeBrainSource(jsonFileBrandStore(join(dataDir, "brand-brains.json"))),
     providers: fake ? { fake: providers.fake } : providers,
     providerOverride: fake ? "fake" : undefined,
   });
