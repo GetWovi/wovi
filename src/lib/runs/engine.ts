@@ -154,6 +154,7 @@ export class RunEngine {
   private readonly cfg: Required<Pick<EngineOptions, "maxAttempts" | "backoff" | "callTimeoutMs" | "runTimeoutMs" | "now" | "newId">>;
   private readonly keyLocks = new Map<string, Promise<unknown>>();
   private readonly waiters = new Map<string, ((run: Run) => void)[]>();
+  private readonly listeners = new Set<(run: Run) => void>();
 
   constructor(private readonly opts: EngineOptions) {
     this.cfg = {
@@ -225,7 +226,19 @@ export class RunEngine {
       if (latest) await this.opts.store.update({ ...latest, credits: run.credits });
     }
     this.notify(run);
+    this.announce(run);
     return run;
+  }
+
+  /**
+   * Calls `listener` with a copy of every run that finishes (succeeded,
+   * failed or cancelled) in this process. Webhooks (phase 14) listen here. A
+   * run may be reported again after a restart, so listeners dedupe by run id.
+   * Returns a function that stops listening.
+   */
+  onFinished(listener: (run: Run) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
 
   /** Resolves when the run has finished: succeeded, failed or cancelled. */
@@ -560,6 +573,19 @@ export class RunEngine {
     if (this.opts.billing && run.credits) await this.settle(run);
     await this.opts.store.update(run);
     this.notify(run);
+    this.announce(run);
+  }
+
+  /** Tells the listeners about a finished run. A listener that throws never breaks the engine. */
+  private announce(run: Run) {
+    if (!FINISHED.includes(run.status) || !this.listeners.size) return;
+    for (const listener of this.listeners) {
+      try {
+        listener(structuredClone(run));
+      } catch (err) {
+        console.error("A run listener failed:", err);
+      }
+    }
   }
 
   private notify(run: Run) {

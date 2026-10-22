@@ -132,6 +132,10 @@ A pipeline step is `submitRun` with `parent: { pipelineRunId, step }`, a pinned 
 
 The engine trusts the workspace id it is given. Callers reach it through `GuardedRuns`, which checks that the caller (a signed-in user or an API key) may run agents, read runs or see costs in that workspace first. See [accounts.md](accounts.md#the-registry-and-engine-behind-the-policy). The app holds one engine (`appEngine()`), shared by the guarded runs and the builder's test bench, so there is one queue; it calls `recover()` once on its first use. The bench reaches the engine directly, after its own builder check, because builders see the model and the cost ([builder.md](builder.md#the-test-bench-phase-6)).
 
+## Listeners (phase 14)
+
+`onFinished(listener)` calls the listener with a copy of every run that finishes in this process; webhooks send `run.finished` from it ([api.md](api.md#webhooks)). A listener that throws never breaks the engine, and a run can be reported again after a restart, so listeners dedupe by run id. `PipelineEngine.onSettled` does the same for pipeline runs.
+
 ## Commands
 
 - `npm run agents:try -- hook-writer` seeds the launch agents if needed and runs one end to end on the fake provider from the workspace `ws_dev`, then prints the run. Pass your own inputs as JSON after the id. Runs are saved in `.data/runs.json`.

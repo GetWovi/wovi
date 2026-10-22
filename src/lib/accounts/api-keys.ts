@@ -6,7 +6,7 @@
  * and stops working when it is revoked or its creator leaves the workspace.
  */
 import { memberId, type Accounts, type Principal } from "./accounts";
-import { newId, randomToken, sha256 } from "./crypto";
+import { newId, randomToken, safeEqual, sha256 } from "./crypto";
 import { AccountError } from "./errors";
 import { API_KEY_ROLES, canAssign, lowerRole, type Role } from "./policy";
 import type { ApiKey } from "./types";
@@ -76,8 +76,10 @@ export class ApiKeys {
   /** The principal for a key from a request header, or null for anything that is not a live key. */
   async authenticate(key: string | null | undefined): Promise<Extract<Principal, { kind: "api_key" }> | null> {
     if (typeof key !== "string" || !KEY_SHAPE.test(key)) return null;
-    const row = (await this.a.store.apiKeys.find({ keyHash: sha256(key) }))[0];
-    if (!row || row.revokedAt) return null;
+    const hash = sha256(key);
+    const row = (await this.a.store.apiKeys.find({ keyHash: hash }))[0];
+    // The lookup is by hash; the compare is constant-time anyway, so nothing about a key leaks through timing.
+    if (!row || !safeEqual(row.keyHash, hash) || row.revokedAt) return null;
 
     const creatorRole = await this.a.roleIn({ kind: "user", userId: row.createdBy }, row.workspaceId);
     if (!creatorRole || !(await this.a.store.members.get(memberId(row.workspaceId, row.createdBy)))) return null;

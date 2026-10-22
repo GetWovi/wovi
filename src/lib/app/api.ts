@@ -40,6 +40,8 @@ export class AppError extends Error {
     readonly code: AppErrorCode,
     message: string,
     readonly issues: string[] = [],
+    /** The engine's own error, for callers that need its exact code (the REST API and MCP, phase 14). */
+    readonly cause?: unknown,
   ) {
     super(message);
     this.name = "AppError";
@@ -295,9 +297,9 @@ export class AppApi {
       return run;
     } catch (err) {
       if (err instanceof RunError) {
-        if (err.code === "not_found") throw new AppError("not_found", "No such agent.");
-        if (err.code === "not_enough_credits" || err.code === "over_limit") throw new AppError(err.code, err.message);
-        throw new AppError("invalid_request", err.issues.length ? "Some fields need a look." : err.message.split("\n")[0], err.issues);
+        if (err.code === "not_found") throw new AppError("not_found", "No such agent.", [], err);
+        if (err.code === "not_enough_credits" || err.code === "over_limit") throw new AppError(err.code, err.message, [], err);
+        throw new AppError("invalid_request", err.issues.length ? "Some fields need a look." : err.message.split("\n")[0], err.issues, err);
       }
       throw err;
     }
@@ -585,10 +587,10 @@ export class AppApi {
 /** A pipeline refusal in the app's words. Account errors pass through. */
 function pipelineAppError(err: unknown): unknown {
   if (!(err instanceof PipelineError)) return err;
-  if (err.code === "not_found") return new AppError("not_found", err.message);
-  if (err.code === "not_ready") return new AppError("not_ready", err.message);
-  if (err.code === "not_enough_credits" || err.code === "over_limit") return new AppError(err.code, err.message);
-  return new AppError("invalid_request", err.code === "invalid_input" ? "Some fields need a look." : err.message.split("\n")[0], err.issues);
+  if (err.code === "not_found") return new AppError("not_found", err.message, [], err);
+  if (err.code === "not_ready") return new AppError("not_ready", err.message, [], err);
+  if (err.code === "not_enough_credits" || err.code === "over_limit") return new AppError(err.code, err.message, [], err);
+  return new AppError("invalid_request", err.code === "invalid_input" ? "Some fields need a look." : err.message.split("\n")[0], err.issues, err);
 }
 
 function pick(row: OnboardingRow): OnboardingState {

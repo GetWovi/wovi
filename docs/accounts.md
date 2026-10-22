@@ -80,6 +80,7 @@ Every user has a personal workspace and can make more for a team or a client. Ea
 | Manage members and invites | yes | yes | | | never |
 | Manage API keys | yes | yes | | | never |
 | Rename the workspace | yes | | | | never |
+| Manage webhooks (phase 14) | yes | yes | | | admin keys |
 
 - Nobody gives or takes away a role above their own, so only owners make or unmake owners, and admins cannot remove owners.
 - **The last owner rule:** a workspace always keeps at least one owner. The last owner cannot leave, be removed, or step down until someone else is an owner.
@@ -91,12 +92,12 @@ Every user has a personal workspace and can make more for a team or a client. Ea
 
 ## API keys
 
-For power users who call agents from their own software, Claude or ChatGPT (MCP and REST arrive in phase 14).
+For power users who call agents from their own software, Claude or ChatGPT, through the REST API and MCP (phase 14, [api.md](api.md) and [mcp.md](mcp.md)). Owners and admins make them on Settings, API and assistants (`/app/settings/api`) or on `/account`.
 
 - `wovi_sk_` plus 43 random characters. Shown once at creation; listed by name, prefix, role, created and last used.
 - One workspace and one role each (admin, editor or viewer; never owner). A key acts with the lower of its own role and its maker's current role, and stops working when it is revoked or its maker leaves the workspace.
 - A key can never manage members, keys or the workspace, whatever its role.
-- `apiKeys.authenticate(key)` returns a caller for the guarded registry and engine, or null.
+- `apiKeys.authenticate(key)` returns a caller for the guarded registry and engine, or null. The key is looked up by its hash and compared in constant time.
 
 ## The registry and engine behind the policy
 

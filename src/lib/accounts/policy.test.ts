@@ -19,6 +19,7 @@ describe("permission policy", () => {
       manage_review_rules: ["owner", "admin"],
       manage_clients: ["owner", "admin"],
       manage_credits: ["owner", "admin"],
+      manage_webhooks: ["owner", "admin"],
     };
     for (const action of ACTIONS) {
       expect(ROLES.filter((r) => can(r, action))).toEqual(table[action]);

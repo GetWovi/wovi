@@ -131,6 +131,7 @@ export class PipelineEngine {
   private readonly again = new Set<string>();
   private readonly waiters = new Map<string, ((r: PipelineRun) => void)[]>();
   private readonly keyLocks = new Map<string, Promise<unknown>>();
+  private readonly listeners = new Set<(run: PipelineRun) => void>();
 
   constructor(private readonly o: PipelineEngineOptions) {
     this.now = o.now ?? (() => new Date());
@@ -392,6 +393,17 @@ export class PipelineEngine {
         list?.forEach((r) => r(structuredClone(now)));
       });
     });
+  }
+
+  /**
+   * Calls `listener` with a copy of a pipeline run each time it is saved in a
+   * settled state: waiting for a pick, ready, decided, failed or cancelled.
+   * Webhooks (phase 14) listen here and dedupe, since one state can be saved
+   * more than once. Returns a function that stops listening.
+   */
+  onSettled(listener: (run: PipelineRun) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
 
   /** Resolves when no pipeline run is being driven in this process. */
@@ -801,6 +813,13 @@ export class PipelineEngine {
     pr.updatedAt = this.now().toISOString();
     await this.o.store.pipelineRuns.update(pr);
     if (!SETTLED.includes(pr.status)) return;
+    for (const listener of this.listeners) {
+      try {
+        listener(structuredClone(pr));
+      } catch (err) {
+        console.error("A pipeline listener failed:", err);
+      }
+    }
     const list = this.waiters.get(pr.id);
     if (!list) return;
     this.waiters.delete(pr.id);

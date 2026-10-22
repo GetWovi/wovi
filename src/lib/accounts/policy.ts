@@ -25,6 +25,8 @@ export const ACTIONS = [
   "manage_clients",
   // Credits (phase 13)
   "manage_credits",
+  // MCP and REST (phase 14)
+  "manage_webhooks",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -47,6 +49,8 @@ export const MIN_ROLE: Record<Action, Role> = {
   manage_clients: "admin",
   // Top up and set monthly limits. Never an API key: a leaked key cannot spend money or lift a limit.
   manage_credits: "admin",
+  // Register, change and remove webhook URLs. Admin keys may, so software can wire itself up.
+  manage_webhooks: "admin",
 };
 
 /**
@@ -55,7 +59,7 @@ export const MIN_ROLE: Record<Action, Role> = {
  * Keys may comment, send drafts for review and assign them, but never approve,
  * reject or ask for changes: people approve.
  */
-export const API_KEY_ACTIONS: readonly Action[] = ["view", "run_agents", "edit_agents", "edit_brand_brain", "see_costs", "comment", "send_for_review", "assign"];
+export const API_KEY_ACTIONS: readonly Action[] = ["view", "run_agents", "edit_agents", "edit_brand_brain", "see_costs", "comment", "send_for_review", "assign", "manage_webhooks"];
 
 /** Roles an API key can carry. */
 export const API_KEY_ROLES = ["admin", "editor", "viewer"] as const;
@@ -113,4 +117,5 @@ export const ACTION_WORDS: Record<Action, string> = {
   manage_review_rules: "change the approval rules",
   manage_clients: "manage clients and their links",
   manage_credits: "top up credits or set limits",
+  manage_webhooks: "manage webhooks",
 };
