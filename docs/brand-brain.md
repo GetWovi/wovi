@@ -101,7 +101,7 @@ In the builder, the test bench has a **Brand Brain** picker: the default of `ws_
 
 ## Commands
 
-- `npm run brains:seed` adds the three example Brand Brains (Crumb and Co, Desk Stretch, Night Owl Coffee) to `ws_wovi`, or to the workspace id given after `--`. Safe to run again.
+- `npm run brains:seed` adds the three example Brand Brains (Crumb and Co, Desk Stretch, Night Owl Coffee) to `ws_wovi`, or to the workspace id given after `--`. Safe to run again. `npm run agents:launch` adds four more (a gym, an invoicing app, a plumber, a budget cooking creator) for the launch samples ([launch-agents.md](launch-agents.md)).
 - `node scripts/brandbrain-screens.mjs [outDir]` takes the screenshots against a running build (after `agents:seed`, `builder:samples` and `brains:seed` on the same `WOVI_DATA_DIR`).
 - `npm test` covers the store, versions and history, conflicts, restore, defaults, workspace isolation, the policy for every role and API keys, file and item limits, the profile on three post styles, links with and without a fetcher, review and edit before save, rebuilds, a model answer and a broken one, every brand placeholder filled only when declared, the pick order, the per-run idea, data blocks that cannot be escaped, the merge with agent boards, the brand-fit flags, similarity and score, the guardrail in a run, and the bench with a picked Brand Brain.
 

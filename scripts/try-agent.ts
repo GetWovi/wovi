@@ -6,20 +6,28 @@
  *   npm run agents:try -- hook-writer '{"idea":"...","platform":"x"}'
  */
 import { PLATFORM_WORKSPACE_ID, localRegistry, seedPlatformAgents } from "@/lib/agents";
+import { LAUNCH_SAMPLES } from "@/lib/launch";
 import { SAMPLE_RUNS, localEngine } from "@/lib/runs";
+import { validateRunInputs } from "@/lib/runs/inputs";
 
 const WORKSPACE = "ws_dev";
 
 async function main() {
   const [agentId, json] = process.argv.slice(2);
   if (!agentId) {
-    console.error(`Usage: npm run agents:try -- <agent-id> ['{"input":"value"}']\nAgents with sample inputs: ${Object.keys(SAMPLE_RUNS).join(", ")}`);
+    console.error(`Usage: npm run agents:try -- <agent-id> ['{"input":"value"}']\nAgents with sample inputs: ${[...new Set([...Object.keys(SAMPLE_RUNS), ...Object.keys(LAUNCH_SAMPLES)])].join(", ")}`);
     process.exit(1);
   }
-  await seedPlatformAgents(localRegistry());
+  const registry = localRegistry();
+  await seedPlatformAgents(registry);
 
+  // The phase 3 example inputs fit the seed versions; once npm run agents:launch has saved newer
+  // versions, the first golden launch sample that fits the current form is used instead.
+  const spec = await registry.get(PLATFORM_WORKSPACE_ID, agentId);
+  const launch = (LAUNCH_SAMPLES[agentId] ?? []).filter((s) => s.label === "gold").map((s) => s.inputs);
+  const fits = (inputs: Record<string, unknown>) => Boolean(spec && validateRunInputs(spec, inputs).ok);
   const sample = SAMPLE_RUNS[agentId];
-  const inputs = json ? JSON.parse(json) : sample?.inputs;
+  const inputs = json ? JSON.parse(json) : [sample?.inputs, ...launch].find((i) => i && fits(i));
   if (!inputs) throw new Error(`No sample inputs for "${agentId}". Pass them as JSON after the id.`);
 
   const engine = localEngine({ fake: true });

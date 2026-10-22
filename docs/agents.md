@@ -104,6 +104,8 @@ The store sits behind the `AgentStore` interface (five methods). `memoryStore()`
 
 `npm run agents:seed` puts the eight launch agents into the platform workspace `ws_wovi`, owned by `creator_wovi`: Hook Writer, Caption Writer, Trend Scout, Script Writer, Hashtag Picker and Repurposer live; Storyboarder and Voice and Cut hidden until their drop. Running it again is safe: missing agents are created, a seed with a higher version is saved as a new version, the rest are left alone.
 
+These seeds match the homepage cards (a test checks it). The doc's MVP lineup, with Idea Generator added, Hashtag Optimizer and Platform Repurposer renamed and Trend Scout back to draft, is saved on top of them as new versions by `npm run agents:launch` (phase 8, [launch-agents.md](launch-agents.md)).
+
 ## How the run engine uses this
 
 The run engine (phase 3, [engine.md](engine.md)) takes a workspace, an agent id (and a pinned version or the current one) and the user's form values. It loads the exact version with `registry.get`, checks the values against `inputs`, fills `instructions` with the inputs and the declared `brandBrain` parts as delimited data, routes `routing.model` (then `routing.fallback`) through `MODEL_ROUTES` within `maxCostUsd`, parses the answer into `output`, and runs the `guardrails`. Declared `tools` are not called yet.
@@ -115,3 +117,4 @@ Pipelines pin `agentId@version`, which `get(ws, id, version)` serves even after 
 - `npm test` runs the vitest suite.
 - `npm run agents:seed` seeds the local store. Data lives in `.data/` (git-ignored); set `WOVI_DATA_DIR` to put it elsewhere.
 - `npm run agents:try -- <agent-id>` runs a launch agent end to end on the fake provider.
+- `npm run agents:launch` installs the phase 8 launch set: specs, golden samples and Brand Brains ([launch-agents.md](launch-agents.md)).

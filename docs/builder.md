@@ -128,6 +128,7 @@ The tuning panel beside the bench edits the instruction template, the model rout
 - `npm run builder:code` makes a builder code; `-- --list`, `-- --revoke <id>`, `-- --label <text>`.
 - `npm run agents:seed` puts the eight launch agents into `ws_wovi` so the builder has something to show.
 - `npm run builder:samples` adds example golden and bad samples to the launch agents, so the bench has something to run. Safe to run again.
+- `npm run agents:launch` installs the phase 8 launch set (the seven launch specs as new versions, 35 samples, seven Brand Brains) and `-- --bench` runs it all once as a batch on the fake provider. See [launch-agents.md](launch-agents.md).
 - `node scripts/builder-screens.mjs [outDir]` takes the part 1 screenshots and `node scripts/builder2-screens.mjs [outDir]` the part 2 ones, each against a running build, joining through the real join page with Chrome's virtual authenticator. Start the server with `WOVI_FAKE_LATENCY_MS=2500` for the second.
 - `npm test` covers the code lifecycle, the passkey-only join, the builder-only guard on every call, the drafter on a range of descriptions, saves as new versions, sample and board limits, the board in the prompt, bench runs on the fake provider, refused samples, ad-hoc runs, cancel, the auto score and scorecard math, quality written without a version, tuning saves that re-run, the version diff, rollback, batch plans, the confirmation threshold, spend caps, the queue's concurrency, and that everything stays in `ws_wovi`.
 

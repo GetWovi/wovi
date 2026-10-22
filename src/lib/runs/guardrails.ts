@@ -204,8 +204,13 @@ export const GUARDRAIL_CHECKS: GuardrailCheck[] = [
     id: "specific_to_input",
     guardrail: "specificity_check",
     stage: "after",
-    run: ({ spec, inputs, texts }) => {
+    run: ({ spec, inputs, texts, output }) => {
       const findings: string[] = [];
+      // Items with fields repeat by design ("type: hashtag" on several items), so they are compared as whole items.
+      const units =
+        output.kind === "list" && output.items.some((it) => typeof it !== "string")
+          ? output.items.map((it) => (typeof it === "string" ? it : Object.values(it).join(" | ")))
+          : texts;
       const source = spec.inputs
         .filter((i) => i.type === "text" || i.type === "long_text")
         .map((i) => inputs[i.key])
@@ -215,7 +220,7 @@ export const GUARDRAIL_CHECKS: GuardrailCheck[] = [
         findings.push("Nothing in the output names anything from the user's input.");
       }
       const seen = new Set<string>();
-      for (const t of texts) {
+      for (const t of units) {
         const k = normalize(t).trim();
         if (seen.has(k)) findings.push(`Repeated: "${t}"`);
         seen.add(k);

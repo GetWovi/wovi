@@ -11,7 +11,7 @@ import type { BrandStore } from "./store";
 import { BODY_FIELDS, type Brain, type BrainBody } from "./types";
 import { checkBody } from "./validate";
 
-type Example = Omit<BrainBody, "moodBoard"> & { moodBoard: (Omit<BrainBody["moodBoard"][number], "id" | "file"> & { image?: string })[] };
+export type ExampleBrain = Omit<BrainBody, "moodBoard"> & { moodBoard: (Omit<BrainBody["moodBoard"][number], "id" | "file"> & { image?: string })[] };
 
 const text = (t: string, note: string) => ({ kind: "text" as const, note, url: null, text: t, color: null });
 const swatch = (color: string, note: string) => ({ kind: "swatch" as const, note, url: null, text: null, color });
@@ -19,7 +19,7 @@ const link = (url: string, note: string) => ({ kind: "link" as const, note, url,
 const image = (name: string, note: string) => ({ kind: "image" as const, note, url: null, text: null, color: null, image: name });
 const ref = (t: string, note: string, url: string | null = null) => ({ id: "", text: t, url, note });
 
-export const EXAMPLE_BRAINS: Example[] = [
+export const EXAMPLE_BRAINS: ExampleBrain[] = [
   {
     name: "Crumb and Co",
     niche: "Small bakery in Leeds",
@@ -92,12 +92,18 @@ export const EXAMPLE_BRAINS: Example[] = [
  * Adds the examples to a workspace that does not have them yet. Images come
  * from `images` (name to PNG bytes) when given, and are stored under the
  * workspace like any upload. The first Brand Brain made is the default.
+ * `examples` replaces the list (the launch set adds its own Brand Brains).
  */
-export async function seedBrains(store: BrandStore, files: FileStorage, workspaceId: string, opts: { images?: Record<string, Uint8Array>; now?: () => string } = {}): Promise<string[]> {
+export async function seedBrains(
+  store: BrandStore,
+  files: FileStorage,
+  workspaceId: string,
+  opts: { images?: Record<string, Uint8Array>; now?: () => string; examples?: ExampleBrain[] } = {},
+): Promise<string[]> {
   const now = opts.now ?? (() => new Date().toISOString());
   const existing = await store.brains.find({ workspaceId });
   const made: string[] = [];
-  for (const ex of EXAMPLE_BRAINS) {
+  for (const ex of opts.examples ?? EXAMPLE_BRAINS) {
     if (existing.some((b) => b.name === ex.name)) continue;
     const moodBoard = [];
     for (const m of ex.moodBoard) {

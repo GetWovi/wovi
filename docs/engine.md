@@ -79,7 +79,7 @@ Each guardrail the agent declares runs as a check function from `GUARDRAIL_CHECK
 | `no_impersonation` | Impersonation phrases. |
 | `safe_content` | Unsafe advice phrases. The real classifier is phase 12. |
 | `brand_voice_check` | Two checks: the Brand Brain's words to avoid, and brand fit (the don'ts, similarity to the voice's sample lines, a score). A note when there is no Brand Brain. |
-| `specificity_check` | The output names something from the user's text inputs, and no item repeats. |
+| `specificity_check` | The output names something from the user's text inputs, and no item repeats. List items with fields are compared as whole items, since a field like `type: hashtag` repeats by design. |
 | `platform_policy` | Caption and thread lengths per platform. |
 | `ai_disclosure` | Always a note: label as AI where the platform asks. |
 | `rights_confirmed`, `voice_consent` | Before the run, see submit. |
@@ -116,6 +116,8 @@ Defaults, from OpenRouter's public list on 2026-10-21. Change them in `MODEL_ROU
 | `text-strong` | `anthropic/claude-opus-5.5` | $4 / $20 | Trend Scout, Script Writer, Repurposer |
 
 `text-fast` is on a different vendor than `text-standard`, so the common fallback still works when one vendor is down.
+
+The "Used by" column is the phase 2 seeds. The phase 8 launch versions route Hashtag Optimizer to fast; Hook Writer and Caption Writer to standard; Idea Generator, Script Writer, Platform Repurposer and Trend Scout to strong ([launch-agents.md](launch-agents.md#the-lineup)).
 
 ## Not in this phase
 

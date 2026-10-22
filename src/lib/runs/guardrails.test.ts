@@ -78,6 +78,12 @@ describe("guardrails", () => {
     expect(check("specific_to_input", list("Gerald turns nine", "gerald turns  nine")).findings).toEqual(['Repeated: "gerald turns  nine"']);
   });
 
+  it("specificity_check compares items with fields as whole items, so a shared field value is not a repeat", () => {
+    const tags = (...xs: [string, string][]): RunOutput => ({ kind: "list", items: xs.map(([type, term]) => ({ type, term })) });
+    expect(check("specific_to_input", tags(["hashtag", "#Sourdough"], ["hashtag", "#Gerald"])).status).toBe("pass");
+    expect(check("specific_to_input", tags(["hashtag", "#Gerald"], ["hashtag", "#gerald"])).findings).toEqual(['Repeated: "hashtag | #gerald"']);
+  });
+
   it("platform_policy keeps captions and thread posts inside platform limits", () => {
     const long = "g".repeat(281);
     const captions: RunOutput = { kind: "caption_set", captions: [{ platform: "x", variants: [long] }, { platform: "tiktok", variants: [long] }] };
