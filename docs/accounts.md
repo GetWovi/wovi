@@ -27,7 +27,7 @@ Who someone is, which workspaces they belong to, and what they may do there. Pha
 |---|---|---|
 | User | `id`, `email` (lowercased, unique; null for a passkey-only builder), `name`, `builder`, `personalWorkspaceId` | belongs to a person, spans workspaces |
 | Builder code | `codeHash`, `suffix`, `label`, `expiresAt`, `usedAt`, `usedBy`, `revokedAt` | none; made on the command line |
-| Workspace | `id`, `name`, `personal`, `plan` (`free` until billing in phase 13) | is one |
+| Workspace | `id`, `name`, `personal`, `plan` (`free`; credits since phase 13 live in their own ledger, [credits.md](credits.md)) | is one |
 | Member | `workspaceId`, `userId`, `role` | yes |
 | Invite | `workspaceId`, `email`, `role`, `tokenHash`, `expiresAt`, `acceptedAt`, `revokedAt` | yes |
 | API key | `workspaceId`, `name`, `prefix`, `keyHash`, `role`, `lastUsedAt`, `revokedAt` | yes |

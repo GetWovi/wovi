@@ -9,11 +9,14 @@ import type { SessionInfo } from "@/lib/accounts/sessions";
 import { appApi } from "@/lib/app/server";
 import { readClientFilter } from "@/lib/team/client-filter";
 import { appTeam } from "@/lib/team/server";
+import { appCredits } from "@/lib/credits/server";
+import { CreditPill } from "@/components/ui/CreditPill";
+import c from "@/components/credits/Credits.module.css";
 import styles from "./App.module.css";
 import { ClientSwitch } from "./ClientSwitch";
 import { WorkspaceSwitch } from "./WorkspaceSwitch";
 
-export type AppArea = "home" | "make" | "pipelines" | "review" | "history" | "brand" | "settings" | "notifications";
+export type AppArea = "home" | "make" | "pipelines" | "review" | "history" | "brand" | "settings" | "notifications" | "credits";
 
 /** `short` is the label on the phone's tab bar, where six tabs share the width. */
 /** `mid` is a shorter label for desktops under 1560px, where the header is full. */
@@ -48,6 +51,10 @@ export async function AppShell({ info, active, children }: { info: SessionInfo; 
     team.clients(me, workspaceId).catch(() => []),
     readClientFilter(workspaceId),
   ]);
+  // Credits (phase 13): the balance everyone in the workspace sees. Null when billing is off.
+  const balance = await appCredits()
+    .balance(me, workspaceId)
+    .catch(() => null);
 
   return (
     <div className={styles.page}>
@@ -73,6 +80,11 @@ export async function AppShell({ info, active, children }: { info: SessionInfo; 
             ))}
           </nav>
           <div className={styles.right}>
+            {balance && (
+              <Link href="/app/credits" className={[c.balanceLink, balance.available < 10 ? c.balanceLow : ""].join(" ")} aria-current={active === "credits" ? "page" : undefined} aria-label={`Credits: ${balance.available.toLocaleString("en-US")} available`} title={balance.held ? `${balance.held} held for runs in progress` : "Credits"}>
+                <CreditPill amount={balance.available} size="sm" />
+              </Link>
+            )}
             <WorkspaceSwitch csrf={csrfFor(info)} current={workspaceId} workspaces={workspaces.map((w) => ({ id: w.id, name: w.name, role: w.role }))} />
             {role && <span className={styles.wsRole}>{role}</span>}
             {clients.length > 0 && <ClientSwitch csrf={csrfFor(info)} current={clients.some((c) => c.id === clientId) ? clientId : null} clients={clients.map((c) => ({ id: c.id, name: c.name }))} />}

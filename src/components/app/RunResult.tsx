@@ -16,6 +16,7 @@ import type { RunView } from "@/lib/app/api";
 import { QUICK_EDITS } from "@/lib/app/quick-edits";
 import { brandFitOf, copyAll, explainChecks, resultNoun, resultView, runTitle, type ResultItem, type ResultView } from "@/lib/app/results";
 import { splitNote } from "@/lib/app/quick-edits";
+import { ChargeLine } from "@/components/credits/CreditParts";
 import styles from "./App.module.css";
 import { CopyButton } from "./CopyButton";
 import { ReviewPanel } from "./ReviewControls";
@@ -83,6 +84,7 @@ export function RunResult({
               <span>{ago(run.createdAt, now)}</span>
             </div>
             {run.error && <p className={styles.muted}>{run.error.message}</p>}
+            {run.charge && <ChargeLine charge={run.charge} />}
           </div>
         </div>
         <div className={styles.actions}>
@@ -115,6 +117,7 @@ export function RunResult({
             {run.brandBrain?.name && <span>For {run.brandBrain.name}</span>}
             <span>{ago(run.createdAt, now)}</span>
           </div>
+          {run.charge && <ChargeLine charge={run.charge} />}
           {view.note && (
             <span className={[styles.chip, styles.chipCobalt].join(" ")} title={view.note}>
               Quick edit: {QUICK_EDITS.find((q) => q.note === view.note)?.label ?? view.note}

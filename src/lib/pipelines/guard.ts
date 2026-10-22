@@ -11,7 +11,8 @@
  */
 import type { Accounts, Principal } from "@/lib/accounts/accounts";
 import { AccountError } from "@/lib/accounts/errors";
-import { savedBy } from "@/lib/accounts/guard";
+import { savedBy, seesCosts, spenderOf } from "@/lib/accounts/guard";
+import type { Role } from "@/lib/accounts/policy";
 import { PLATFORM_CREATOR_ID, PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
 import type { Bump } from "@/lib/agents/semver";
 import type { AgentStatus } from "@/lib/agents/spec";
@@ -90,51 +91,72 @@ export class GuardedPipelines {
 
   /* ---------- Runs ---------- */
 
+  /** The public view, with the credits charged only for people who may see costs. */
+  private view(caller: Principal, role: Role, run: Parameters<typeof publicPipelineRun>[0]): PublicPipelineRun {
+    const v = publicPipelineRun(run);
+    return seesCosts(caller, role) ? v : { ...v, charge: null };
+  }
+
+  /** Credits count toward the caller; only the estimate they were shown passes through. */
   async submit(caller: Principal, req: PipelineSubmitRequest): Promise<PublicPipelineRun> {
-    await this.accounts.authorize(caller, req?.workspaceId, "run_agents");
-    return publicPipelineRun(await this.engine.submit({ ...req, createdBy: savedBy(caller) }));
+    const role = await this.accounts.authorize(caller, req?.workspaceId, "run_agents");
+    const quoted = req.billing?.quotedCredits;
+    const billing = { userId: spenderOf(caller), ...(quoted !== undefined ? { quotedCredits: quoted } : {}) };
+    return this.view(caller, role, await this.engine.submit({ ...req, createdBy: savedBy(caller), billing }));
+  }
+
+  /** What a pipeline costs before it starts, in credits, for anyone who can see the workspace. Null when nothing is billed. */
+  async estimate(caller: Principal, workspaceId: string, pipelineId: string, pipelineWorkspaceId?: string): Promise<number | null> {
+    await this.accounts.authorize(caller, workspaceId, "view");
+    return this.engine.estimate(workspaceId, pipelineId, pipelineWorkspaceId);
+  }
+
+  async retryEstimate(caller: Principal, workspaceId: string, id: string): Promise<number | null> {
+    await this.accounts.authorize(caller, workspaceId, "view");
+    return this.engine.retryEstimate(workspaceId, id);
   }
 
   async getRun(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun | null> {
-    await this.accounts.authorize(caller, workspaceId, "view");
+    const role = await this.accounts.authorize(caller, workspaceId, "view");
     const run = await this.engine.get(workspaceId, id);
-    return run ? publicPipelineRun(run) : null;
+    return run ? this.view(caller, role, run) : null;
   }
 
   async listRuns(caller: Principal, workspaceId: string, filter: { limit?: number; pipelineId?: string } = {}): Promise<PublicPipelineRun[]> {
-    await this.accounts.authorize(caller, workspaceId, "view");
-    return (await this.engine.list(workspaceId, filter)).map(publicPipelineRun);
+    const role = await this.accounts.authorize(caller, workspaceId, "view");
+    return (await this.engine.list(workspaceId, filter)).map((r) => this.view(caller, role, r));
   }
 
   /** Every engine run of the chain, in order, as public views. */
   async stepRuns(caller: Principal, workspaceId: string, id: string) {
-    await this.accounts.authorize(caller, workspaceId, "view");
-    return (await this.engine.stepRuns(workspaceId, id)).map(publicRunView);
+    const role = await this.accounts.authorize(caller, workspaceId, "view");
+    const costs = seesCosts(caller, role);
+    return (await this.engine.stepRuns(workspaceId, id)).map((r) => (costs ? publicRunView(r) : { ...publicRunView(r), charge: null }));
   }
 
   async pick(caller: Principal, workspaceId: string, id: string, stepId: string, index: number): Promise<PublicPipelineRun> {
-    await this.accounts.authorize(caller, workspaceId, "run_agents");
-    return publicPipelineRun(await this.engine.pick(workspaceId, id, stepId, index, savedBy(caller)));
+    const role = await this.accounts.authorize(caller, workspaceId, "run_agents");
+    return this.view(caller, role, await this.engine.pick(workspaceId, id, stepId, index, savedBy(caller)));
   }
 
   async cancel(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {
-    await this.accounts.authorize(caller, workspaceId, "run_agents");
-    return publicPipelineRun(await this.engine.cancel(workspaceId, id));
+    const role = await this.accounts.authorize(caller, workspaceId, "run_agents");
+    return this.view(caller, role, await this.engine.cancel(workspaceId, id));
   }
 
   async retry(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {
-    await this.accounts.authorize(caller, workspaceId, "run_agents");
-    return publicPipelineRun(await this.engine.retry(workspaceId, id));
+    const role = await this.accounts.authorize(caller, workspaceId, "run_agents");
+    return this.view(caller, role, await this.engine.retry(workspaceId, id));
   }
 
   async decide(caller: Principal, workspaceId: string, id: string, decision: "approved" | "rejected", note = ""): Promise<PublicPipelineRun> {
-    await this.accounts.authorize(caller, workspaceId, "run_agents");
-    return publicPipelineRun(await this.engine.decide(workspaceId, id, decision, note, savedBy(caller)));
+    const role = await this.accounts.authorize(caller, workspaceId, "run_agents");
+    return this.view(caller, role, await this.engine.decide(workspaceId, id, decision, note, savedBy(caller)));
   }
 
   async clearDecision(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {
-    await this.accounts.authorize(caller, workspaceId, "run_agents");
-    return publicPipelineRun(await this.engine.clearDecision(workspaceId, id));
+    const role = await this.accounts.authorize(caller, workspaceId, "run_agents");
+    return this.view(caller, role, await this.engine.clearDecision(workspaceId, id));
   }
 
   /** The cap and the summed cost, per step, for people who may see costs. */

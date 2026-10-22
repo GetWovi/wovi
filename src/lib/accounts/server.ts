@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { localRegistry } from "@/lib/agents/registry";
 import { join } from "node:path";
 import { localBrandBrains } from "@/lib/builder/local";
+import { creditsEnabled, processCredits } from "@/lib/credits/local";
 import { jsonFileBuilderStore } from "@/lib/builder/store";
 import { sampleReferences } from "@/lib/quality/service";
 import { localEngine, type RunEngine } from "@/lib/runs/engine";
@@ -44,7 +45,10 @@ export function appAgents(): GuardedAgents {
 export function appEngine(): RunEngine {
   if (!cache.engine) {
     // The quality gate compares each draft with the agent's golden and bad samples from the builder (phase 12).
-    cache.engine = localEngine({ brandBrains: localBrandBrains(), references: sampleReferences(jsonFileBuilderStore(join(dataDirFromEnv(), "builder.json")).samples) });
+    // Credits (phase 13): every run holds its estimate and is charged at the end, unless WOVI_CREDITS=off.
+    const billing = creditsEnabled() ? processCredits() : null;
+    cache.engine = localEngine({ brandBrains: localBrandBrains(), references: sampleReferences(jsonFileBuilderStore(join(dataDirFromEnv(), "builder.json")).samples), billing });
+    billing?.useHistory(cache.engine);
     void cache.engine.recover().catch((err) => console.error("Could not recover runs:", err));
   }
   return cache.engine;

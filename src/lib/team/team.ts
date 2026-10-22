@@ -703,6 +703,8 @@ export class Team {
             ...(run.brandBrain ? { brandBrainId: run.brandBrain.id } : {}),
             ...(run.brandPick?.idea ? { brandIdea: run.brandPick.idea } : {}),
             confirmations: run.confirmations,
+            // The new draft costs credits like any run: toward the person who asked, or the workspace for a client.
+            billing: { userId: who.via === "member" && who.by.startsWith("usr_") ? who.by : null },
           });
           newId_ = made.id;
         }
@@ -717,6 +719,7 @@ export class Team {
             inputs: edited.inputs,
             confirmations: pr.confirmations,
             createdBy: who.via === "member" ? who.by : pr.createdBy,
+            billing: { userId: who.via === "member" && who.by.startsWith("usr_") ? who.by : null },
           });
           newId_ = made.id;
         }

@@ -10,7 +10,8 @@ import { Input, Select, Textarea } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
 import type { PublicAgent } from "@/lib/accounts/guard";
-import type { RunView } from "@/lib/app/api";
+import type { Price, RunView } from "@/lib/app/api";
+import { CreditsBlocked, PriceLine } from "@/components/credits/CreditParts";
 import { checkForm, confirmationsFor, formFields, initialValues, valuesFrom, type FormField, type FormValues } from "@/lib/app/forms";
 import type { FileRef } from "@/lib/runs/inputs";
 import styles from "./App.module.css";
@@ -34,9 +35,12 @@ export function AgentRun({
   initialRun,
   reviewer,
   now,
+  price = null,
 }: {
   csrf: string;
   agent: PublicAgent;
+  /** What a run costs before it starts, with the balance (phase 13). Null when nothing is billed. */
+  price?: Price | null;
   brains: BrainOption[];
   editor: boolean;
   /** The agent's golden samples, to fill the form in one click: the one written for the picked Brand Brain when there is one. */
@@ -59,6 +63,8 @@ export function AgentRun({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
+  /** The engine's own refusal for credits, when it came at submit. */
+  const [creditStop, setCreditStop] = useState<{ code: "not_enough_credits" | "over_limit"; message: string } | null>(null);
   const [phase, setPhase] = useState<Phase>(() => (initialRun ? (initialRun.state === "queued" || initialRun.state === "running" ? { kind: "running", runId: initialRun.run.id, view: initialRun, startedAt: Date.parse(initialRun.run.createdAt) } : { kind: "done", view: initialRun }) : { kind: "form" }));
   const [nowMs, setNowMs] = useState(0);
   const polling = useRef(false);
@@ -124,9 +130,15 @@ export function AgentRun({
       brandBrainId: brainId || null,
       brandIdea: readsIdea && idea.trim() ? idea.trim() : null,
       confirmations: asks.rights || asks.voice ? { ...(asks.rights ? { rights } : {}), ...(asks.voice ? { voiceConsent: voice } : {}) } : undefined,
+      // Never charged more than the estimate on screen.
+      ...(price ? { quotedCredits: price.estimate } : {}),
     });
     setBusy(false);
     if (!r.ok) {
+      if (r.code === "not_enough_credits" || r.code === "over_limit") {
+        setCreditStop({ code: r.code, message: r.error });
+        return;
+      }
       if (r.issues?.length) {
         const byField: Record<string, string> = {};
         for (const line of r.issues) {
@@ -270,15 +282,17 @@ export function AgentRun({
           </p>
         )}
 
+        {editor && price && (price.blocked || creditStop) && <CreditsBlocked price={creditStop ? { ...price, blocked: creditStop } : price} />}
+
         <div className={styles.runBar}>
-          <span>{editor ? "Runs through WOVI on the brand you pick. You approve before anything is used." : "Your role here is viewer, so you can look but not run agents."}</span>
+          {editor && price ? <PriceLine price={price} /> : <span>{editor ? "Runs through WOVI on the brand you pick. You approve before anything is used." : "Your role here is viewer, so you can look but not run agents."}</span>}
           <div className={styles.actions}>
             {examples.length > 0 && (
               <Button type="button" variant="ghost" onClick={fillExample} leading={<Icon name="spark" size={18} />}>
                 Fill with an example
               </Button>
             )}
-            <Button type="submit" size="lg" loading={busy} disabled={!editor} trailing={<Icon name="arrow-right" />}>
+            <Button type="submit" size="lg" loading={busy} disabled={!editor || Boolean(price?.blocked) || Boolean(creditStop)} trailing={<Icon name="arrow-right" />}>
               Run {agent.name}
             </Button>
           </div>

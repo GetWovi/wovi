@@ -173,4 +173,4 @@ It signs in through the email flow, skips onboarding, seeds the example Brand Br
 - **Staged video** (the doc's video drop): script, then storyboard images, then approval and edits, then voiceover and render, each stage approved before the next one costs more. Pipelines already have what it needs: a step can ask the person, a run waits, and every step has its own cap. The video agents arrive with the media tools.
 - **Fall back to an alternate agent** when a step fails (the doc's failure handling): the step shape has room for a second agent; not built.
 - MCP tools and REST endpoints for pipelines (`POST /pipelines/{id}/run`, `GET /pipeline-runs/{id}`) with webhooks and an event stream are phase 14. Agents calling agents in a swarm need a depth limit beside the spending limit.
-- Credits per pipeline run (phase 13), comments and team review on a package (phase 11).
+- Credits per pipeline run are phase 13 ([credits.md](credits.md)); comments and team review on a package (phase 11).

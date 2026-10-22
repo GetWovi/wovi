@@ -10,7 +10,11 @@ export type PipelineErrorCode =
   | "no_change"
   | "confirmation_required"
   | "idempotency_conflict"
-  | "not_ready";
+  | "not_ready"
+  /** Credits (phase 13): the balance does not cover the estimate. */
+  | "not_enough_credits"
+  /** Credits (phase 13): a monthly limit would be passed. */
+  | "over_limit";
 
 export class PipelineError extends Error {
   constructor(

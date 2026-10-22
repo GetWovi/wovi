@@ -96,7 +96,7 @@ A failed check is stored in `run.checks` and sets `run.needsReview`; the output 
 
 ### 7. Cost
 
-`prices.ts` holds USD per million tokens per model. Cost is counted in whole micro-dollars (rounded up per call), so totals add up exactly; `costUsd` is for reading. `costTotals(workspaceId)` gives the workspace total and a total per agent; failed and cancelled runs count, since their calls were paid for. Credits and balances are phase 13; nothing is charged here.
+`prices.ts` holds USD per million tokens per model. Cost is counted in whole micro-dollars (rounded up per call), so totals add up exactly; `costUsd` is for reading. `costTotals(workspaceId)` gives the workspace total and a total per agent; failed and cancelled runs count, since their calls were paid for. Since phase 13 the engine bills through an optional `billing` hook: it holds a run's estimate in credits at submit and charges or gives it back at the end ([credits.md](credits.md)). Without the hook nothing is charged.
 
 ## Providers
 

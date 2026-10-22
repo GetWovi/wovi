@@ -254,7 +254,8 @@ export class AgentBench {
     };
     for (const item of items) {
       try {
-        const run = await this.engine.submitRun({ workspaceId: this.ws, agentId: spec.id, version: spec.version, inputs: item.inputs, confirmations, ...(brandBrainId ? { brandBrainId } : {}) });
+        // Bench runs are the builders' own tests: they never cost credits.
+        const run = await this.engine.submitRun({ workspaceId: this.ws, agentId: spec.id, version: spec.version, inputs: item.inputs, confirmations, ...(brandBrainId ? { brandBrainId } : {}), billing: { userId, free: "bench" } });
         const e = estimateRunMicroUsd(spec, run.inputs);
         bench.estimateMicroUsd += e.estimate;
         bench.capMicroUsd += e.cap;

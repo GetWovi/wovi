@@ -18,6 +18,7 @@ describe("permission policy", () => {
       decide: ["owner", "admin", "editor"],
       manage_review_rules: ["owner", "admin"],
       manage_clients: ["owner", "admin"],
+      manage_credits: ["owner", "admin"],
     };
     for (const action of ACTIONS) {
       expect(ROLES.filter((r) => can(r, action))).toEqual(table[action]);
@@ -25,7 +26,7 @@ describe("permission policy", () => {
   });
 
   it("never lets an API key manage people, keys or the workspace", () => {
-    for (const action of ["manage_members", "manage_api_keys", "manage_workspace"] as const) {
+    for (const action of ["manage_members", "manage_api_keys", "manage_workspace", "manage_credits"] as const) {
       expect(can("owner", action, "api_key")).toBe(false);
     }
     expect(can("editor", "run_agents", "api_key")).toBe(true);

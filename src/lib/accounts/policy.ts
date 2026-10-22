@@ -23,6 +23,8 @@ export const ACTIONS = [
   "decide",
   "manage_review_rules",
   "manage_clients",
+  // Credits (phase 13)
+  "manage_credits",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -43,6 +45,8 @@ export const MIN_ROLE: Record<Action, Role> = {
   decide: "editor",
   manage_review_rules: "admin",
   manage_clients: "admin",
+  // Top up and set monthly limits. Never an API key: a leaked key cannot spend money or lift a limit.
+  manage_credits: "admin",
 };
 
 /**
@@ -108,4 +112,5 @@ export const ACTION_WORDS: Record<Action, string> = {
   decide: "approve, reject or ask for changes",
   manage_review_rules: "change the approval rules",
   manage_clients: "manage clients and their links",
+  manage_credits: "top up credits or set limits",
 };

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { Mascot } from "@/components/brand/Mascot";
 import { ago } from "@/components/builder/labels";
+import { RowCharge } from "@/components/credits/CreditParts";
 import { Icon } from "@/components/ui/Icon";
 import type { PipelineInfo, PipelineView } from "@/lib/app/api";
 import { PIPELINE_STATE_LABELS, pipelinePose, stepTraits, type PipelineState } from "@/lib/app/pipelines";
@@ -118,6 +119,7 @@ export function PipelineRow({ view, now, action }: { view: PipelineView; now: nu
             <span className={p.kind}>
               <Icon name="layers" size={12} /> Pipeline
             </span>
+            {run.charge && <RowCharge charge={run.charge} />}
           </span>
           <span className={styles.runTitle}>{title}</span>
           <span className={styles.runMeta}>

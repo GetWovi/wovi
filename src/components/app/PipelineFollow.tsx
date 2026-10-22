@@ -15,6 +15,7 @@ import { STEP_LABELS, currentStepIndex, packageText, partText, pipelinePose, pip
 import { resultView } from "@/lib/app/results";
 import type { Candidate, PackageItem, PublicPipelineRun, PublicStepRun } from "@/lib/pipelines/run";
 import type { RunOutput } from "@/lib/runs/output";
+import { ChargeLine } from "@/components/credits/CreditParts";
 import styles from "./App.module.css";
 import { CopyButton } from "./CopyButton";
 import p from "./Pipeline.module.css";
@@ -155,6 +156,7 @@ function StatusPanel({ run, state, index, step, nowMs, editor, busy, onStop, onR
         <span className="eyebrow">{run.brandBrain ? `For ${run.brandBrain.name}` : "Your run"}</span>
         <h2>{title}</h2>
         <p className={p.statusLine}>{line}</p>
+        {run.charge && <ChargeLine charge={run.charge} />}
         <div className={p.segments}>
           {run.steps.map((s) => (
             <div key={s.id} className={p.segment} data-state={segmentState(s)} title={`${s.label}: ${STEP_LABELS[s.status]}`}>

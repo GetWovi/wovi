@@ -21,6 +21,7 @@ import { publicRunView } from "@/lib/runs/run";
 import type { RunFilter } from "@/lib/runs/store";
 import type { Accounts, Principal } from "./accounts";
 import { AccountError } from "./errors";
+import { can, type Role } from "./policy";
 
 export type PublicAgent = ReturnType<typeof publicView>;
 export type PublicRun = ReturnType<typeof publicRunView>;
@@ -121,41 +122,60 @@ export class GuardedAgents {
   }
 }
 
+/** Whether this caller with this role may see costs, credits charged included (phase 4 policy). */
+export function seesCosts(caller: Principal, role: Role): boolean {
+  return can(role, "see_costs", caller.kind === "api_key" ? "api_key" : "user");
+}
+
+/** Who a run's credits count toward: the person, or the person who made the key. */
+export function spenderOf(caller: Principal): string {
+  return caller.userId;
+}
+
 export class GuardedRuns {
   constructor(
     private readonly engine: RunEngine,
     private readonly accounts: Accounts,
   ) {}
 
+  /** The public view, with the credits charged only for people who may see costs. */
+  private view(caller: Principal, role: Role, run: Parameters<typeof publicRunView>[0]): PublicRun {
+    const v = publicRunView(run);
+    return seesCosts(caller, role) ? v : { ...v, charge: null };
+  }
+
   /**
    * Runs an agent for a workspace the caller may run agents in. The agent
    * itself may live elsewhere only when it is public and live (the engine
-   * checks that).
+   * checks that). Credits count toward the caller; only the estimate they
+   * were shown passes through, never a free or pipeline billing.
    */
   async submitRun(caller: Principal, req: SubmitRequest): Promise<PublicRun> {
-    await this.accounts.authorize(caller, req?.workspaceId, "run_agents");
-    return publicRunView(await this.engine.submitRun(req));
+    const role = await this.accounts.authorize(caller, req?.workspaceId, "run_agents");
+    const quoted = req.billing?.quotedCredits;
+    const billing = { userId: spenderOf(caller), ...(quoted !== undefined ? { quotedCredits: quoted } : {}) };
+    return this.view(caller, role, await this.engine.submitRun({ ...req, billing }));
   }
 
   async getRun(caller: Principal, workspaceId: string, runId: string): Promise<PublicRun | null> {
-    await this.accounts.authorize(caller, workspaceId, "view");
+    const role = await this.accounts.authorize(caller, workspaceId, "view");
     const run = await this.engine.getRun(workspaceId, runId);
-    return run ? publicRunView(run) : null;
+    return run ? this.view(caller, role, run) : null;
   }
 
   async listRuns(caller: Principal, workspaceId: string, filter: RunFilter = {}): Promise<PublicRun[]> {
-    await this.accounts.authorize(caller, workspaceId, "view");
-    return (await this.engine.listRuns(workspaceId, filter)).map(publicRunView);
+    const role = await this.accounts.authorize(caller, workspaceId, "view");
+    return (await this.engine.listRuns(workspaceId, filter)).map((r) => this.view(caller, role, r));
   }
 
   async waitForRun(caller: Principal, workspaceId: string, runId: string): Promise<PublicRun> {
-    await this.accounts.authorize(caller, workspaceId, "view");
-    return publicRunView(await this.engine.waitForRun(workspaceId, runId));
+    const role = await this.accounts.authorize(caller, workspaceId, "view");
+    return this.view(caller, role, await this.engine.waitForRun(workspaceId, runId));
   }
 
   async cancelRun(caller: Principal, workspaceId: string, runId: string): Promise<PublicRun> {
-    await this.accounts.authorize(caller, workspaceId, "run_agents");
-    return publicRunView(await this.engine.cancelRun(workspaceId, runId));
+    const role = await this.accounts.authorize(caller, workspaceId, "run_agents");
+    return this.view(caller, role, await this.engine.cancelRun(workspaceId, runId));
   }
 
   async costTotals(caller: Principal, workspaceId: string) {

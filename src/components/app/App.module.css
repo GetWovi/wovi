@@ -280,9 +280,17 @@
   .headerInner {
     grid-template-columns: auto auto;
     justify-content: space-between;
+    gap: var(--s-3);
   }
   .wsSelect {
     max-width: 140px;
+  }
+  /* Phase 13 put the balance in the header: on a phone the account sits under Settings instead. */
+  .right .avatarLink {
+    display: none;
+  }
+  .right .wsSelect {
+    max-width: 118px;
   }
   .tabs {
     position: fixed;

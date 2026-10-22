@@ -8,6 +8,7 @@ import type { CheckResult, Confirmations } from "./guardrails";
 import type { RunInputs } from "./inputs";
 import type { RunOutput } from "./output";
 import { publicQuality, type QualityReport } from "@/lib/quality/types";
+import { chargeView, type RunCredits } from "@/lib/credits/types";
 
 export const RUN_STATUSES = ["queued", "running", "succeeded", "failed", "cancelled"] as const;
 export type RunStatus = (typeof RUN_STATUSES)[number];
@@ -85,6 +86,8 @@ export type Run = {
   capMicroUsd: number;
   costMicroUsd: number;
   costUsd: number;
+  /** What the run held and was charged in credits (phase 13). Missing when the engine bills nothing. */
+  credits?: RunCredits | null;
 
   timings: { queuedAt: string; startedAt: string | null; finishedAt: string | null; queueMs: number | null; runMs: number | null };
   createdAt: string;
@@ -106,6 +109,8 @@ export function publicRunView(run: Run) {
     needsReview: run.needsReview,
     quality: publicQuality(run.quality),
     parent: run.parent,
+    /** The credits it held and was charged. The guarded engine blanks it for people who may not see costs. */
+    charge: chargeView(run.credits),
     createdAt: run.createdAt,
     finishedAt: run.timings.finishedAt,
   };

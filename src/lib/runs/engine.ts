@@ -20,6 +20,7 @@ import { jsonFileBrandStore } from "@/lib/brand/store";
 import { NO_REFERENCES, type QualityReferences } from "@/lib/quality/checks";
 import type { QualityJudge } from "@/lib/quality/evaluate";
 import { storeBrainSource } from "@/lib/brand/source";
+import { BillingRefusal, type RunBilling, type RunBillingRequest } from "./billing";
 import type { BrandBrain, BrandBrainSource } from "./brand-brain";
 import { RunAborted, executeRun, type ExecResult } from "./execute";
 import { runBeforeChecks, type Confirmations } from "./guardrails";
@@ -55,6 +56,11 @@ export type SubmitRequest = {
   /** Lowers the agent's spend cap for this run, for example to a pipeline's remaining budget. */
   maxCostUsd?: number;
   parent?: { pipelineRunId: string; step: number };
+  /**
+   * Credits (phase 13): who started it, the estimate they were shown, a
+   * pipeline's hold, or a free bench run. Not part of the idempotency hash.
+   */
+  billing?: RunBillingRequest;
 };
 
 export type RunErrorCode =
@@ -65,7 +71,11 @@ export type RunErrorCode =
   | "invalid_input"
   | "confirmation_required"
   | "over_budget"
-  | "idempotency_conflict";
+  | "idempotency_conflict"
+  /** Credits (phase 13): the balance does not cover the estimate. */
+  | "not_enough_credits"
+  /** Credits (phase 13): a monthly limit would be passed. */
+  | "over_limit";
 
 export class RunError extends Error {
   constructor(
@@ -109,6 +119,11 @@ export type EngineOptions = {
   references?: ReferenceSource;
   /** The optional model judge for the quality gate. Off (null) unless given. */
   judge?: QualityJudge | null;
+  /**
+   * Credits (phase 13): holds the estimate at submit and charges or gives
+   * back at the end. Left out, runs cost no credits, as before.
+   */
+  billing?: RunBilling | null;
 };
 
 /** Where the quality gate finds an agent's golden and bad samples. */
@@ -203,6 +218,12 @@ export class RunEngine {
     run.nextAttemptAt = null;
     await this.opts.store.update(run);
     this.queue.cancel(runId);
+    if (this.opts.billing && run.credits) {
+      // Give the hold back, on the latest copy so nothing the worker wrote meanwhile is lost.
+      await this.settle(run);
+      const latest = await this.opts.store.get(workspaceId, runId);
+      if (latest) await this.opts.store.update({ ...latest, credits: run.credits });
+    }
     this.notify(run);
     return run;
   }
@@ -251,6 +272,12 @@ export class RunEngine {
 
   /** After a restart: queues every run that was queued or running again. Returns how many. */
   async recover(): Promise<number> {
+    // A run that ended but whose credits were never settled (a crash in between) is settled now.
+    if (this.opts.billing) {
+      for (const run of await this.opts.store.listByStatus([...FINISHED])) {
+        if (run.credits?.state === "held") await this.save(run);
+      }
+    }
     const runs = await this.opts.store.listByStatus(["queued", "running"]);
     for (const run of runs) {
       if (run.status === "running") {
@@ -302,8 +329,11 @@ export class RunEngine {
     }
 
     const now = this.cfg.now().toISOString();
+    const id = this.cfg.newId();
+    // Credits last, once everything else passed: hold the estimate, or refuse before anything is queued.
+    const credits = await this.reserve(req, id, spec);
     const run: Run = {
-      id: this.cfg.newId(),
+      id,
       workspaceId: req.workspaceId,
       agent: { workspaceId: req.agentWorkspaceId ?? req.workspaceId, id: spec.id, version: spec.version },
       inputs,
@@ -327,13 +357,41 @@ export class RunEngine {
       capMicroUsd,
       costMicroUsd: 0,
       costUsd: 0,
+      ...(credits ? { credits } : {}),
       timings: { queuedAt: now, startedAt: null, finishedAt: null, queueMs: null, runMs: null },
       createdAt: now,
       updatedAt: now,
     };
-    await this.opts.store.insert(run);
+    try {
+      await this.opts.store.insert(run);
+    } catch (err) {
+      // The run was never saved: give its hold back.
+      if (credits) await this.opts.billing!.settleRun({ ...run, status: "cancelled" }).catch(() => undefined);
+      throw err;
+    }
     this.queue.enqueue({ runId: run.id, workspaceId: run.workspaceId });
     return run;
+  }
+
+  private async reserve(req: SubmitRequest, runId: string, spec: AgentSpec) {
+    if (!this.opts.billing) return null;
+    try {
+      return await this.opts.billing.reserveRun({ workspaceId: req.workspaceId, runId, spec, agentWorkspaceId: req.agentWorkspaceId ?? req.workspaceId, billing: req.billing ?? {} });
+    } catch (err) {
+      if (!(err instanceof BillingRefusal)) throw err;
+      throw new RunError(err.code === "hold_closed" ? "invalid_request" : err.code, err.message);
+    }
+  }
+
+  /** Charges a finished run, or gives its hold back. Settling twice changes nothing. */
+  private async settle(run: Run) {
+    if (!this.opts.billing || !run.credits || !FINISHED.includes(run.status)) return;
+    try {
+      run.credits = (await this.opts.billing.settleRun(run)) ?? run.credits;
+    } catch (err) {
+      // Left as held; recover() settles it after a restart.
+      console.error(`Credits for run ${run.id} could not be settled:`, err);
+    }
   }
 
   private async loadAgent(req: SubmitRequest): Promise<AgentSpec> {
@@ -499,6 +557,7 @@ export class RunEngine {
   }
 
   private async save(run: Run) {
+    if (this.opts.billing && run.credits) await this.settle(run);
     await this.opts.store.update(run);
     this.notify(run);
   }
@@ -518,7 +577,7 @@ export class RunEngine {
  * is given. Uses the fake provider
  * unless OPENROUTER_API_KEY is set, and always when `fake` is true.
  */
-export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource; references?: ReferenceSource } = {}): RunEngine {
+export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource; references?: ReferenceSource; billing?: RunBilling | null } = {}): RunEngine {
   const dataDir = opts.dataDir ?? process.env.WOVI_DATA_DIR ?? join(process.cwd(), ".data");
   const providers = providersFromEnv();
   const fake = opts.fake ?? !providers.openrouter;
@@ -529,5 +588,6 @@ export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrain
     providers: fake ? { fake: providers.fake } : providers,
     providerOverride: fake ? "fake" : undefined,
     references: opts.references,
+    billing: opts.billing ?? null,
   });
 }

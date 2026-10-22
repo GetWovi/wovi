@@ -98,4 +98,4 @@ The agent cards on `/` now show the phase 8 lineup: Idea Generator, Hook Writer,
 ## Not yet
 
 - The server actions themselves are thin (origin, session, CSRF, one API call) and are exercised by the screenshot script against the built site, not by vitest.
-- Pipelines are phase 10 ([pipelines.md](pipelines.md)): the nav, history and run pages gained them there. Full review flows and comments (phase 11), quality gates (phase 12), credits (phase 13) and MCP and REST (phase 14) are not here. The run page already carries everything they need: the typed output, the checks, the decision.
+- Pipelines are phase 10 ([pipelines.md](pipelines.md)): the nav, history and run pages gained them there. Full review flows and comments (phase 11), quality gates (phase 12), credits (phase 13, [credits.md](credits.md)) and MCP and REST (phase 14) are not here. The run page already carries everything they need: the typed output, the checks, the decision.

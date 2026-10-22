@@ -32,6 +32,8 @@ import type { AgentSpec } from "@/lib/agents/spec";
 import { explainCheck } from "@/lib/app/results";
 import type { BrandBrain, BrandBrainSource } from "@/lib/runs/brand-brain";
 import { brandFit, describeFlag } from "@/lib/runs/brand-fit";
+import type { PipelineCredits, ReleaseReason } from "@/lib/credits/types";
+import { BillingRefusal } from "@/lib/runs/billing";
 import { RunEngine, RunError } from "@/lib/runs/engine";
 import { runBeforeChecks, type CheckResult, type Confirmations } from "@/lib/runs/guardrails";
 import { validateRunInputs, type RunInputs } from "@/lib/runs/inputs";
@@ -59,7 +61,21 @@ export type PipelineSubmitRequest = {
   idempotencyKey?: string;
   /** Who started it, for the record. */
   createdBy?: string | null;
+  /** Credits (phase 13): whose limit it counts toward and the estimate they were shown. */
+  billing?: { userId?: string | null; quotedCredits?: number };
 };
+
+/**
+ * Credits for pipelines (phase 13), implemented by the credits service. A
+ * pipeline run holds its estimate at submit; each step run is charged inside
+ * that hold; whatever is left comes back when the run ends.
+ */
+export interface PipelineBilling {
+  estimatePipeline(steps: { spec: AgentSpec; agentWorkspaceId: string; rewrite: boolean }[], capMicroUsd: number): Promise<number>;
+  reservePipeline(input: { workspaceId: string; pipelineRunId: string; attempt: number; estimate: number; userId: string | null; label: string; previous?: PipelineCredits | null }): Promise<PipelineCredits>;
+  pipelineTotals(workspaceId: string, c: PipelineCredits): Promise<PipelineCredits>;
+  closePipeline(workspaceId: string, c: PipelineCredits, reason?: ReleaseReason): Promise<PipelineCredits>;
+}
 
 export type PipelineEngineOptions = {
   registry: PipelineRegistry;
@@ -68,6 +84,8 @@ export type PipelineEngineOptions = {
   store: PipelineStore;
   /** Tries of a step whose run failed on a provider error or a timeout, after the first. */
   stepRetries?: number;
+  /** Credits (phase 13). Left out, pipeline runs cost no credits, as before. */
+  billing?: PipelineBilling | null;
   now?: () => Date;
   newId?: () => string;
 };
@@ -204,8 +222,11 @@ export class PipelineEngine {
     void owner;
     void status;
     void visibility;
+    const id = this.newId();
+    // Credits last, once everything else passed: hold the estimate for every step, or refuse before anything runs.
+    const credits = await this.reserve(ws, id, 0, spec.name, spec.steps.map((s, n) => ({ def: s, agent: agents[n] })), toMicroUsd(capUsd), req.billing, null);
     const run: PipelineRun = {
-      id: this.newId(),
+      id,
       workspaceId: ws,
       pipeline: { workspaceId: home, id: spec.id, version: spec.version, name: spec.name },
       spec: body,
@@ -245,14 +266,90 @@ export class PipelineEngine {
       capMicroUsd: toMicroUsd(capUsd),
       costMicroUsd: 0,
       costUsd: 0,
+      ...(credits ? { credits } : {}),
       createdBy: req.createdBy ?? null,
       createdAt: at,
       updatedAt: at,
       finishedAt: null,
     };
-    await this.o.store.pipelineRuns.insert(run);
+    try {
+      await this.o.store.pipelineRuns.insert(run);
+    } catch (err) {
+      if (credits) await this.o.billing!.closePipeline(ws, credits, "cancelled").catch(() => undefined);
+      throw err;
+    }
     this.kick(ws, run.id);
     return run;
+  }
+
+  /** The estimate for these steps, and the hold for it. Null when the engine bills nothing. */
+  private async reserve(ws: string, id: string, attempt: number, label: string, steps: { def: PipelineStep; agent: { spec: AgentSpec; workspaceId: string } }[], capMicroUsd: number, billing: PipelineSubmitRequest["billing"], previous: PipelineCredits | null): Promise<PipelineCredits | null> {
+    const b = this.o.billing;
+    if (!b) return null;
+    let estimate = await b.estimatePipeline(
+      steps.map((s) => ({ spec: s.agent.spec, agentWorkspaceId: s.agent.workspaceId, rewrite: Boolean(s.def.onFail?.rewrite) })),
+      capMicroUsd,
+    );
+    const quoted = billing?.quotedCredits;
+    if (quoted !== undefined) {
+      if (!Number.isInteger(quoted) || quoted <= 0) throw new PipelineError("invalid_request", "The quoted estimate must be a whole number of credits.");
+      estimate = Math.min(estimate, quoted);
+    }
+    try {
+      return await b.reservePipeline({ workspaceId: ws, pipelineRunId: id, attempt, estimate, userId: billing?.userId ?? previous?.userId ?? null, label, previous });
+    } catch (err) {
+      if (err instanceof BillingRefusal && err.code !== "hold_closed") throw new PipelineError(err.code, err.message);
+      throw err;
+    }
+  }
+
+  /** The estimate for a pipeline before it starts, in credits. Null when the engine bills nothing. */
+  async estimate(workspaceId: string, pipelineId: string, pipelineWorkspaceId?: string): Promise<number | null> {
+    const b = this.o.billing;
+    if (!b) return null;
+    const home = pipelineWorkspaceId ?? workspaceId;
+    const spec = await this.o.registry.get(home, pipelineId);
+    if (!spec) return null;
+    const steps: { spec: AgentSpec; agentWorkspaceId: string; rewrite: boolean }[] = [];
+    for (const s of spec.steps) {
+      const r = await this.o.registry.resolveAgent(home, s.agent.id, s.agent.version);
+      if (!r) return null;
+      steps.push({ spec: r.spec, agentWorkspaceId: r.workspaceId, rewrite: Boolean(s.onFail?.rewrite) });
+    }
+    return b.estimatePipeline(steps, toMicroUsd(spec.maxCostUsd));
+  }
+
+  /** The estimate to try a failed run again from the step that failed. Null when the engine bills nothing. */
+  async retryEstimate(workspaceId: string, id: string): Promise<number | null> {
+    const b = this.o.billing;
+    const pr = await this.get(workspaceId, id);
+    if (!b || !pr || pr.status !== "failed") return null;
+    const left = await this.stepsLeft(pr);
+    return left.length ? b.estimatePipeline(left.map((s) => ({ spec: s.agent.spec, agentWorkspaceId: s.agent.workspaceId, rewrite: Boolean(s.def.onFail?.rewrite) })), Math.max(0, pr.capMicroUsd - pr.costMicroUsd)) : null;
+  }
+
+  /** The steps a retry would still run: the failed one and everything after it. */
+  private async stepsLeft(pr: PipelineRun) {
+    const from = pr.steps.findIndex((s) => s.status === "failed" || s.status === "todo");
+    const out: { def: PipelineStep; agent: { spec: AgentSpec; workspaceId: string } }[] = [];
+    if (from === -1) return out;
+    for (let i = from; i < pr.steps.length; i++) {
+      const step = pr.steps[i];
+      const spec = await this.agentOf(step);
+      if (spec) out.push({ def: pr.spec.steps[i], agent: { spec, workspaceId: step.agent.workspaceId } });
+    }
+    return out;
+  }
+
+  /** Ends the run's hold: what the steps did not use comes back. */
+  private async closeCredits(pr: PipelineRun, reason: ReleaseReason = "ended") {
+    if (!this.o.billing || !pr.credits) return;
+    try {
+      pr.credits = await this.o.billing.closePipeline(pr.workspaceId, pr.credits, reason);
+    } catch (err) {
+      // Left open; recover() closes it after a restart.
+      console.error(`Credits for pipeline run ${pr.id} could not be settled:`, err);
+    }
   }
 
   /* ---------- Reading ---------- */
@@ -304,6 +401,14 @@ export class PipelineEngine {
 
   /** After a restart: drives every running pipeline run again. Step runs are found again by their keys. */
   async recover(): Promise<number> {
+    if (this.o.billing) {
+      for (const pr of await this.o.store.pipelineRuns.find({})) {
+        if (pr.credits?.state === "held" && pr.status !== "running" && pr.status !== "waiting") {
+          await this.closeCredits(pr);
+          await this.o.store.pipelineRuns.update(pr);
+        }
+      }
+    }
     const rows = await this.o.store.pipelineRuns.find({ status: "running" });
     rows.forEach((r) => this.kick(r.workspaceId, r.id));
     return rows.length;
@@ -344,6 +449,10 @@ export class PipelineEngine {
     }
     await this.save(pr);
     for (const rid of live) if (rid) await this.o.runs.cancelRun(workspaceId, rid).catch(() => undefined);
+    if (pr.credits) {
+      await this.closeCredits(pr, "cancelled");
+      await this.save(pr);
+    }
     return pr;
   }
 
@@ -375,6 +484,12 @@ export class PipelineEngine {
   async retry(workspaceId: string, id: string): Promise<PipelineRun> {
     const pr = await this.require(workspaceId, id);
     if (pr.status !== "failed") throw new PipelineError("not_ready", "Only a failed pipeline run can be tried again.");
+    if (this.o.billing && pr.credits) {
+      // A new try holds again, for the steps it still has to run.
+      const left = await this.stepsLeft(pr);
+      const next = await this.reserve(workspaceId, id, pr.credits.holdIds.length, pr.pipeline.name, left, Math.max(0, pr.capMicroUsd - pr.costMicroUsd) || pr.capMicroUsd, { userId: pr.credits.userId }, pr.credits);
+      if (next) pr.credits = next;
+    }
     const step = pr.steps.find((s) => s.status === "failed");
     if (step) {
       step.status = "todo";
@@ -458,6 +573,7 @@ export class PipelineEngine {
       idempotencyKey: key,
       maxCostUsd: capUsd,
       parent: { pipelineRunId: pr.id, step: i },
+      ...(pr.credits ? { billing: { userId: pr.credits.userId, pipeline: { holdId: pr.credits.holdId } } } : {}),
     });
   }
 
@@ -497,12 +613,14 @@ export class PipelineEngine {
     const def = pr.spec.steps[i];
     if (step.runIds[step.runIds.length - 1] !== run.id) return;
     await this.sumCosts(pr);
+    if (this.o.billing && pr.credits) pr.credits = await this.o.billing.pipelineTotals(ws, pr.credits);
 
     if (run.status === "cancelled") {
       step.status = "cancelled";
       step.finishedAt = this.now().toISOString();
       pr.status = "cancelled";
       pr.finishedAt = step.finishedAt;
+      await this.closeCredits(pr, "cancelled");
       return this.save(pr);
     }
     if (run.status === "failed") {
@@ -638,6 +756,8 @@ export class PipelineEngine {
     pr.package = items;
     pr.needsReview = items.some((p) => p.flags.length > 0) || pr.steps.some((s) => s.status === "flagged" && pr.spec.package.some((p) => p.step === s.id && p.take === "all"));
     pr.status = "ready";
+    // Every step ran: what was held and not used comes back.
+    await this.closeCredits(pr);
     await this.save(pr);
   }
 
@@ -652,6 +772,8 @@ export class PipelineEngine {
     pr.status = "failed";
     pr.error = { code, message, step: i === null ? null : pr.steps[i].id };
     pr.finishedAt = at;
+    // Steps that finished keep their charge; the failed step and the steps after it cost nothing.
+    await this.closeCredits(pr, "failed");
     await this.save(pr);
   }
 

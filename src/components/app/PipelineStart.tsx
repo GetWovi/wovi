@@ -8,7 +8,8 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
-import type { PipelineInfo } from "@/lib/app/api";
+import type { PipelineInfo, Price } from "@/lib/app/api";
+import { CreditsBlocked, PriceLine } from "@/components/credits/CreditParts";
 import { checkForm, formFields, initialValues, valuesFrom, type FormValues } from "@/lib/app/forms";
 import type { PipelineExample } from "@/lib/app/pipeline-examples";
 import styles from "./App.module.css";
@@ -21,7 +22,7 @@ import { ChainList } from "./PipelineParts";
  * Brand Brain picker, the confirmations its agents ask for, and the chain
  * beside it. Starting goes to the run's page.
  */
-export function PipelineStart({ csrf, info, brains, editor, examples }: { csrf: string; info: PipelineInfo; brains: BrainOption[]; editor: boolean; examples: PipelineExample[] }) {
+export function PipelineStart({ csrf, info, brains, editor, examples, price = null }: { csrf: string; info: PipelineInfo; brains: BrainOption[]; editor: boolean; examples: PipelineExample[]; price?: Price | null }) {
   const router = useRouter();
   const { toast } = useToast();
   const spec = info.spec;
@@ -33,6 +34,7 @@ export function PipelineStart({ csrf, info, brains, editor, examples }: { csrf: 
   const [voice, setVoice] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [creditStop, setCreditStop] = useState<{ code: "not_enough_credits" | "over_limit"; message: string } | null>(null);
   const asks = info.confirmations;
 
   const set = (key: string, v: FormValues[string]) => {
@@ -65,9 +67,12 @@ export function PipelineStart({ csrf, info, brains, editor, examples }: { csrf: 
       pipelineWorkspaceId: info.workspaceId,
       inputs: check.ok ? check.inputs : {},
       confirmations: asks.rights || asks.voice ? { ...(asks.rights ? { rights } : {}), ...(asks.voice ? { voiceConsent: voice } : {}) } : undefined,
+      // Never charged more than the estimate on screen.
+      ...(price ? { quotedCredits: price.estimate } : {}),
     });
     if (!r.ok) {
       setBusy(false);
+      if (r.code === "not_enough_credits" || r.code === "over_limit") return setCreditStop({ code: r.code, message: r.error });
       if (r.issues?.length) {
         const byField: Record<string, string> = {};
         for (const line of r.issues) {
@@ -121,15 +126,17 @@ export function PipelineStart({ csrf, info, brains, editor, examples }: { csrf: 
           </p>
         )}
 
+        {editor && price && (price.blocked || creditStop) && <CreditsBlocked price={creditStop ? { ...price, blocked: creditStop } : price} />}
+
         <div className={styles.runBar}>
-          <span>{editor ? `${info.steps.length} agents in a row, each reading the one before. You approve at the end.` : "Your role here is viewer, so you can look but not start pipelines."}</span>
+          {editor && price ? <PriceLine price={price} what="the whole pipeline" /> : <span>{editor ? `${info.steps.length} agents in a row, each reading the one before. You approve at the end.` : "Your role here is viewer, so you can look but not start pipelines."}</span>}
           <div className={styles.actions}>
             {examples.length > 0 && (
               <Button type="button" variant="ghost" onClick={fillExample} leading={<Icon name="spark" size={18} />}>
                 Fill with an example
               </Button>
             )}
-            <Button type="submit" size="lg" loading={busy} disabled={!editor} trailing={<Icon name="arrow-right" />}>
+            <Button type="submit" size="lg" loading={busy} disabled={!editor || Boolean(price?.blocked) || Boolean(creditStop)} trailing={<Icon name="arrow-right" />}>
               Start the pipeline
             </Button>
           </div>

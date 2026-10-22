@@ -23,6 +23,10 @@ import { fakeProvider, type FakeOptions } from "@/lib/runs/providers/fake";
 import { memoryRunStore } from "@/lib/runs/store";
 import { memoryTeamStore } from "@/lib/team/store";
 import { Team } from "@/lib/team/team";
+import { Credits, type CreditsOptions } from "@/lib/credits/credits";
+import { GuardedCredits } from "@/lib/credits/guard";
+import { testPaymentProvider } from "@/lib/credits/payments";
+import { memoryCreditStore } from "@/lib/credits/store";
 import { AppApi } from "./api";
 import { memoryAppStore } from "./store";
 
@@ -33,7 +37,7 @@ export const as = (userId: string): Principal => ({ kind: "user", userId });
  * launch versions (Trend Scout a draft), and a way to add members by role.
  * `seedBrains` puts the example Brand Brains into ada's team.
  */
-export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<EngineOptions>; launch?: boolean; pipelines?: Partial<PipelineEngineOptions>; templates?: boolean } = {}) {
+export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<EngineOptions>; launch?: boolean; pipelines?: Partial<PipelineEngineOptions>; templates?: boolean; credits?: boolean | Partial<CreditsOptions> } = {}) {
   const t = testAccounts();
   let tick = 0;
   const now = () => new Date(t.clock.t + tick++ * 1000);
@@ -52,6 +56,8 @@ export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<Engin
   const fake = fakeProvider(opts.fake);
   const brandStore = memoryBrandStore();
   const files = memoryFileStorage();
+  // Credits (phase 13) only when a test asks for them, so the tests before it run as they always did.
+  const credits = opts.credits ? new Credits({ store: memoryCreditStore(), payments: testPaymentProvider(), registry, now, ...(opts.credits === true ? {} : opts.credits) }) : null;
   const engine = new RunEngine({
     registry,
     store: memoryRunStore(),
@@ -60,21 +66,24 @@ export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<Engin
     providerOverride: "fake",
     backoff: { baseMs: 5, maxMs: 20 },
     now,
+    billing: credits,
     ...opts.engine,
   });
+  credits?.useHistory(engine);
   const agents = new GuardedAgents(registry, t.accounts);
   const runs = new GuardedRuns(engine, t.accounts);
   const brands = new BrandBrains({ accounts: t.accounts, store: brandStore, files, proposer: new ProfileProposer({ providers: { fake }, providerOverride: "fake" }), now });
   const store = memoryAppStore();
   const pipelineStore = memoryPipelineStore();
   const pipelineRegistry = new PipelineRegistry(pipelineStore, registry, () => now().toISOString());
-  const pipelineEngine = new PipelineEngine({ registry: pipelineRegistry, runs: engine, brandBrains: storeBrainSource(brandStore), store: pipelineStore, now, ...opts.pipelines });
+  const pipelineEngine = new PipelineEngine({ registry: pipelineRegistry, runs: engine, brandBrains: storeBrainSource(brandStore), store: pipelineStore, now, billing: credits, ...opts.pipelines });
   const pipelines = new GuardedPipelines(pipelineEngine, t.accounts);
   const launchAuthor = await ensureLaunchAuthor(t.accounts);
   if ((opts.launch ?? true) && (opts.templates ?? true)) await installPipelineTemplates(pipelines, launchAuthor, LAUNCH_AUTHOR_ID);
   const teamStore = memoryTeamStore();
   const teamReview = new Team({ accounts: t.accounts, runs: engine, pipelines: pipelineEngine, registry, brands, app: store, store: teamStore, now });
-  const api = new AppApi({ accounts: t.accounts, agents, runs, brands, store, pipelines, team: teamReview, now });
+  const guardedCredits = credits ? new GuardedCredits(credits, t.accounts) : undefined;
+  const api = new AppApi({ accounts: t.accounts, agents, runs, brands, store, pipelines, team: teamReview, now, ...(guardedCredits ? { credits: guardedCredits } : {}) });
 
   const ada = (await t.signUp("ada@example.com")).user;
   const eve = (await t.signUp("eve@example.com")).user;
@@ -87,7 +96,7 @@ export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<Engin
   };
   const seedTeamBrains = () => seedBrains(brandStore, files, team.id, { now: () => now().toISOString() });
 
-  return { ...t, registry, engine, fake, agents, runs, brands, brandStore, store, api, ada, eve, team, join, seedTeamBrains, pipelineStore, pipelineRegistry, pipelineEngine, pipelines, launchAuthor, teamReview, teamStore };
+  return { ...t, registry, engine, fake, agents, runs, brands, brandStore, store, api, ada, eve, team, join, seedTeamBrains, pipelineStore, pipelineRegistry, pipelineEngine, pipelines, launchAuthor, teamReview, teamStore, credits, guardedCredits };
 }
 
 export const POSTS = [

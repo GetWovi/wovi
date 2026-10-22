@@ -20,6 +20,7 @@ import { PipelineError } from "@/lib/pipelines/errors";
 import type { GuardedPipelines } from "@/lib/pipelines/guard";
 import type { PublicPipelineRun } from "@/lib/pipelines/run";
 import type { Team } from "@/lib/team/team";
+import type { GuardedCredits } from "@/lib/credits/guard";
 import type { PipelineSpec } from "@/lib/pipelines/spec";
 import type { AgentSpec } from "@/lib/agents/spec";
 import { BrandError, publicProposal, type BrainSummary, type BrandBrains, type ProposalEdits, type PublicProposal } from "@/lib/brand/brains";
@@ -32,7 +33,7 @@ import { applyQuickEdit } from "./quick-edits";
 import { runSearchText, runState, type RunState } from "./results";
 import { REVIEW_DECISIONS, type AppStore, type OnboardingRow, type ReviewDecision, type ReviewRow } from "./store";
 
-export type AppErrorCode = "invalid_request" | "not_found" | "forbidden" | "not_ready";
+export type AppErrorCode = "invalid_request" | "not_found" | "forbidden" | "not_ready" | "not_enough_credits" | "over_limit";
 
 export class AppError extends Error {
   constructor(
@@ -54,6 +55,20 @@ export type StartRunInput = {
   brandIdea?: string | null;
   confirmations?: Confirmations;
   idempotencyKey?: string;
+  /** The estimate the person was shown, in credits. The run never costs more. */
+  quotedCredits?: number;
+};
+
+/**
+ * What a run or a pipeline costs before it starts (phase 13), for the form:
+ * the estimate, the balance, and why it cannot start, when it cannot.
+ */
+export type Price = {
+  estimate: number;
+  available: number;
+  blocked: { code: "not_enough_credits" | "over_limit"; message: string } | null;
+  /** May top up or change limits, so the screen can offer it. */
+  canManage: boolean;
 };
 
 /** A run with its agent, its human decision and one state. */
@@ -81,6 +96,8 @@ export type AppApiOptions = {
    * approval rules and the item records who made each run.
    */
   team?: Team;
+  /** Credits (phase 13). Left out, nothing shows a price. */
+  credits?: GuardedCredits;
   now?: () => Date;
 };
 
@@ -100,6 +117,8 @@ export type StartPipelineInput = {
   inputs: Record<string, unknown>;
   confirmations?: Confirmations;
   idempotencyKey?: string;
+  /** The estimate the person was shown, in credits. The run never costs more. */
+  quotedCredits?: number;
 };
 
 /** A pipeline run with one state and its title. */
@@ -268,6 +287,7 @@ export class AppApi {
       ...(input.brandIdea?.trim() ? { brandIdea: input.brandIdea.trim() } : {}),
       ...(input.confirmations ? { confirmations: input.confirmations } : {}),
       ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
+      ...(input.quotedCredits !== undefined ? { billing: { quotedCredits: input.quotedCredits } } : {}),
     };
     try {
       const run = await this.o.runs.submitRun(caller, req);
@@ -276,6 +296,7 @@ export class AppApi {
     } catch (err) {
       if (err instanceof RunError) {
         if (err.code === "not_found") throw new AppError("not_found", "No such agent.");
+        if (err.code === "not_enough_credits" || err.code === "over_limit") throw new AppError(err.code, err.message);
         throw new AppError("invalid_request", err.issues.length ? "Some fields need a look." : err.message.split("\n")[0], err.issues);
       }
       throw err;
@@ -341,6 +362,33 @@ export class AppApi {
     return runs + pipelines;
   }
 
+  /* ---------- Prices (phase 13) ---------- */
+
+  private async price(caller: Principal, workspaceId: string, estimate: number | null): Promise<Price | null> {
+    const c = this.o.credits;
+    if (!c || estimate === null) return null;
+    const summary = await c.summary(caller, workspaceId);
+    return { estimate, available: summary.balance.available, blocked: await c.blocker(caller, workspaceId, estimate), canManage: summary.canManage };
+  }
+
+  /** What one run of an agent costs before it starts, with the balance. Null when nothing is billed. */
+  async agentPrice(caller: Principal, workspaceId: string, agentId: string, agentWorkspaceId = PLATFORM_WORKSPACE_ID): Promise<Price | null> {
+    if (!this.o.credits) return null;
+    return this.price(caller, workspaceId, await this.o.credits.estimateAgent(caller, workspaceId, agentWorkspaceId, agentId));
+  }
+
+  /** What a pipeline costs before it starts, with the balance. Null when nothing is billed. */
+  async pipelinePrice(caller: Principal, workspaceId: string, pipelineId: string, pipelineWorkspaceId?: string): Promise<Price | null> {
+    if (!this.o.credits || !this.o.pipelines) return null;
+    return this.price(caller, workspaceId, await this.pl.estimate(caller, workspaceId, pipelineId, pipelineWorkspaceId));
+  }
+
+  /** What trying a failed pipeline run again would cost. Null when nothing is billed. */
+  async retryPrice(caller: Principal, workspaceId: string, id: string): Promise<Price | null> {
+    if (!this.o.credits || !this.o.pipelines) return null;
+    return this.price(caller, workspaceId, await this.pl.retryEstimate(caller, workspaceId, id));
+  }
+
   /* ---------- Pipelines (phase 10) ---------- */
 
   private get pl(): GuardedPipelines {
@@ -386,6 +434,7 @@ export class AppApi {
         inputs: input.inputs,
         ...(input.confirmations ? { confirmations: input.confirmations } : {}),
         ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
+        ...(input.quotedCredits !== undefined ? { billing: { quotedCredits: input.quotedCredits } } : {}),
       });
       await this.o.team?.recordMade(caller, workspaceId, run.id, "pipeline");
       return run;
@@ -538,6 +587,7 @@ function pipelineAppError(err: unknown): unknown {
   if (!(err instanceof PipelineError)) return err;
   if (err.code === "not_found") return new AppError("not_found", err.message);
   if (err.code === "not_ready") return new AppError("not_ready", err.message);
+  if (err.code === "not_enough_credits" || err.code === "over_limit") return new AppError(err.code, err.message);
   return new AppError("invalid_request", err.code === "invalid_input" ? "Some fields need a look." : err.message.split("\n")[0], err.issues);
 }
 

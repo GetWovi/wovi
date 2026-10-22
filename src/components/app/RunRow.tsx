@@ -4,6 +4,7 @@ import { Mascot } from "@/components/brand/Mascot";
 import { ago } from "@/components/builder/labels";
 import type { RunView } from "@/lib/app/api";
 import { STATE_LABELS, poseFor, runTitle, type RunState } from "@/lib/app/results";
+import { RowCharge } from "@/components/credits/CreditParts";
 import styles from "./App.module.css";
 
 export function StateTag({ state }: { state: RunState }) {
@@ -25,6 +26,7 @@ export function RunRow({ view, now, action }: { view: RunView; now: number; acti
           <span className={styles.runTop}>
             <span className={styles.runAgent}>{agent?.name ?? run.agent.id}</span>
             <StateTag state={state} />
+            {run.charge && <RowCharge charge={run.charge} />}
           </span>
           <span className={styles.runTitle}>{runTitle(run, null)}</span>
           <span className={styles.runMeta}>

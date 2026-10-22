@@ -34,6 +34,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const reviewer = shown?.review ? ((await accounts().getUser(shown.review.by))?.name ?? (await accounts().getUser(shown.review.by))?.email ?? null) : null;
   const examples = (LAUNCH_SAMPLES[spec.id] ?? []).filter((s) => s.label === "gold").map((s) => ({ brain: s.brain, inputs: s.inputs }));
   const card = await appQuality().scorecard(found.agentWorkspaceId, spec.id);
+  const price = await api.agentPrice(me, workspaceId, spec.id, found.agentWorkspaceId);
   const gate = gateFor(spec);
 
   return (
@@ -61,7 +62,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           </a>
         </div>
       </div>
-      <AgentRun key={shown?.run.id ?? "form"} csrf={csrf} agent={spec} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={examples} initialRun={shown} reviewer={reviewer} now={currentTime()} />
+      <AgentRun key={shown?.run.id ?? "form"} csrf={csrf} agent={spec} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={examples} initialRun={shown} reviewer={reviewer} now={currentTime()} price={price} />
       <section className={[styles.panel, styles.section].join(" ")} id="scorecard" aria-label="How this agent scores">
         <AgentScorecard card={card} bar={gate.minScore} rewrites={gate.maxRewrites} />
       </section>

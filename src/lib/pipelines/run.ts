@@ -8,6 +8,7 @@
 import type { CheckResult, Confirmations } from "@/lib/runs/guardrails";
 import type { RunInputs } from "@/lib/runs/inputs";
 import type { RunOutput } from "@/lib/runs/output";
+import { chargeView, type PipelineCredits } from "@/lib/credits/types";
 import type { PipelineBody } from "./spec";
 import type { Item } from "./values";
 
@@ -109,6 +110,8 @@ export type PipelineRun = {
   capMicroUsd: number;
   costMicroUsd: number;
   costUsd: number;
+  /** What it held and was charged in credits (phase 13). Missing when the engine bills nothing. */
+  credits?: PipelineCredits | null;
   /** Who started it. */
   createdBy: string | null;
   createdAt: string;
@@ -119,9 +122,10 @@ export type PipelineRun = {
 /** What a person or an API caller sees: no cost and no cap. Costs go to people who may see them. */
 export function publicPipelineRun(run: PipelineRun) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { capMicroUsd, costMicroUsd, costUsd, requestHash, steps, ...rest } = run;
+  const { capMicroUsd, costMicroUsd, costUsd, requestHash, steps, credits, ...rest } = run;
+  // The credits it held and was charged. The guarded view blanks it for people who may not see costs.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return { ...rest, steps: steps.map(({ costMicroUsd: _c, ...s }) => s) };
+  return { ...rest, charge: chargeView(credits), steps: steps.map(({ costMicroUsd: _c, ...s }) => s) };
 }
 export type PublicPipelineRun = ReturnType<typeof publicPipelineRun>;
 export type PublicStepRun = PublicPipelineRun["steps"][number];

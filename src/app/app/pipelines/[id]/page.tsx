@@ -22,6 +22,7 @@ export default async function PipelineStartPage({ params }: { params: Promise<{ 
   const role = await accounts().roleIn(me, workspaceId);
   const editor = role ? can(role, "run_agents") : false;
   const brains = await api.brains(me, workspaceId);
+  const price = await api.pipelinePrice(me, workspaceId, pipeline.spec.id, pipeline.workspaceId);
 
   return (
     <AppShell info={info} active="pipelines">
@@ -45,7 +46,7 @@ export default async function PipelineStartPage({ params }: { params: Promise<{ 
           <span className={styles.chip}>v{pipeline.spec.version}</span>
         </div>
       </div>
-      <PipelineStart csrf={csrf} info={pipeline} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={pipelineExamples(pipeline.spec)} />
+      <PipelineStart csrf={csrf} info={pipeline} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={pipelineExamples(pipeline.spec)} price={price} />
     </AppShell>
   );
 }

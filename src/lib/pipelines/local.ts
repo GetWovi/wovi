@@ -7,6 +7,7 @@ import type { Accounts } from "@/lib/accounts/accounts";
 import { dataDirFromEnv } from "@/lib/accounts/local";
 import { localRegistry } from "@/lib/agents/registry";
 import { localBrandBrains } from "@/lib/builder/local";
+import { creditsEnabled, processCredits } from "@/lib/credits/local";
 import type { RunEngine } from "@/lib/runs/engine";
 import { PipelineEngine } from "./engine";
 import { GuardedPipelines } from "./guard";
@@ -16,6 +17,7 @@ import { jsonFilePipelineStore } from "./store";
 export function localPipelines(accounts: Accounts, runs: RunEngine, dataDir = dataDirFromEnv()): GuardedPipelines {
   const store = jsonFilePipelineStore(join(dataDir, "pipelines.json"));
   const registry = new PipelineRegistry(store, localRegistry(dataDir));
-  const engine = new PipelineEngine({ registry, runs, brandBrains: localBrandBrains(dataDir), store });
+  // Credits (phase 13): the same service the run engine bills through, unless WOVI_CREDITS=off.
+  const engine = new PipelineEngine({ registry, runs, brandBrains: localBrandBrains(dataDir), store, billing: creditsEnabled() ? processCredits() : null });
   return new GuardedPipelines(engine, accounts);
 }
