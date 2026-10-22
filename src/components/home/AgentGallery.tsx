@@ -39,12 +39,12 @@ export function AgentGallery() {
 
         <div className={styles.grid}>
           {AGENTS.map((a, i) => (
-            <article key={a.name} className={[home.panel, home.panelTight, i % 2 ? home.panelAlt : "", styles.card, a.status === "next" ? styles.next : ""].join(" ")} data-card>
+            <article key={a.name} className={[home.panel, home.panelTight, i % 2 ? home.panelAlt : "", styles.card, a.status !== "live" ? styles.next : ""].join(" ")} data-card>
               <div className={styles.top}>
                 <span className={[home.iconTile, a.status === "live" ? home.iconTileBlaze : ""].join(" ")}>
                   <Icon name={a.icon} size={22} />
                 </span>
-                {a.status === "live" ? <Ring value={a.fit} size={44} /> : <span className={[home.chip, home.chipCobalt].join(" ")}>Next</span>}
+                {a.status === "live" ? <Ring value={a.fit} size={44} /> : <span className={[home.chip, home.chipCobalt].join(" ")}>{a.status === "coming" ? "Coming" : "Next"}</span>}
               </div>
               <h3 className={styles.name}>{a.name}</h3>
               <p className={styles.job}>{a.job}</p>
@@ -64,7 +64,7 @@ export function AgentGallery() {
                     </span>
                   </span>
                 ) : (
-                  <span className={styles.soon}>In the works</span>
+                  <span className={styles.soon}>{a.status === "coming" ? "Coming soon" : "In the works"}</span>
                 )}
               </div>
             </article>

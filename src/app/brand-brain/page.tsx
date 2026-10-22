@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Mascot } from "@/components/brand/Mascot";
-import { BrainShell } from "@/components/brand-brain/BrainShell";
+import { AppShell } from "@/components/app/AppShell";
 import styles from "@/components/brand-brain/Brain.module.css";
 import { PLATFORM_LABELS, inkOn } from "@/components/brand-brain/labels";
 import { StartBlank, WorkspaceSwitch } from "@/components/brand-brain/ListActions";
@@ -25,10 +25,9 @@ export default async function BrandBrainsPage() {
   const list = await brands.list(me, workspaceId);
   const editor = role ? can(role, "edit_brand_brain") : false;
   const now = currentTime();
-  const who = info.user.name ?? info.user.email ?? "You";
 
   return (
-    <BrainShell workspace={current?.name ?? "Workspace"} role={role} who={who} builder={accounts().isBuilder(info.user)}>
+    <AppShell info={info} active="brand">
       <div className={shell.head}>
         <div className={shell.headText}>
           <span className="eyebrow">{current?.name ?? "Workspace"}</span>
@@ -120,6 +119,6 @@ export default async function BrandBrainsPage() {
           </div>
         </div>
       )}
-    </BrainShell>
+    </AppShell>
   );
 }

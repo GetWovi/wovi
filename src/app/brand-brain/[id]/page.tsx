@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BrainShell } from "@/components/brand-brain/BrainShell";
+import { AppShell } from "@/components/app/AppShell";
 import styles from "@/components/brand-brain/Brain.module.css";
 import { PLATFORM_LABELS } from "@/components/brand-brain/labels";
 import { BrainActions, HistoryPanel, MoodPanel, ReferencesPanel, RulesPanel, VoicePanel } from "@/components/brand-brain/panels";
@@ -10,7 +10,6 @@ import { ago, currentTime } from "@/components/builder/labels";
 import { ButtonLink } from "@/components/ui/Button";
 import { Tag } from "@/components/ui/Chip";
 import { Icon } from "@/components/ui/Icon";
-import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
 import { BrandError } from "@/lib/brand/brains";
 import { brandPage } from "@/lib/brand/server";
@@ -39,8 +38,6 @@ export default async function BrainPage({ params, searchParams }: { params: Prom
   if (!view) notFound();
   const { brain, body, version, by } = view;
   const editable = role ? can(role, "edit_brand_brain") : false;
-  const workspaces = await accounts().workspaces.listForUser(info.user.id);
-  const current = workspaces.find((w) => w.id === workspaceId);
   const history = tab === "history" ? await brands.history(me, workspaceId, id) : [];
   const engineBrain = toEngineBrain(brain, body);
   const preview = Object.fromEntries(BRAND_BRAIN_PARTS.map((p) => [p, renderBrandPart(engineBrain, p)]));
@@ -49,7 +46,7 @@ export default async function BrainPage({ params, searchParams }: { params: Prom
   const common = { csrf, id, version: brain.currentVersion, body, editable };
 
   return (
-    <BrainShell workspace={current?.name ?? "Workspace"} role={role} who={info.user.name ?? info.user.email ?? "You"} builder={accounts().isBuilder(info.user)}>
+    <AppShell info={info} active="brand">
       <div className={shell.head}>
         <div className={shell.headText}>
           <Link href="/brand-brain" className={shell.crumb}>
@@ -92,6 +89,6 @@ export default async function BrainPage({ params, searchParams }: { params: Prom
       {tab === "mood" && <MoodPanel key={brain.currentVersion} {...common} workspaceId={workspaceId} />}
       {tab === "rules" && <RulesPanel key={brain.currentVersion} {...common} draft={draft} />}
       {tab === "history" && <HistoryPanel csrf={csrf} id={brain.id} entries={history} editable={editable} now={now} />}
-    </BrainShell>
+    </AppShell>
   );
 }

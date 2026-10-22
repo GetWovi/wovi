@@ -89,11 +89,11 @@ It runs as the `brand_fit` check of the `brand_voice_check` guardrail, beside th
 
 ## Screens
 
-Simple screens on the brand tokens; the real app screens are phase 9. All `noindex`, none linked from the site.
+Screens on the brand tokens, inside the app chrome since phase 9 ([app.md](app.md)), reached from the app nav. All `noindex`, none linked from the site.
 
 | Path | What it is |
 |---|---|
-| `/brand-brain` | The current workspace's Brand Brains as cards: niche, voice, tone, colours, counts, version, who edited it. A workspace switch, "Start blank", "Build from past posts". |
+| `/brand-brain` | The current workspace's Brand Brains as cards: niche, voice, tone, colours, counts, version, who edited it. "Start blank", "Build from past posts". The workspace switch is in the app header. |
 | `/brand-brain/new` | Paste 3 to 5 past posts, read them, review and edit the proposal beside "What we noticed", save. `?brain=<id>` rebuilds an existing one as a new version. |
 | `/brand-brain/[id]` | The editor: Voice (with "What agents read", the saved version as the engine fills it), References, Mood board, Dos and don'ts (with "Check a draft"), History (what changed, restore). Make default, rebuild, delete. Viewers see everything and can save nothing. |
 
@@ -108,5 +108,5 @@ In the builder, the test bench has a **Brand Brain** picker: the default of `ws_
 ## Not yet
 
 - **Reading links.** `LinkFetcher` is an interface with no implementation. A real one needs a safe fetch (no private addresses, size and time caps) and is the owner's call.
-- **Proper app screens and onboarding** are phase 9. The idea per run is on the engine request (`brandIdea`); the run screen that sets it comes with them.
+- **Onboarding and the run screen** are phase 9 ([app.md](app.md)): onboarding runs this proposal flow for a new person, and the agent form sets the idea per run (`brandIdea`).
 - **Quality gates** (LLM judge, embeddings, publish only above a score) are phase 12.

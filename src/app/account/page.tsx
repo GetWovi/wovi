@@ -3,7 +3,7 @@ import { ActionForm } from "@/components/account/ActionForm";
 import styles from "@/components/account/Account.module.css";
 import { PasskeyAdd } from "@/components/account/PasskeyAdd";
 import { WalletLink } from "@/components/account/WalletLink";
-import { SiteFooter, SiteHeader } from "@/components/site/SiteHeader";
+import { AppShell } from "@/components/app/AppShell";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Field";
@@ -51,13 +51,13 @@ export default async function AccountPage() {
   const lastOwner = role === "owner" && members.filter((m) => m.role === "owner").length === 1;
 
   return (
-    <>
-      <SiteHeader />
-      <main key={wsId} className={["container", styles.page].join(" ")}>
+    <AppShell info={info} active="settings">
+      <div key={wsId} className={styles.page}>
         <div className={styles.pageHead}>
           <div>
-            <h1>Account</h1>
-            <p className={styles.lead}>{info.user.email ?? info.user.name ?? "Passkey account"}</p>
+            <span className="eyebrow">Account</span>
+            <h1>{info.user.name ?? "Your account"}</h1>
+            <p className={styles.lead}>{info.user.email ?? "Passkey account"}</p>
           </div>
           <div className={styles.headActions}>
             <ActionForm action={signOut} csrf={csrf}>
@@ -266,8 +266,7 @@ export default async function AccountPage() {
           </div>
           <p className={styles.fine}>Linking a wallet only signs a message to prove it is yours. It never sends funds or approves a transaction.</p>
         </Card>
-      </main>
-      <SiteFooter />
-    </>
+      </div>
+    </AppShell>
   );
 }

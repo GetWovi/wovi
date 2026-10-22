@@ -23,7 +23,7 @@ async function finish(result: SignInResult) {
 
 export async function requestSignIn(_prev: SignInState, formData: FormData): Promise<SignInState> {
   const email = String(formData.get("email") ?? "");
-  const next = safeNext(formData.get("next")) ?? "/account";
+  const next = safeNext(formData.get("next")) ?? "/app";
   try {
     await checkOrigin();
     const { ip } = await requestMeta();
@@ -41,7 +41,7 @@ export async function verifyCode(prev: SignInState, formData: FormData): Promise
     const { ip, userAgent } = await requestMeta();
     const result = await accounts().signIn.verifyCode({ email: String(formData.get("email") ?? ""), code: String(formData.get("code") ?? ""), ip, userAgent });
     await finish(result);
-    next = result.next ?? "/account";
+    next = result.next ?? "/app";
   } catch (err) {
     return { ...prev, error: message(err) };
   }
@@ -55,7 +55,7 @@ export async function verifyLink(_prev: SignInState, formData: FormData): Promis
     const { ip, userAgent } = await requestMeta();
     const result = await accounts().signIn.verifyLink({ token: String(formData.get("token") ?? ""), ip, userAgent });
     await finish(result);
-    next = result.next ?? "/account";
+    next = result.next ?? "/app";
   } catch (err) {
     return { error: message(err) };
   }
@@ -77,7 +77,7 @@ export async function passkeySignIn(challengeId: string, response: Authenticatio
     await checkOrigin();
     const { ip, userAgent } = await requestMeta();
     await finish(await accounts().passkeys.verifyAuthentication({ challengeId, response, ip, userAgent }));
-    next = safeNext(nextInput) ?? "/account";
+    next = safeNext(nextInput) ?? "/app";
   } catch (err) {
     return { error: message(err) };
   }

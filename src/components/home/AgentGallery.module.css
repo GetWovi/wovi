@@ -1,13 +1,14 @@
+/* Nine cards: three rows of three, so no row is left half empty. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--s-3);
 }
 .card {
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
-  min-height: 250px;
+  min-height: 230px;
   transition: transform var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
 }
 .card:hover {

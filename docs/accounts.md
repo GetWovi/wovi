@@ -157,12 +157,12 @@ Each table is a `Collection` with `get`, `find(where)`, `insert`, `update`, `upd
 
 ## Pages
 
-Bare screens on the existing tokens and components; the real app screens are phase 9. None is linked from the homepage, and all are `noindex`.
+Sign-in, the link landing and the invite are centered cards under the site header; the account page sits inside the app chrome since phase 9 ([app.md](app.md)), reached from Settings. None is linked from the homepage, and all are `noindex`.
 
 - `/sign-in`: email, then the code; or a passkey.
 - `/sign-in/verify`: the email link's landing.
 - `/invite`: accept an invite (sign in first if needed).
-- `/account`: current workspace (switch, rename, create, leave), members and roles, invites, API keys, passkeys, wallets, sign out, sign out everywhere.
+- `/account`: current workspace (rename, create, leave), members and roles, invites, API keys, passkeys, wallets, sign out, sign out everywhere. The workspace switcher is in the app header.
 - `/builder/join`: a builder code, a name and a passkey make a builder account. Hidden; nothing links to it.
 
 ## Tests

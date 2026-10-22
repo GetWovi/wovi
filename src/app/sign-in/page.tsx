@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Sign in", robots: { index: false, fo
 
 export default async function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   const { next: raw } = await searchParams;
-  const next = safeNext(Array.isArray(raw) ? raw[0] : raw) ?? "/account";
+  const next = safeNext(Array.isArray(raw) ? raw[0] : raw) ?? "/app";
   if (await readSession()) redirect(next);
   return (
     <AuthShell title="Sign in to WOVI" lead="No password. We email you a link and a code.">

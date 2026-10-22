@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { AGENTS } from "@/components/home/demo-data";
+import { LAUNCH_AGENTS } from "@/lib/launch/specs";
 import { AgentRegistry } from "./registry";
 import { PLATFORM_CREATOR_ID, PLATFORM_WORKSPACE_ID, SEED_AGENTS, seedPlatformAgents } from "./seeds";
 import { validateAgentSpec } from "./spec";
 import { memoryStore } from "./store";
+
+/** What `npm run agents:launch` leaves in the platform workspace: the launch specs over the phase 2 seeds. */
+const LINEUP = [...LAUNCH_AGENTS, ...SEED_AGENTS.filter((s) => !LAUNCH_AGENTS.some((l) => l.id === s.id))];
 
 describe("seed agents", () => {
   it.each(SEED_AGENTS.map((s) => [s.id, s] as const))("%s validates", (_id, seed) => {
@@ -11,13 +15,16 @@ describe("seed agents", () => {
     expect(r.ok ? [] : r.errors).toEqual([]);
   });
 
-  it("matches the agents on the homepage, with the next ones hidden", () => {
-    expect(SEED_AGENTS.map((s) => s.name)).toEqual(AGENTS.map((a) => a.name));
+  it("matches the agents on the homepage: live ones live, Trend Scout coming (a draft), the video agents next (hidden)", () => {
+    expect([...LINEUP.map((s) => s.name)].sort()).toEqual([...AGENTS.map((a) => a.name)].sort());
     for (const card of AGENTS) {
-      const seed = SEED_AGENTS.find((s) => s.name === card.name)!;
-      expect(seed.job).toBe(card.job);
-      expect(seed.status).toBe(card.status === "live" ? "live" : "hidden");
+      const spec = LINEUP.find((s) => s.name === card.name)!;
+      expect([card.name, spec.job]).toEqual([card.name, card.job]);
+      expect([card.name, spec.status]).toEqual([card.name, card.status === "live" ? "live" : card.status === "coming" ? "draft" : "hidden"]);
     }
+    // Live cards first, then the coming one, then the next ones, so the grid reads in order.
+    const order = AGENTS.map((a) => a.status);
+    expect(order).toEqual([...order].sort((a, b) => ["live", "coming", "next"].indexOf(a) - ["live", "coming", "next"].indexOf(b)));
   });
 
   it("are owned by the platform creator account and public", () => {

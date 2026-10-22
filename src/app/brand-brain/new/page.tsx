@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BrainShell } from "@/components/brand-brain/BrainShell";
+import { AppShell } from "@/components/app/AppShell";
 import { PastePosts } from "@/components/brand-brain/PastePosts";
 import shell from "@/components/builder/Builder.module.css";
 import { Icon } from "@/components/ui/Icon";
-import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
 import { BrandError } from "@/lib/brand/brains";
 import { brandPage } from "@/lib/brand/server";
@@ -19,11 +18,9 @@ export default async function NewBrainPage({ searchParams }: { searchParams: Pro
   if (!role || !can(role, "edit_brand_brain")) notFound();
   const existing = brainId ? await brands.get(me, workspaceId, brainId).catch((e) => (e instanceof BrandError ? null : Promise.reject(e))) : null;
   if (brainId && !existing) notFound();
-  const workspaces = await accounts().workspaces.listForUser(info.user.id);
-  const current = workspaces.find((w) => w.id === workspaceId);
 
   return (
-    <BrainShell workspace={current?.name ?? "Workspace"} role={role} who={info.user.name ?? info.user.email ?? "You"} builder={accounts().isBuilder(info.user)}>
+    <AppShell info={info} active="brand">
       <div className={shell.head}>
         <div className={shell.headText}>
           <Link href={existing ? `/brand-brain/${existing.brain.id}` : "/brand-brain"} className={shell.crumb}>
@@ -34,6 +31,6 @@ export default async function NewBrainPage({ searchParams }: { searchParams: Pro
         </div>
       </div>
       <PastePosts csrf={csrf} start={{ brainId: existing?.brain.id, name: existing?.body.name ?? "", niche: existing?.body.niche ?? "", platforms: existing?.body.platforms ?? [] }} />
-    </BrainShell>
+    </AppShell>
   );
 }

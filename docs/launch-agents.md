@@ -39,16 +39,9 @@ Storyboarder and Voice and Cut are not text agents and are not part of this set.
 - **Tools removed** from Hook Writer and Hashtag Picker (`trend_lookup`). The engine runs no tools yet, and telling a model to call a tool it does not have invites made-up results.
 - The phase 2 seeds in `src/lib/agents/seeds.ts` are unchanged on purpose: a test ties them to the homepage cards. The launch specs are saved as new versions on top of them.
 
-### For the owner: the homepage differs from the doc's lineup
+### The homepage and the seeds
 
-The homepage agent cards (`src/components/home/demo-data.ts`) were not changed. They differ from the launch lineup in four places:
-
-1. They show **Hashtag Picker** and **Repurposer** with the old jobs ("Picks a small set of tags...", "Cuts a long piece into a thread, a carousel and three shorts").
-2. They show **Trend Scout as live**; it is a draft until the trend tool exists.
-3. They have **no Idea Generator**.
-4. The Script Writer pipeline copy ("an opening, a turn, an ending") still fits the new four beats (hook, setup, turn, ending).
-
-When the homepage is updated, update `SEED_AGENTS` with it, or the seeds test will fail.
+The homepage agent cards (`src/components/home/demo-data.ts`) show this lineup since phase 9: Idea Generator, the two new names and jobs, Trend Scout as coming, the video agents as next. The seeds test ties the cards to the launch specs over the seeds, so the two cannot drift. `SEED_AGENTS` stays the phase 2 base on purpose: the launch specs are saved as new versions on top of it, and the install tests depend on that.
 
 ## How the instructions are written, and why
 
@@ -206,7 +199,7 @@ The specificity check (`specificity_check`) used to compare every piece of text 
 
 For the owner:
 
-1. **Homepage:** update the agent cards to the doc's lineup (Idea Generator, the two new names and jobs, Trend Scout as coming soon)? The seeds and their test move with it.
+1. **Homepage:** done in phase 9. The cards show this lineup and the seeds test checks it.
 2. **Hashtag Optimizer's name:** the doc says "Hashtag and Keyword Optimizer" in the catalog and "Hashtag Optimizer" in the MVP list. The shorter one is used; the longer one says more about the search words.
 3. **Trend Scout at launch:** which data source for `trend_lookup` (official platform APIs, a third-party trend service), and does the MVP launch with six live text agents and Trend Scout in a later drop?
 4. **Languages:** every sample is British English. The doc leaves launch markets and languages open. Should agents write in the Brand Brain's language when its posts are in another one?

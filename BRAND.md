@@ -95,7 +95,7 @@ All in `src/components/ui/`, styled with CSS modules on the tokens. Button (prim
 
 ## Homepage
 
-`/` is the launch site, built like the boards: night ground, large rounded panels, orange eyebrows, cream headlines, the mascot poses as the storytelling. Sections in `src/components/home/`: the hero (Wovi saying hello with the stickers and a sparkle), a job start to finish (a deterministic demo of three agents with their states), how a post is made (five stage panels, Wovi walks the rail on scroll), Brand Brain, the agents (eight cards and the three states), anti-slop review, MCP and API, creators, and the closing on a Cobalt panel with the footer. Motion is GSAP ScrollTrigger reveals; everything is fully visible under `prefers-reduced-motion`.
+`/` is the launch site, built like the boards: night ground, large rounded panels, orange eyebrows, cream headlines, the mascot poses as the storytelling. Sections in `src/components/home/`: the hero (Wovi saying hello with the stickers and a sparkle), a job start to finish (a deterministic demo of three agents with their states), how a post is made (five stage panels, Wovi walks the rail on scroll), Brand Brain, the agents (nine cards, six live, one coming and two next, and the three states), anti-slop review, MCP and API, creators, and the closing on a Cobalt panel with the footer. Motion is GSAP ScrollTrigger reveals; everything is fully visible under `prefers-reduced-motion`.
 
 ## Scripts
 
@@ -105,6 +105,11 @@ All in `src/components/ui/`, styled with CSS modules on the tokens. Button (prim
 - `npm run check:contrast` measures the contrast pairs
 - `node scripts/screenshots.mjs` takes screen-sized screenshots of the running site with headless Chrome
 - `npm run builder:code` makes a one-time code for the hidden Agent Builder; `npm run builder:samples` adds example samples for its test bench; `node scripts/builder-screens.mjs` and `node scripts/builder2-screens.mjs` screenshot the builder (see `docs/builder.md`)
+- `node scripts/app-screens.mjs` screenshots the app screens: onboarding, home, an agent's form, a run, results, history (see `docs/app.md`)
+
+## The app
+
+The signed-in screens (phase 9, `docs/app.md`) use the same tokens and panels as the homepage: `src/components/app/App.module.css` holds the chrome (an opaque header, a tab bar on phones), the page vocabulary (eyebrow, cream headline, lead, panels, grids) and the pieces for onboarding, the agent form, the running state and the result. Wovi's poses carry the state there as everywhere: hello on the welcome and empty states, on the move while a run goes, waiting when idle, done when a result lands.
 
 ## Copy rules
 
