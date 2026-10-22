@@ -233,6 +233,7 @@ export class PipelineEngine {
         picked: null,
         brandFit: null,
         checks: [],
+        quality: null,
         costMicroUsd: 0,
         error: null,
         startedAt: null,
@@ -568,7 +569,11 @@ export class PipelineEngine {
     step.output = run.output;
     step.checks = run.checks;
     step.brandFit = run.checks.find((c) => c.check === "brand_fit" && typeof c.score === "number")?.score ?? null;
-    const flagged = run.checks.some((c) => c.status === "fail");
+    step.quality = run.quality
+      ? { score: run.quality.score, threshold: run.quality.threshold, verdict: run.quality.verdict, rewrites: run.quality.rewrites, firstScore: run.quality.firstScore, reasons: run.quality.reasons }
+      : null;
+    // The same gate as every run: a failed check, or a score under the agent's bar, flags the step for review.
+    const flagged = run.checks.some((c) => c.status === "fail") || run.quality?.verdict === "needs_review";
     const remaining = failsFor(def, run.checks);
 
     if (def.onFail?.then === "stop" && remaining.length) {
@@ -626,7 +631,8 @@ export class PipelineEngine {
         const own = failed.filter((c) => c.check !== "brand_fit" && (c.findings ?? []).some((f) => hay.includes(f.toLowerCase())));
         items.push({ step: step.id, label: part.label, take: "picked", item, output: null, brandFit: item?.brandFit ?? null, flags: [...(item?.flags ?? []), ...own.map(checkLine)] });
       } else {
-        items.push({ step: step.id, label: part.label, take: "all", item: null, output: step.output, brandFit: step.brandFit, flags: failed.map(checkLine) });
+        const gate = step.quality?.verdict === "needs_review" && !failed.length ? [`Quality ${step.quality.score}, under the bar of ${step.quality.threshold}`] : [];
+        items.push({ step: step.id, label: part.label, take: "all", item: null, output: step.output, brandFit: step.brandFit, flags: [...failed.map(checkLine), ...gate] });
       }
     }
     pr.package = items;

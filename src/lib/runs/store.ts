@@ -19,6 +19,12 @@ export interface RunStore {
   findByIdempotencyKey(workspaceId: string, key: string): Promise<Run | null>;
   /** Across all workspaces. Used to pick up queued runs after a restart. */
   listByStatus(statuses: RunStatus[]): Promise<Run[]>;
+  /**
+   * Every run of one agent, across all workspaces, newest first. For the
+   * agent's public scorecard and the builder's roll-up (phase 12), which
+   * show counts and averages, never another workspace's runs.
+   */
+  listForAgent(agentWorkspaceId: string, agentId: string): Promise<Run[]>;
 }
 
 const clone = <T>(v: T): T => structuredClone(v);
@@ -60,6 +66,13 @@ function ops(load: () => Run[], save: (runs: Run[]) => void): RunStore {
     },
     async listByStatus(statuses) {
       return clone(load().filter((r) => statuses.includes(r.status)));
+    },
+    async listForAgent(agentWorkspaceId, agentId) {
+      return clone(
+        load()
+          .filter((r) => r.agent.workspaceId === agentWorkspaceId && r.agent.id === agentId)
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id)),
+      );
     },
   };
 }

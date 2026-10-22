@@ -124,6 +124,9 @@ export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, n
           <ButtonLink href={`/builder/agents/${spec.id}/versions`} variant="ghost" leading={<Icon name="clock" size={18} />}>
             Versions
           </ButtonLink>
+          <ButtonLink href={`/builder/agents/${spec.id}/quality`} variant="ghost" leading={<Icon name="check-circle" size={18} />}>
+            Quality
+          </ButtonLink>
           {statusActions.map((a) => (
             <Button key={a} variant={a === "publish" ? "secondary" : "ghost"} onClick={() => setConfirm(a)}>
               {actionLabel[a]}

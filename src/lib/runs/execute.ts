@@ -7,9 +7,19 @@
  * Spend cap: before each call the engine estimates its cost (prompt tokens
  * plus every output token it may use) and skips a route that would pass the
  * cap. After each call the real cost is added, and a run over its cap fails.
+ *
+ * The quality gate (phase 12): every parsed draft is scored. Below the
+ * agent's bar, or with a check that failed outright, the model is asked to
+ * rewrite it with the reasons as notes, at most `gate.maxRewrites` times and
+ * only while the run's budget covers the next call. The best draft is kept;
+ * if it is still below the bar the run goes to review with the reasons.
  */
 import { findModelRoute, type ModelRoute } from "@/lib/agents/catalog";
 import type { AgentBody } from "@/lib/agents/spec";
+import { NO_REFERENCES, runDeterministicChecks, type QualityInput, type QualityReferences } from "@/lib/quality/checks";
+import { gateFor, judgeCheck, readQuality, type QualityJudge, type QualityReading } from "@/lib/quality/evaluate";
+import { beats, gateReport, rewriteInstruction, type GateDraft } from "@/lib/quality/gate";
+import type { GateStop, QualityReport } from "@/lib/quality/types";
 import { brandBrainRef, type BrandBrain } from "./brand-brain";
 import { runAfterChecks, type CheckResult } from "./guardrails";
 import { parseOutput, repairInstruction, type RunOutput } from "./output";
@@ -28,10 +38,14 @@ export type ExecContext = {
   signal: AbortSignal;
   callTimeoutMs: number;
   now: () => Date;
+  /** The agent's golden and bad samples, for reference anchoring. */
+  references?: QualityReferences;
+  /** The optional model judge. Null or left out: off. */
+  judge?: QualityJudge | null;
 };
 
 export type ExecResult =
-  | { ok: true; output: RunOutput; checks: CheckResult[]; model: NonNullable<Run["model"]> }
+  | { ok: true; output: RunOutput; checks: CheckResult[]; model: NonNullable<Run["model"]>; quality: QualityReport }
   | { ok: false; code: RunFailureCode; message: string; retryable: boolean };
 
 type Failure = Extract<ExecResult, { ok: false }>;
@@ -76,13 +90,86 @@ export async function executeRun(ctx: ExecContext): Promise<ExecResult> {
     }
   }
 
-  const checks = runAfterChecks({ spec, inputs: run.inputs, output: parsed.value, brain });
+  return gateLoop(ctx, messages, { output: parsed.value, answer });
+}
+
+type Scored = GateDraft & { output: RunOutput; reading: QualityReading; guards: CheckResult[]; answer: Answer };
+
+/** Scores the first draft, rewrites below the bar while the cap and the budget allow, and keeps the best draft. */
+async function gateLoop(ctx: ExecContext, messages: ChatMessage[], first: { output: RunOutput; answer: Answer }): Promise<ExecResult> {
+  const { spec, run } = ctx;
+  const gate = gateFor(spec);
+  const drafts: GateDraft[] = [await score(ctx, first.output, first.answer, gate.minScore)];
+  let best = drafts[0] as Scored;
+  let last = best;
+  let stopped: GateStop | null = null;
+
+  while (!best.reading.ready) {
+    const rewrites = drafts.length - 1;
+    if (rewrites >= gate.maxRewrites) {
+      stopped = gate.maxRewrites === 0 ? "off" : "cap";
+      break;
+    }
+    const ask: ChatMessage[] = [...messages, { role: "assistant", content: last.answer.text }, { role: "user", content: rewriteInstruction(last.reading.reasons) }];
+    const order = [last.answer.route.id, last.answer.route.id === spec.routing.model ? spec.routing.fallback : spec.routing.model];
+    const maxOut = spec.routing.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
+    const cheapest = Math.min(...order.map((id) => estimateCallMicroUsd(findModelRoute(id)!.model!, promptText(ask), maxOut)));
+    if (run.costMicroUsd + cheapest > run.capMicroUsd) {
+      stopped = "budget";
+      break;
+    }
+    const answer = await callRouted(ctx, ask, "rewrite", order);
+    if (!answer.ok) {
+      stopped = answer.code === "spend_cap" ? "budget" : "error";
+      drafts.push({ output: null, reading: null, error: answer.code === "spend_cap" ? "The budget ran out." : "The model did not answer." });
+      break;
+    }
+    const parsed = parseOutput(spec.output, answer.text);
+    if (!parsed.ok) {
+      drafts.push({ output: null, reading: null, error: "The rewrite did not fit the output format." });
+      continue;
+    }
+    const next = await score(ctx, parsed.value, answer, gate.minScore);
+    drafts.push(next);
+    last = next;
+    if (beats(next.reading, best.reading)) best = next;
+  }
+
+  // A rewrite that came back broken never counts as the used draft; its reading stays empty in the report.
+  const scoredDrafts = drafts.map((d) => (d.reading ? d : { ...d, reading: { score: 0, checks: [], ready: false, failing: [], failed: [], reasons: [d.error ?? "No usable answer."] } }));
+  const used = drafts.indexOf(best);
   return {
     ok: true,
-    output: parsed.value,
-    checks,
-    model: { route: answer.route.id, provider: answer.provider, model: answer.route.model! },
+    output: best.output,
+    checks: best.guards,
+    model: { route: best.answer.route.id, provider: best.answer.provider, model: best.answer.route.model! },
+    quality: gateReport(scoredDrafts, used, gate, stopped, Boolean(ctx.judge)),
   };
+}
+
+/** One draft through the guardrails, the quality checks and, when one is set, the judge. */
+async function score(ctx: ExecContext, output: RunOutput, answer: Answer, bar: number): Promise<Scored> {
+  const { spec, run, brain } = ctx;
+  const guards = runAfterChecks({ spec, inputs: run.inputs, output, brain });
+  const input: QualityInput = { spec, inputs: run.inputs, output, brain, references: ctx.references ?? NO_REFERENCES };
+  const checks = runDeterministicChecks(input);
+  if (ctx.judge) {
+    const estimate = ctx.judge.estimateMicroUsd(input);
+    if (run.costMicroUsd + estimate <= run.capMicroUsd) {
+      const started = Date.now();
+      try {
+        const j = await ctx.judge.judge(input, ctx.signal);
+        run.calls.push(record(ctx, { purpose: "judge", route: "judge", provider: ctx.judge.id, model: ctx.judge.id }, { ok: true, costMicroUsd: j.costMicroUsd, ms: Date.now() - started }));
+        run.costMicroUsd += j.costMicroUsd;
+        run.costUsd = toUsd(run.costMicroUsd);
+        checks.push(judgeCheck(j.score, j.reasons));
+      } catch (err) {
+        if (ctx.signal.aborted) throw new RunAborted();
+        run.calls.push(record(ctx, { purpose: "judge", route: "judge", provider: ctx.judge.id, model: ctx.judge.id }, { ok: false, error: String((err as Error)?.message ?? err), ms: Date.now() - started }));
+      }
+    }
+  }
+  return { output, guards, answer, reading: readQuality(checks, bar, guards) };
 }
 
 /** Tries each route in order until one answers. */

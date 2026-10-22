@@ -8,8 +8,8 @@ import styles from "./Builder.module.css";
 import { StatusPill } from "./BuilderShell";
 import { CATEGORY_LABELS, ago } from "./labels";
 
-/** The head of the bench and versions pages: the agent, its state and score, and the way to the other two screens. */
-export function AgentHead({ spec, versions, title, active, updatedAt, now }: { spec: AgentSpec; versions: number; title: string; active: "bench" | "versions"; updatedAt: string; now: number }) {
+/** The head of the bench, versions and quality pages: the agent, its state and score, and the way to the other screens. */
+export function AgentHead({ spec, versions, title, active, updatedAt, now }: { spec: AgentSpec; versions: number; title: string; active: "bench" | "versions" | "quality"; updatedAt: string; now: number }) {
   const base = `/builder/agents/${spec.id}`;
   return (
     <div className={styles.head}>
@@ -45,6 +45,11 @@ export function AgentHead({ spec, versions, title, active, updatedAt, now }: { s
         {active !== "versions" && (
           <ButtonLink href={`${base}/versions`} variant="ghost" leading={<Icon name="clock" size={18} />}>
             Versions
+          </ButtonLink>
+        )}
+        {active !== "quality" && (
+          <ButtonLink href={`${base}/quality`} variant="ghost" leading={<Icon name="check-circle" size={18} />}>
+            Quality
           </ButtonLink>
         )}
       </div>

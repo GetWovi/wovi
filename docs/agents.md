@@ -33,6 +33,7 @@ A spec has two halves. The **body** defines what the agent does; every change to
 | `guardrails` | Named rules from the catalog, such as `no_misleading_claims`, `brand_voice_check`, `banned_phrases`, `rights_confirmed`, `voice_consent`. |
 | `routing` | Hidden from users. `model` and `fallback` name model routes from the catalog (same modality, not the same route), optional `temperature` and `maxOutputTokens`, and `maxCostUsd`, the hard spend cap for one run (at most 10). |
 | `instructions` | The template the engine fills in. `{{key}}` is a run input, `{{brand.part}}` a Brand Brain part. |
+| `gate` | Optional (phase 12). The quality bar a result must reach to be ready (`minScore`, 40 to 95) and how many rewrites the engine runs below it (`maxRewrites`, 0 to 2). Left out, the category's defaults apply. See [quality.md](quality.md). |
 
 Input types and their limits:
 

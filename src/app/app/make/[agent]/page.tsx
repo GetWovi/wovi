@@ -11,6 +11,9 @@ import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
 import { appPage } from "@/lib/app/server";
 import { LAUNCH_SAMPLES } from "@/lib/launch/samples";
+import { AgentScorecard } from "@/components/quality/QualityParts";
+import { gateFor } from "@/lib/quality/data";
+import { appQuality } from "@/lib/quality/server";
 import { brainChoices } from "@/lib/team/brand-pick";
 
 export const metadata: Metadata = { title: "Make", robots: { index: false, follow: false } };
@@ -30,6 +33,8 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const shown = view && view.run.agent.id === spec.id ? view : null;
   const reviewer = shown?.review ? ((await accounts().getUser(shown.review.by))?.name ?? (await accounts().getUser(shown.review.by))?.email ?? null) : null;
   const examples = (LAUNCH_SAMPLES[spec.id] ?? []).filter((s) => s.label === "gold").map((s) => ({ brain: s.brain, inputs: s.inputs }));
+  const card = await appQuality().scorecard(found.agentWorkspaceId, spec.id);
+  const gate = gateFor(spec);
 
   return (
     <AppShell info={info} active="make">
@@ -51,9 +56,15 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         <div className={styles.chips}>
           <span className={styles.chip}>{agentTag(spec.id, spec.category)}</span>
           <span className={styles.chip}>v{spec.version}</span>
+          <a href="#scorecard" className={[styles.chip, styles.chipCobalt].join(" ")}>
+            {card.scored ? `${Math.round((card.passRate ?? 0) * 100)}% pass the quality bar` : "New: no scores yet"}
+          </a>
         </div>
       </div>
       <AgentRun key={shown?.run.id ?? "form"} csrf={csrf} agent={spec} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={examples} initialRun={shown} reviewer={reviewer} now={currentTime()} />
+      <section className={[styles.panel, styles.section].join(" ")} id="scorecard" aria-label="How this agent scores">
+        <AgentScorecard card={card} bar={gate.minScore} rewrites={gate.maxRewrites} />
+      </section>
     </AppShell>
   );
 }

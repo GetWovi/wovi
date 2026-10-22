@@ -7,6 +7,7 @@ import type { BrandBrainRef } from "./brand-brain";
 import type { CheckResult, Confirmations } from "./guardrails";
 import type { RunInputs } from "./inputs";
 import type { RunOutput } from "./output";
+import { publicQuality, type QualityReport } from "@/lib/quality/types";
 
 export const RUN_STATUSES = ["queued", "running", "succeeded", "failed", "cancelled"] as const;
 export type RunStatus = (typeof RUN_STATUSES)[number];
@@ -27,7 +28,8 @@ export type RunFailureCode =
   | "internal_error";
 
 export type ModelCall = {
-  purpose: "answer" | "repair";
+  /** The first answer, a format repair, a quality-gate rewrite (phase 12), or the optional judge. */
+  purpose: "answer" | "repair" | "rewrite" | "judge";
   route: string;
   provider: string;
   model: string;
@@ -69,7 +71,10 @@ export type Run = {
   error: { code: RunFailureCode; message: string } | null;
   /** Guardrail results. Any failure sets needsReview. */
   checks: CheckResult[];
+  /** True when a guardrail failed or the quality gate kept it from ready. */
   needsReview: boolean;
+  /** The quality gate's reading (phase 12). Missing on runs from before it. */
+  quality?: QualityReport | null;
 
   /** The model whose answer became the output. Hidden from users. */
   model: { route: string; provider: string; model: string } | null;
@@ -99,6 +104,7 @@ export function publicRunView(run: Run) {
     error: run.error,
     checks: run.checks,
     needsReview: run.needsReview,
+    quality: publicQuality(run.quality),
     parent: run.parent,
     createdAt: run.createdAt,
     finishedAt: run.timings.finishedAt,

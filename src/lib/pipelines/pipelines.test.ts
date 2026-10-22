@@ -291,14 +291,14 @@ describe("pipeline runs", () => {
   });
 
   it("rewrites a step once with the failure as a note when a brand check fails", async () => {
-    let scripts = 0;
     const t = await bakery({
       fake: {
         respond: (req) => {
           if (agentOf(req) !== "script-writer") return undefined;
-          scripts++;
           const base = defaultAnswer(req);
-          return scripts === 1 ? base.replace(/"spoken": "/, '"spoken": "Our artisanal ') : base;
+          // Phase 12: the first run's quality-gate rewrites stay dirty too, so the step's own rewrite is what fixes it.
+          const stepRewrite = req.messages.some((m) => m.role === "user" && m.content.includes("Rewrite it. The last draft failed"));
+          return stepRewrite ? base : base.replace(/"spoken": "/, '"spoken": "Our artisanal ');
         },
       },
     });

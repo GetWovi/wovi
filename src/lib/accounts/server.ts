@@ -6,13 +6,16 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { localRegistry } from "@/lib/agents/registry";
+import { join } from "node:path";
 import { localBrandBrains } from "@/lib/builder/local";
+import { jsonFileBuilderStore } from "@/lib/builder/store";
+import { sampleReferences } from "@/lib/quality/service";
 import { localEngine, type RunEngine } from "@/lib/runs/engine";
 import type { Accounts } from "./accounts";
 import { CSRF_FIELD, checkCsrfToken, csrfTokenFor, sameOrigin } from "./csrf";
 import { AccountError } from "./errors";
 import { GuardedAgents, GuardedRuns } from "./guard";
-import { localAccounts } from "./local";
+import { dataDirFromEnv, localAccounts } from "./local";
 import type { SessionInfo } from "./sessions";
 import type { Session } from "./types";
 
@@ -40,7 +43,8 @@ export function appAgents(): GuardedAgents {
  */
 export function appEngine(): RunEngine {
   if (!cache.engine) {
-    cache.engine = localEngine({ brandBrains: localBrandBrains() });
+    // The quality gate compares each draft with the agent's golden and bad samples from the builder (phase 12).
+    cache.engine = localEngine({ brandBrains: localBrandBrains(), references: sampleReferences(jsonFileBuilderStore(join(dataDirFromEnv(), "builder.json")).samples) });
     void cache.engine.recover().catch((err) => console.error("Could not recover runs:", err));
   }
   return cache.engine;

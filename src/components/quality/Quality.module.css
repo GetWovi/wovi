@@ -1,0 +1,400 @@
+/* The quality system's screens (phase 12): the score beside a result, the
+   breakdown of every check, the gate's rewrite, the scorecard people see on
+   agent cards and the agent page, and the builder's roll-up. Night first,
+   the same tokens as the app. Cobalt means fine, Blaze means look here. */
+
+/* ---------- The score beside a result ---------- */
+.score {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--surface-alt);
+  border: 1px solid var(--hairline);
+}
+.scoreText {
+  display: flex;
+  flex-direction: column;
+}
+.scoreText b {
+  font-size: var(--fs-md);
+}
+.scoreText span {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.scores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  justify-content: flex-end;
+}
+/* In a narrow column (the review item) or a narrow screen, the scores take their own row under the title. */
+.scoresRow {
+  grid-column: 2 / -1;
+  justify-content: flex-start;
+}
+@media (max-width: 1180px) {
+  .scores {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 640px) {
+  .scores,
+  .scoresRow {
+    grid-column: 1 / -1;
+    flex-direction: column;
+    justify-content: stretch;
+  }
+  .scores > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+/* ---------- The gate's rewrite, and why it needs a person ---------- */
+.gate {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--cobalt-tint);
+  border: 1px solid color-mix(in srgb, var(--cobalt-glow) 35%, transparent);
+}
+.gate > svg {
+  color: var(--cobalt-glow);
+  margin-top: 2px;
+}
+.gateReview {
+  background: var(--blaze-tint);
+  border-color: color-mix(in srgb, var(--blaze) 40%, transparent);
+}
+.gateReview > svg {
+  color: var(--blaze-text);
+}
+.gateText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.gateText b {
+  font-size: var(--fs-md);
+}
+.gateText > span {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.steps {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding-inline: 10px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+.stepUsed {
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+}
+.stepLow {
+  color: var(--blaze-text);
+}
+.steps > svg {
+  color: var(--text-muted);
+}
+.reasons {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--fs-sm);
+}
+.reasons li::marker {
+  color: var(--blaze-text);
+}
+
+/* ---------- The breakdown ---------- */
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--hairline);
+}
+.breakdownHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.breakdownHead h3 {
+  font-size: var(--fs-lg);
+}
+.breakdownHead p {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  max-width: 62ch;
+}
+.checks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+@media (max-width: 1000px) {
+  .checks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .checks {
+    grid-template-columns: 1fr;
+  }
+}
+.check {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface-alt);
+  border: 1px solid var(--hairline);
+  min-width: 0;
+}
+.checkTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+.checkName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-sm);
+}
+.checkName svg {
+  flex: none;
+}
+.pass svg {
+  color: var(--cobalt-glow);
+}
+.weak svg,
+.fail svg {
+  color: var(--blaze-text);
+}
+.skipped svg {
+  color: var(--text-muted);
+}
+.checkScore {
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-sm);
+}
+.meter {
+  position: relative;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--text-tint);
+  overflow: hidden;
+}
+.meter > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: var(--cobalt-glow);
+}
+.weak .meter > span,
+.fail .meter > span {
+  background: var(--blaze);
+}
+.checkWhy {
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- A score on an agent card ---------- */
+.cardScore {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 34px;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.cardScore b {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+.cardScoreText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+  min-width: 0;
+}
+.newDot {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--text-tint);
+  color: var(--text-muted);
+  flex: none;
+}
+
+/* ---------- The scorecard on the agent page ---------- */
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: var(--s-6);
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .card {
+    grid-template-columns: 1fr;
+    gap: var(--s-5);
+  }
+}
+.cardLead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.cardLead h2 {
+  font-size: var(--fs-2xl);
+  letter-spacing: -0.02em;
+}
+.cardLead p {
+  color: var(--text-muted);
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+@media (max-width: 560px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface-alt);
+  border: 1px solid var(--hairline);
+  min-width: 0;
+}
+.tileLabel {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.tileValue {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.tileHint {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.tileMain {
+  background: var(--cobalt);
+  border-color: transparent;
+  color: var(--on-cobalt);
+}
+.tileMain .tileLabel,
+.tileMain .tileHint {
+  color: inherit;
+  opacity: 0.85;
+}
+.words {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--fs-sm);
+}
+.words li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+.words svg {
+  color: var(--cobalt-glow);
+  margin-top: 2px;
+}
+.how {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.how h3 {
+  font-size: var(--fs-md);
+}
+.howList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2) var(--s-4);
+}
+@media (max-width: 560px) {
+  .howList {
+    grid-template-columns: 1fr;
+  }
+}
+.howList li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--fs-sm);
+}
+.howList li span {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--cobalt-tint);
+  font-size: var(--fs-sm);
+}
+.bar svg {
+  color: var(--cobalt-glow);
+  flex: none;
+}

@@ -11,7 +11,9 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
+import { PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
 import { appPage, redirectToOnboarding } from "@/lib/app/server";
+import { appQuality } from "@/lib/quality/server";
 
 export const metadata: Metadata = { title: "Home", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -26,6 +28,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   const workspaces = await accounts().workspaces.listForUser(info.user.id);
   const current = workspaces.find((w) => w.id === workspaceId);
   const [lineup, brains, recent] = await Promise.all([api.lineup(me, workspaceId), api.brains(me, workspaceId), api.runs(me, workspaceId, { limit: 5 })]);
+  const scores = await appQuality().scorecards(PLATFORM_WORKSPACE_ID, lineup.filter((a) => a.status === "live").map((a) => a.id));
   const open = recent.filter((r) => r.state === "needs_review" || r.state === "ready").length;
   const running = recent.some((r) => r.state === "queued" || r.state === "running");
   const now = currentTime();
@@ -134,7 +137,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
         </div>
         <div className={styles.grid4}>
           {lineup.map((a, i) => (
-            <AgentCard key={a.id} agent={a} alt={i % 2 === 1} />
+            <AgentCard key={a.id} agent={a} alt={i % 2 === 1} score={scores[a.id] ?? null} />
           ))}
         </div>
       </section>

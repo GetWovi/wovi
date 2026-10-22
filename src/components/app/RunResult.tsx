@@ -5,6 +5,8 @@ import { useState } from "react";
 import { rerun } from "@/app/app/make/actions";
 import { Mascot } from "@/components/brand/Mascot";
 import { ago } from "@/components/builder/labels";
+import { GateNote, QualityBreakdown, QualityScore } from "@/components/quality/QualityParts";
+import q from "@/components/quality/Quality.module.css";
 import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -105,7 +107,9 @@ export function RunResult({
         <Mascot pose="done" size={96} className="wovi" label="Wovi, job done" />
         <div className={styles.resultTitle}>
           <span className="eyebrow">{agent.name}</span>
-          <h2>{resultNoun(agent, rv.count)}, ready</h2>
+          <h2>
+            {resultNoun(agent, rv.count)}, {run.needsReview ? "for review" : "ready"}
+          </h2>
           <div className={styles.resultMeta}>
             <span>{title}</span>
             {run.brandBrain?.name && <span>For {run.brandBrain.name}</span>}
@@ -117,16 +121,23 @@ export function RunResult({
             </span>
           )}
         </div>
-        {fit !== null && (
-          <div className={styles.fit} title="How close this reads to your Brand Brain: its rules and its sample lines">
-            <Badge score={fit} label="Brand fit" size="md" />
-            <div className={styles.fitText}>
-              <b>Brand fit</b>
-              <span>{fit >= 85 ? "Sounds like you" : fit >= 70 ? "Close to your voice" : fails.length ? "Breaks a brand rule" : "A little off your voice"}</span>
-            </div>
+        {(fit !== null || run.quality) && (
+          <div className={q.scores}>
+            {run.quality && <QualityScore q={run.quality} />}
+            {fit !== null && (
+              <div className={styles.fit} title="How close this reads to your Brand Brain: its rules and its sample lines">
+                <Badge score={fit} label="Brand fit" size="md" />
+                <div className={styles.fitText}>
+                  <b>Brand fit</b>
+                  <span>{fit >= 85 ? "Sounds like you" : fit >= 70 ? "Close to your voice" : fails.length ? "Breaks a brand rule" : "A little off your voice"}</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {run.quality && <GateNote q={run.quality} />}
 
       {showAsked && <Asked run={run} agent={agent} />}
 
@@ -159,6 +170,8 @@ export function RunResult({
       </div>
 
       <ResultBody view={rv} />
+
+      {run.quality && <QualityBreakdown q={run.quality} />}
 
       <div className={styles.resultFoot}>
         {editor && (

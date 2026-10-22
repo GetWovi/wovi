@@ -153,7 +153,9 @@ describe("the test bench", () => {
           const user = lastUser(req);
           if (user.startsWith("Your answer did not match")) return undefined;
           if (user.includes("wedding cake")) return "Sure! Here are the hooks you asked for.";
-          if (user.includes("croissant lamination")) {
+          // Phase 12: the quality gate asks for rewrites; this sample keeps its banned phrase through them.
+          const asked = req.messages.filter((m) => m.role === "user").map((m) => m.content).join("\n");
+          if (user.includes("croissant lamination") || (user.startsWith("Rewrite your last answer") && asked.includes("croissant lamination"))) {
             const answer = JSON.parse(defaultAnswer(req)) as { items: string[] };
             answer.items[0] = "A game-changing croissant for the lamination crowd";
             return JSON.stringify(answer);

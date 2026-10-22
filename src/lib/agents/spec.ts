@@ -208,6 +208,18 @@ const bodyShape = {
   routing: routingSchema,
   /** The instruction template the engine fills in. Placeholders: {{input_key}} and {{brand.part}}. */
   instructions: z.string().min(20, "Instructions must be at least 20 characters.").max(20000),
+  /**
+   * The quality gate (phase 12): the bar a result must reach to be "ready",
+   * and how many rewrites the engine may run below it. Left out, the
+   * defaults for the category apply (src/lib/quality/data.ts).
+   */
+  gate: z
+    .strictObject({
+      minScore: z.number().int("The bar is a whole number.").min(40, "The bar must be at least 40.").max(95, "The bar must be at most 95."),
+      maxRewrites: z.number().int().min(0, "Rewrites must be 0, 1 or 2.").max(2, "Rewrites must be 0, 1 or 2."),
+    })
+    .partial()
+    .optional(),
 };
 
 export const OWNER_KINDS = ["platform", "creator"] as const;

@@ -94,8 +94,8 @@ export function defaultAnswer(req: CompletionRequest): string {
 function wordPool(text: string): string[] {
   const words: string[] = [];
   for (const block of text.matchAll(DATA_BLOCK)) {
-    // Only the run's inputs, not the Brand Brain, the way a model would write about the idea.
-    if (block[1].startsWith("brand.")) continue;
+    // Only the run's inputs, not the Brand Brain or a quality note, the way a model would write about the idea.
+    if (block[1].startsWith("brand.") || block[1].startsWith("quality.")) continue;
     for (const w of block[2].toLowerCase().match(/[a-z][a-z']{3,}/g) ?? []) {
       if (!STOP.has(w) && !words.includes(w)) words.push(w);
     }

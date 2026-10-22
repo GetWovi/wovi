@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { Mascot } from "@/components/brand/Mascot";
+import { CardScore } from "@/components/quality/QualityParts";
 import { Icon } from "@/components/ui/Icon";
 import type { LineupAgent } from "@/lib/app/lineup";
+import type { PublicScorecard } from "@/lib/quality/scorecard";
 import styles from "./App.module.css";
 import { agentIcon, agentTag } from "./agent-icons";
 
-/** One agent of the lineup: the icon, the name, the job, and Wovi waiting for a job. Coming ones are not links. */
-export function AgentCard({ agent, alt = false }: { agent: Pick<LineupAgent, "id" | "name" | "job" | "category" | "status">; alt?: boolean }) {
+/**
+ * One agent of the lineup: the icon, the name, the job, its public score
+ * (phase 12) and Wovi waiting for a job. Coming ones are not links.
+ */
+export function AgentCard({ agent, alt = false, score }: { agent: Pick<LineupAgent, "id" | "name" | "job" | "category" | "status">; alt?: boolean; score?: PublicScorecard | null }) {
   const live = agent.status === "live";
   const card = (
     <article className={[styles.panel, styles.panelTight, alt ? styles.panelAlt : "", styles.agentCard, live ? "" : styles.agentCardComing].join(" ")}>
@@ -18,6 +23,7 @@ export function AgentCard({ agent, alt = false }: { agent: Pick<LineupAgent, "id
       </div>
       <h3 className={styles.agentName}>{agent.name}</h3>
       <p className={styles.agentJob}>{agent.job}</p>
+      {live && score !== undefined && <CardScore card={score} />}
       <div className={styles.agentFoot}>
         <span className={styles.chip}>{agentTag(agent.id, agent.category)}</span>
         {live ? (

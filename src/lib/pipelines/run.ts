@@ -34,6 +34,8 @@ export type Candidate = Item & {
 
 export type StepPick = { index: number; by: "rule" | "brand_fit" | "person"; at: string; userId?: string };
 
+export type StepQuality = { score: number; threshold: number; verdict: "ready" | "needs_review"; rewrites: number; firstScore: number; reasons: string[] };
+
 export type StepRun = {
   id: string;
   label: string;
@@ -60,6 +62,8 @@ export type StepRun = {
   brandFit: number | null;
   /** Every check of the used run. */
   checks: CheckResult[];
+  /** The quality gate on the used run (phase 12): its score, the bar, the verdict, the rewrites inside the run and why it needs review. */
+  quality?: StepQuality | null;
   costMicroUsd: number;
   error: { code: string; message: string } | null;
   startedAt: string | null;

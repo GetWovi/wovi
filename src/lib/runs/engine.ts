@@ -17,6 +17,8 @@ import { findModelRoute, type ModelRoute } from "@/lib/agents/catalog";
 import { AgentRegistry, RegistryError, isWorkspaceId, localRegistry } from "@/lib/agents/registry";
 import type { AgentSpec } from "@/lib/agents/spec";
 import { jsonFileBrandStore } from "@/lib/brand/store";
+import { NO_REFERENCES, type QualityReferences } from "@/lib/quality/checks";
+import type { QualityJudge } from "@/lib/quality/evaluate";
 import { storeBrainSource } from "@/lib/brand/source";
 import type { BrandBrain, BrandBrainSource } from "./brand-brain";
 import { RunAborted, executeRun, type ExecResult } from "./execute";
@@ -99,7 +101,20 @@ export type EngineOptions = {
   runTimeoutMs?: number;
   now?: () => Date;
   newId?: () => string;
+  /**
+   * The agent's golden and bad samples for the quality gate's reference
+   * anchoring (phase 12). The app reads them from the builder's samples.
+   * Left out, only the Brand Brain's own posts are compared.
+   */
+  references?: ReferenceSource;
+  /** The optional model judge for the quality gate. Off (null) unless given. */
+  judge?: QualityJudge | null;
 };
+
+/** Where the quality gate finds an agent's golden and bad samples. */
+export interface ReferenceSource {
+  get(agent: { workspaceId: string; id: string; version: string }): Promise<QualityReferences>;
+}
 
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9_.:-]{1,128}$/;
 /** The longest per-run idea, in characters. */
@@ -202,6 +217,15 @@ export class RunEngine {
       // The run may have finished while it was being read; look once more so the waiter is never lost.
       void this.getRun(workspaceId, runId).then((now) => now && this.notify(now));
     });
+  }
+
+  /**
+   * Every run of one agent across all workspaces, newest first. Only for
+   * counting: the public scorecard and the builder roll-up (phase 12).
+   */
+  async runsOfAgent(agentWorkspaceId: string, agentId: string): Promise<Run[]> {
+    if (!isWorkspaceId(agentWorkspaceId)) throw new RunError("invalid_workspace", `Workspace id ${JSON.stringify(agentWorkspaceId)} is not valid.`);
+    return this.opts.store.listForAgent(agentWorkspaceId, agentId);
   }
 
   /** Resolves when the queue has nothing waiting or running. */
@@ -405,6 +429,7 @@ export class RunEngine {
     let result: ExecResult;
     try {
       const brain = await this.loadBrain(run.workspaceId, run.agent.workspaceId, spec, run.inputs, run.brandPick).catch(() => null);
+      const references = this.opts.references ? await this.opts.references.get(run.agent).catch(() => NO_REFERENCES) : NO_REFERENCES;
       result = await executeRun({
         spec,
         run,
@@ -413,6 +438,8 @@ export class RunEngine {
         signal: runSignal,
         callTimeoutMs: this.cfg.callTimeoutMs,
         now: this.cfg.now,
+        references,
+        judge: this.opts.judge ?? null,
       });
     } catch (err) {
       if (!(err instanceof RunAborted)) {
@@ -432,7 +459,9 @@ export class RunEngine {
     if (result.ok) {
       run.output = result.output;
       run.checks = [...run.checks, ...result.checks];
-      run.needsReview = run.checks.some((c) => c.status === "fail");
+      run.quality = result.quality;
+      // Never "ready" below the gate: a failed check or a score under the agent's bar sends it to review.
+      run.needsReview = run.checks.some((c) => c.status === "fail") || result.quality.verdict !== "ready";
       run.model = result.model;
       run.error = null;
       this.finishFields(run, "succeeded");
@@ -489,7 +518,7 @@ export class RunEngine {
  * is given. Uses the fake provider
  * unless OPENROUTER_API_KEY is set, and always when `fake` is true.
  */
-export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource } = {}): RunEngine {
+export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource; references?: ReferenceSource } = {}): RunEngine {
   const dataDir = opts.dataDir ?? process.env.WOVI_DATA_DIR ?? join(process.cwd(), ".data");
   const providers = providersFromEnv();
   const fake = opts.fake ?? !providers.openrouter;
@@ -499,5 +528,6 @@ export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrain
     brandBrains: opts.brandBrains ?? storeBrainSource(jsonFileBrandStore(join(dataDir, "brand-brains.json"))),
     providers: fake ? { fake: providers.fake } : providers,
     providerOverride: fake ? "fake" : undefined,
+    references: opts.references,
   });
 }

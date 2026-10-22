@@ -4,6 +4,8 @@ import p from "@/components/app/Pipeline.module.css";
 import { Part } from "@/components/app/PipelineFollow";
 import { Asked, ResultBody, type AgentForResult } from "@/components/app/RunResult";
 import { Mascot } from "@/components/brand/Mascot";
+import { GateNote, QualityBreakdown, QualityScore } from "@/components/quality/QualityParts";
+import q from "@/components/quality/Quality.module.css";
 import { Badge } from "@/components/ui/Badge";
 import { Icon } from "@/components/ui/Icon";
 import type { PublicRun } from "@/lib/accounts/guard";
@@ -63,16 +65,23 @@ export function ItemResult({ state, eyebrow, title, running, output, pkg, run, a
             ))}
           </div>
         </div>
-        {fit !== null && (
-          <div className={styles.fit} title="How close this reads to the Brand Brain">
-            <Badge score={fit} label="Brand fit" size="md" />
-            <div className={styles.fitText}>
-              <b>Brand fit</b>
-              <span>{fit >= 85 ? "Sounds like them" : fit >= 70 ? "Close to the voice" : "A little off the voice"}</span>
-            </div>
+        {(fit !== null || run?.quality) && (
+          <div className={[q.scores, q.scoresRow].join(" ")}>
+            {run?.quality && <QualityScore q={run.quality} />}
+            {fit !== null && (
+              <div className={styles.fit} title="How close this reads to the Brand Brain">
+                <Badge score={fit} label="Brand fit" size="md" />
+                <div className={styles.fitText}>
+                  <b>Brand fit</b>
+                  <span>{fit >= 85 ? "Sounds like them" : fit >= 70 ? "Close to the voice" : "A little off the voice"}</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {run?.quality && <GateNote q={run.quality} />}
 
       {run && agent && <Asked run={run} agent={agent} />}
 
@@ -96,6 +105,7 @@ export function ItemResult({ state, eyebrow, title, running, output, pkg, run, a
       </div>
 
       {rv && <ResultBody view={rv} />}
+      {run?.quality && <QualityBreakdown q={run.quality} />}
       {pkg && (
         <div className={p.parts}>
           {pkg.map((part) => (

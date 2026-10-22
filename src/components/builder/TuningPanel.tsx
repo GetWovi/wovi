@@ -11,11 +11,16 @@ import { MODEL_ROUTES } from "@/lib/agents/catalog";
 import type { UpdateInput } from "@/lib/agents/registry";
 import type { Bump } from "@/lib/agents/semver";
 import { validateAgentBody, type AgentSpec } from "@/lib/agents/spec";
+import { gateDefaults } from "@/lib/quality/data";
 import type { BenchView } from "@/lib/builder/bench";
 import styles from "./Builder.module.css";
 import { bodyOf, num, str } from "./editor-types";
 import { ROUTE_LABELS } from "./labels";
 import { errorAt, parseIssues } from "./spec-errors";
+
+type GateFields = { minScore?: number; maxRewrites?: number };
+/** The gate fields that are set; empty ones keep the category's defaults. */
+const cleanGate = (g: GateFields): GateFields => Object.fromEntries(Object.entries(g).filter(([, v]) => v !== undefined));
 
 /**
  * The focused tuning panel beside the bench: the instruction template, the
@@ -26,6 +31,9 @@ export function TuningPanel({ csrf, spec, sampleIds, onTuned }: { csrf: string; 
   const { toast } = useToast();
   const [instructions, setInstructions] = useState(spec.instructions);
   const [routing, setRouting] = useState({ ...spec.routing });
+  // The quality gate (phase 12): empty fields keep the category's defaults.
+  const [gate, setGate] = useState<GateFields>({ ...(spec.gate ?? {}) });
+  const defaults = gateDefaults(spec.category);
   const [note, setNote] = useState("");
   const [bump, setBump] = useState<Bump>("patch");
   const [saving, setSaving] = useState<"rerun" | "save" | null>(null);
@@ -35,13 +43,15 @@ export function TuningPanel({ csrf, spec, sampleIds, onTuned }: { csrf: string; 
     const out: UpdateInput = {};
     if (instructions !== spec.instructions) out.instructions = instructions;
     if (JSON.stringify(routing) !== JSON.stringify(spec.routing)) out.routing = routing;
+    if (JSON.stringify(cleanGate(gate)) !== JSON.stringify(cleanGate(spec.gate ?? {}))) out.gate = Object.keys(cleanGate(gate)).length ? cleanGate(gate) : undefined;
     return out;
-  }, [instructions, routing, spec]);
+  }, [instructions, routing, gate, spec]);
   const changed = Object.keys(changes).length > 0;
   const issues = useMemo(() => {
-    const r = validateAgentBody({ ...bodyOf(spec), id: spec.id, version: spec.version, instructions, routing });
+    const g = cleanGate(gate);
+    const r = validateAgentBody({ ...bodyOf(spec), id: spec.id, version: spec.version, instructions, routing, gate: Object.keys(g).length ? g : undefined });
     return r.ok ? [] : parseIssues(r.errors);
-  }, [spec, instructions, routing]);
+  }, [spec, instructions, routing, gate]);
   const setR = (patch: Partial<typeof routing>) => setRouting((r) => ({ ...r, ...patch }));
 
   async function save(rerun: boolean) {
@@ -61,7 +71,7 @@ export function TuningPanel({ csrf, spec, sampleIds, onTuned }: { csrf: string; 
 
   return (
     <Card className={[styles.section, styles.tuning].join(" ")} title="Tuning" actions={<Mascot pose={changed && issues.length === 0 ? "done" : "wait"} size={44} />}>
-      <p className={styles.sectionNote}>Change the instructions or the model slot, save as a new version, and run the same samples against it.</p>
+      <p className={styles.sectionNote}>Change the instructions, the model slot or the quality bar, save as a new version, and run the same samples against it.</p>
       <Textarea label="Instructions" rows={8} value={instructions} onChange={(e) => setInstructions(e.target.value)} error={errorAt(issues, "instructions")} className={styles.instructions} spellCheck={false} />
       <div className={styles.fieldGrid}>
         <Select label="Model route" value={routing.model} onChange={(e) => setR({ model: e.target.value })} options={textRoutes.map((r) => ({ value: r.id, label: ROUTE_LABELS[r.id] ?? r.id }))} error={errorAt(issues, "routing.model")} />
@@ -71,6 +81,27 @@ export function TuningPanel({ csrf, spec, sampleIds, onTuned }: { csrf: string; 
         <Input label="Temperature" type="number" min={0} max={2} step={0.1} value={str(routing.temperature)} onChange={(e) => setR({ temperature: num(e.target.value) })} error={errorAt(issues, "routing.temperature")} />
         <Input label="Max tokens" type="number" min={1} max={32000} value={str(routing.maxOutputTokens)} onChange={(e) => setR({ maxOutputTokens: num(e.target.value) })} error={errorAt(issues, "routing.maxOutputTokens")} />
         <Input label="Cap (USD)" type="number" min={0.01} max={10} step={0.01} value={str(routing.maxCostUsd)} onChange={(e) => setR({ maxCostUsd: num(e.target.value) ?? 0 })} error={errorAt(issues, "routing.maxCostUsd")} />
+      </div>
+      <div className={styles.fieldGrid}>
+        <Input
+          label="Quality bar"
+          type="number"
+          min={40}
+          max={95}
+          step={1}
+          value={str(gate.minScore)}
+          placeholder={`${defaults.minScore} (default)`}
+          onChange={(e) => setGate((g) => ({ ...g, minScore: num(e.target.value) }))}
+          error={errorAt(issues, "gate.minScore")}
+          hint="Results under it are rewritten, then go to review."
+        />
+        <Select
+          label="Rewrites below the bar"
+          value={gate.maxRewrites === undefined ? "" : String(gate.maxRewrites)}
+          onChange={(e) => setGate((g) => ({ ...g, maxRewrites: e.target.value === "" ? undefined : Number(e.target.value) }))}
+          options={[{ value: "", label: `${defaults.maxRewrites} (default)` }, { value: "0", label: "None" }, { value: "1", label: "One" }, { value: "2", label: "Two" }]}
+          error={errorAt(issues, "gate.maxRewrites")}
+        />
       </div>
       <div className={styles.fieldGrid}>
         <Input label="Change note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="What changed, in a few words" maxLength={200} />

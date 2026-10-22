@@ -123,6 +123,10 @@ The tuning panel beside the bench edits the instruction template, the model rout
 
 `bench.planBatch(caller, agentIds?)` lists every live agent (or the given ones) with its sample count, how many fit, and the estimate and cap; `bench.runBatch` starts one bench per agent, all through the engine's queue, so the global and per-workspace limits hold and every run stays inside its agent's cap. At most 400 runs per batch. Above **$0.50** estimated (`BENCH_LIMITS.batchConfirmUsd`) the call refuses with `confirmation_required` until `confirmed` is passed; the screen shows the estimate and asks. The summary per agent: version, samples, done, pass rate, average auto score, guardrail fails, refused runs, cost and average time, with a link to that agent's bench. `bench.cancelBatch` cancels every bench of it.
 
+## Quality (phase 12)
+
+`/builder/agents/[id]/quality` rolls up, per version, what the quality gate and people said: which checks fail most, drafts that failed, the most common change requests, decisions and bench ratings. The quality bar and rewrites are set in Tuning on the bench. See [quality.md](quality.md).
+
 ## Commands
 
 - `npm run builder:code` makes a builder code; `-- --list`, `-- --revoke <id>`, `-- --label <text>`.

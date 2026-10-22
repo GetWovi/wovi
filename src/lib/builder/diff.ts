@@ -5,6 +5,7 @@
  * added and what was removed, field by field.
  */
 import { GUARDRAILS, TOOLS, findModelRoute } from "@/lib/agents/catalog";
+import { gateFor } from "@/lib/quality/data";
 import { BODY_KEYS, type AgentBody, type AgentInput, type AgentOutput } from "@/lib/agents/spec";
 
 export type DiffLine = { type: "same" | "add" | "remove"; text: string };
@@ -56,6 +57,7 @@ export const FIELD_LABELS: Record<Exclude<keyof AgentBody, "id" | "version">, st
   guardrails: "Guardrails",
   routing: "Model slot",
   instructions: "Instructions",
+  gate: "Quality bar",
 };
 
 export type DiffField = keyof typeof FIELD_LABELS;
@@ -126,6 +128,11 @@ export function fieldLines(body: AgentBody, field: DiffField): string[] {
     }
     case "instructions":
       return body.instructions.split("\n");
+    case "gate": {
+      const g = gateFor(body);
+      const own = body.gate ?? {};
+      return [`bar ${g.minScore}${own.minScore === undefined ? ` (default for ${body.category})` : ""}`, `rewrites ${g.maxRewrites}${own.maxRewrites === undefined ? " (default)" : ""}`];
+    }
   }
 }
 
