@@ -12,7 +12,7 @@ import {WoviToken} from "./WoviToken.sol";
 ///   2. WoviSplitter  last: it refuses to exist unless the burn pot is there and wired to it
 ///
 /// Nothing is set afterwards, because nothing can be. The token does not exist yet: script/LaunchToken.s.sol makes it,
-/// from the same wallet (the launcher is the deployer).
+/// from the launcher wallet (WOVI_LAUNCHER_WALLET), which may be the deployer or another wallet.
 ///
 /// contracts/token-deploy.sh runs this with every value filled in, the key at forge's own prompt. Without --broadcast
 /// it is a dry run.
@@ -23,7 +23,7 @@ contract DeployToken is Script, WoviToken {
 
         vm.startBroadcast();
         (, address deployer,) = vm.readCallers();
-        Wiring memory w = _wiringFromEnv(deployer);
+        Wiring memory w = _wiringFromEnv(vm.envAddress("WOVI_LAUNCHER_WALLET"));
         // a wallet with code on it could refuse its share; the share would wait in the splitter
         require(w.owner.code.length == 0, "WOVI_OWNER_WALLET has code on it: use a plain wallet");
         t = _deployToken(deployer, w, factory);
@@ -32,7 +32,7 @@ contract DeployToken is Script, WoviToken {
         _verifyToken(t, w, factory);
         require(address(t.burnPot.token()) == address(0), "a fresh burn pot has no token");
 
-        console.log("Deployed from %s, which is also the launcher.", deployer);
+        console.log("Deployed from %s; the launcher is %s.", deployer, w.launcher);
         console.log("");
         console.log("WOVI_BURN_POT_ADDRESS=%s", address(t.burnPot));
         console.log("WOVI_SPLITTER_ADDRESS=%s", address(t.splitter));

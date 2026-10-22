@@ -69,7 +69,7 @@ contract LaunchToken is Script, WoviToken {
 
         vm.startBroadcast();
         (, address sender,) = vm.readCallers();
-        require(sender == launcher, "only the launcher can launch: run it from the deployer wallet (--sender)");
+        require(sender == launcher, "only the launcher can launch: run it from the launcher wallet (--sender)");
         token = t.burnPot.launch{value: fee + openingBuy}(p, LAUNCH_CONFIG, alsoExempt);
         vm.stopBroadcast();
 

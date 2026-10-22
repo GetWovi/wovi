@@ -2,12 +2,14 @@
 # Deploys the burn pot and the splitter of $WOVI from the deployer wallet, then reads them back from the chain and
 # checks every wire. Run it BEFORE the token exists, and give the site the two addresses before launching.
 #
-#   contracts/token-deploy.sh <the deployer wallet> <the owner wallet>
+#   contracts/token-deploy.sh <the deployer wallet> <the launcher wallet> <the owner wallet>
 #
 # One thing is asked for: the deployer wallet's private key, typed or pasted at forge's own prompt (--interactive,
 # nothing shows, nothing lands in the shell's history). The arguments are addresses, which are public.
-#   the deployer wallet  deploys these two, then launches $WOVI (contracts/token-launch.sh) and makes the opening
-#                        buy; the opening buy's tokens land in it. It has no other power over either contract.
+#   the deployer wallet  deploys these two and pays their gas. It has no power over either contract afterwards.
+#   the launcher wallet  the only wallet that can launch $WOVI (contracts/token-launch.sh, run from it) and make the
+#                        opening buy; the opening buy's tokens land in it. It has no other power. It may be the
+#                        deployer wallet or another one.
 #   the owner wallet     receives the owner's share of the fees. Only it can later hand that share to another
 #                        address, in two steps (contracts/owner-payee.sh); nothing else in the splitter can change.
 # The shares come from contracts/split.local.json (on this Mac only, never in git).
@@ -19,20 +21,24 @@
 # WOVI_DRY=1 stops after step 2 (nothing sent, no key asked). WOVI_DEPLOY_RPC=<a local fork> rehearses it there.
 . "$(dirname "$0")/lib.sh"
 DEPLOYER=$1
-export WOVI_OWNER_WALLET=$2
+export WOVI_LAUNCHER_WALLET=$2
+export WOVI_OWNER_WALLET=$3
 TMP=$(mktemp -t wovi-token-deploy); trap 'rm -f $TMP' EXIT
 CHAIN=$(cast chain-id --rpc-url "$RPC" 2>/dev/null)
 RECORD="$HERE/broadcast/DeployToken.s.sol/$CHAIN/run-latest.json"
 
-[ -z "$3" ] && is_address "$DEPLOYER" && is_address "$WOVI_OWNER_WALLET" \
-  || die "say which wallets: contracts/token-deploy.sh <the deployer wallet> <the owner wallet>"
+[ -z "$4" ] && is_address "$DEPLOYER" && is_address "$WOVI_LAUNCHER_WALLET" && is_address "$WOVI_OWNER_WALLET" \
+  || die "say which wallets: contracts/token-deploy.sh <the deployer wallet> <the launcher wallet> <the owner wallet>"
 
 step "1/4 the chain and the wallets"
 chain_or_die
 load_split
 BAL=$(cast balance $DEPLOYER --rpc-url "$RPC") || die "could not read the deployer's balance"
 has_code $WOVI_OWNER_WALLET && die "the owner wallet $WOVI_OWNER_WALLET has code on it: its share could be refused. Use a plain wallet."
-echo "  deployer   $DEPLOYER  holds $(eth $BAL) ETH (it launches too)"
+echo "  deployer   $DEPLOYER  holds $(eth $BAL) ETH"
+echo "  launcher   $WOVI_LAUNCHER_WALLET (the only wallet that can launch \$WOVI)"
+has_code $WOVI_LAUNCHER_WALLET && die "the launcher wallet $WOVI_LAUNCHER_WALLET has code on it: it must be a plain wallet that signs the launch."
+[ "$(low $WOVI_LAUNCHER_WALLET)" = "$(low $WOVI_OWNER_WALLET)" ] && echo "  note: the launcher and the owner are the same wallet"
 echo "  owner      $WOVI_OWNER_WALLET"
 echo "  the shares from contracts/split.local.json add up"
 OLD=$(tval WOVI_SPLITTER_ADDRESS)
@@ -75,11 +81,12 @@ PY
 ) || die "forge's record is not the two contracts from the deployer. Do NOT deploy again; look at the deployer's transactions."
 eval "$(echo "$SENT" | sed 's/^/export /')"
 export WOVI_BURN_POT_ADDRESS=$(cast to-check-sum-address $WOVI_BURN_POT_ADDRESS) WOVI_SPLITTER_ADDRESS=$(cast to-check-sum-address $WOVI_SPLITTER_ADDRESS)
-forge script script/DeployToken.s.sol --sig "check(address)" $DEPLOYER --rpc-url "$RPC" > $TMP 2>&1 || { tail -15 $TMP; die "the contracts are deployed but do not read back as meant. Do not launch."; }
+forge script script/DeployToken.s.sol --sig "check(address)" $WOVI_LAUNCHER_WALLET --rpc-url "$RPC" > $TMP 2>&1 || { tail -15 $TMP; die "the contracts are deployed but do not read back as meant. Do not launch."; }
 grep -E "OK:|burn pot|splitter|owner|launcher" $TMP | sed 's/^ */  /'
 mkdir -p "$HERE/broadcast"
 {
   echo "WOVI_DEPLOYER=$DEPLOYER"
+  echo "WOVI_LAUNCHER_WALLET=$WOVI_LAUNCHER_WALLET"
   echo "WOVI_OWNER_WALLET=$WOVI_OWNER_WALLET"
   echo "WOVI_BURN_POT_ADDRESS=$WOVI_BURN_POT_ADDRESS"
   echo "WOVI_SPLITTER_ADDRESS=$WOVI_SPLITTER_ADDRESS"
@@ -88,4 +95,4 @@ mkdir -p "$HERE/broadcast"
 echo "  written to $TOKEN_OUT"
 echo
 echo "DONE. Next, BEFORE the launch: set WOVI_BURN_POT_ADDRESS, WOVI_SPLITTER_ADDRESS and WOVI_BURN_POT_BLOCK on the"
-echo "site with the keeper's key, redeploy it and see /token say the contracts are live (docs/token.md). Then token-launch.sh."
+echo "site with the keeper's key, redeploy it and see /token say the contracts are live (docs/token.md). Then the launcher wallet runs token-launch.sh."

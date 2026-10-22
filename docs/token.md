@@ -35,7 +35,7 @@ proposes, the new address accepts; `contracts/owner-payee.sh`). Nobody else can 
 Each asks for one key, at forge's own prompt, where nothing shows. Arguments are public addresses.
 
 ```
-contracts/token-deploy.sh <launcher wallet> <owner wallet>   # the burn pot and the splitter, checked
+contracts/token-deploy.sh <deployer> <launcher> <owner>      # the burn pot and the splitter, checked
 contracts/token-launch.sh                                    # launches $WOVI from the launcher wallet
 contracts/owner-payee.sh                                     # only if the owner wallet ever moves its share
 ```
@@ -43,7 +43,8 @@ contracts/owner-payee.sh                                     # only if the owner
 `WOVI_DRY=1` stops each one before the key (a dry run with the cost). `WOVI_DEPLOY_RPC=<a local fork>` rehearses on a
 fork.
 
-The launcher wallet deploys both contracts and launches the token; it has no other power. The owner wallet receives
+The deployer wallet deploys both contracts and has no power over them afterwards. The launcher wallet is the only one
+that can launch the token, and the opening buy lands in it; it has no other power. The owner wallet receives
 the owner share.
 
 ## Before launch

@@ -1,14 +1,14 @@
 #!/bin/zsh
-# Launches $WOVI on Pons through the burn pot, from the deployer wallet, with the opening buy inside the same
+# Launches $WOVI on Pons through the burn pot, from the launcher wallet, with the opening buy inside the same
 # transaction.
 #
 #   contracts/token-launch.sh
 #
-# One thing is asked for: the deployer wallet's private key, at forge's own prompt (nothing shows). Everything else is
-# read: the contracts from contracts/broadcast/token.env (written by token-deploy.sh), the shares from
-# contracts/split.local.json (to check the splitter), the launch fee from Pons, the name, ticker, picture link,
+# One thing is asked for: the launcher wallet's private key, at forge's own prompt (nothing shows). Everything else is
+# read: the contracts and the wallets from contracts/broadcast/token.env (written by token-deploy.sh, and handed to
+# the launcher), the shares from contracts/split.local.json when it is on this machine (otherwise from the splitter), the launch fee from Pons, the name, ticker, picture link,
 # description and links from contracts/launch.json, and the opening buy as the dollars written there (openingBuyUsd;
-# "0" for none) turned into ETH at Chainlink's ETH price at that moment. Its tokens go to the deployer wallet.
+# "0" for none) turned into ETH at Chainlink's ETH price at that moment. Its tokens go to the launcher wallet.
 #
 # Run it only once the site has the burn pot's and the splitter's addresses and the keeper's key, and /token says the
 # contracts are live: fees start arriving with the first trade.
@@ -27,9 +27,16 @@ TMP=$(mktemp -t wovi-launch); trap 'rm -f $TMP' EXIT
 
 step "1/4 the deployment, the launch file and the opening buy"
 chain_or_die
-load_split
 load_token
-DEPLOYER=$WOVI_DEPLOYER
+if [ -f "$HERE/split.local.json" ]; then
+  load_split
+else
+  # the launcher's machine: the shares were checked at deploy; read them back so the launch checks the same wiring
+  export WOVI_SPLIT_OWNER_BPS=$(cast call $WOVI_SPLITTER_ADDRESS "ownerBps()(uint16)" --rpc-url "$RPC" | num) \
+    WOVI_SPLIT_BURN_BPS=$(cast call $WOVI_SPLITTER_ADDRESS "burnBps()(uint16)" --rpc-url "$RPC" | num)
+  [ -n "$WOVI_SPLIT_OWNER_BPS" ] && [ -n "$WOVI_SPLIT_BURN_BPS" ] || die "could not read the splitter"
+fi
+DEPLOYER=$WOVI_LAUNCHER_WALLET
 TOKEN=$(cast call $WOVI_BURN_POT_ADDRESS "token()(address)" --rpc-url "$RPC") || die "could not read the burn pot"
 [ "$TOKEN" = "$ZERO" ] || die "\$WOVI is already launched: $TOKEN. A second launch is not possible."
 [ -f "$JSON" ] || die "contracts/launch.json is missing"
@@ -63,7 +70,7 @@ python3 -c "import sys; sys.exit(0 if 10000000000 < int('$USD') < 10000000000000
 OPENING_BUY=$(python3 -c "print($OPENING_BUY_USD * 10**26 // int('$USD'))")
 BAL=$(cast balance $DEPLOYER --rpc-url "$RPC")
 echo "  burn pot $WOVI_BURN_POT_ADDRESS, splitter $WOVI_SPLITTER_ADDRESS"
-echo "  deployer wallet $DEPLOYER holds $(eth $BAL) ETH"
+echo "  launcher wallet $DEPLOYER holds $(eth $BAL) ETH"
 echo "  $NAME (\$WOVI)  $LOGO"
 echo "  launch fee $(eth $FEE) ETH; opening buy \$$OPENING_BUY_USD = $(eth $OPENING_BUY) ETH"
 
@@ -83,7 +90,7 @@ if [ -n "$DRY" ]; then
 fi
 python3 -c "import sys; sys.exit(0 if int('$BAL') >= int('$ALL') else 1)" || die "the deployer holds $(eth $BAL) ETH and the launch needs $(eth $ALL) ETH. Nothing was sent."
 
-step "3/4 the launch: forge now asks for the deployer wallet's private key (nothing shows as it is typed or pasted)"
+step "3/4 the launch: forge now asks for the launcher wallet's private key (nothing shows as it is typed or pasted)"
 forge script script/LaunchToken.s.sol --rpc-url "$RPC" --broadcast --interactive --sender $DEPLOYER \
   || die "the launch did not go through. Read the lines above; if no transaction was sent, it is safe to run this again."
 

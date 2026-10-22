@@ -62,7 +62,7 @@ PY
 load_token() {
   [ -f "$TOKEN_OUT" ] || die "no deployment found in $TOKEN_OUT. Run contracts/token-deploy.sh first."
   local name v
-  for name in WOVI_DEPLOYER WOVI_OWNER_WALLET WOVI_BURN_POT_ADDRESS WOVI_SPLITTER_ADDRESS; do
+  for name in WOVI_DEPLOYER WOVI_LAUNCHER_WALLET WOVI_OWNER_WALLET WOVI_BURN_POT_ADDRESS WOVI_SPLITTER_ADDRESS; do
     v=$(tval $name)
     is_address "$v" || die "$TOKEN_OUT has no $name"
     export $name=$v
