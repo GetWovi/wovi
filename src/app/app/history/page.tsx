@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import styles from "@/components/app/App.module.css";
 import { AppShell } from "@/components/app/AppShell";
+import { PipelineDecideButtons } from "@/components/app/PipelineDecide";
+import { PipelineRow } from "@/components/app/PipelineParts";
 import { ReviewButtons } from "@/components/app/ReviewControls";
 import { RunRow } from "@/components/app/RunRow";
 import { Mascot } from "@/components/brand/Mascot";
@@ -24,8 +26,18 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
   const role = await accounts().roleIn(me, workspaceId);
   const editor = role ? can(role, "run_agents") : false;
   const picked = (STATES as string[]).includes(state) ? (state as RunState | "open") : "all";
-  const [lineup, runs, all] = await Promise.all([api.lineup(me, workspaceId), api.runs(me, workspaceId, { q, state: picked, agentId: agent || undefined }), api.runs(me, workspaceId)]);
-  const open = all.filter((v) => v.state === "needs_review" || v.state === "ready").length;
+  const onlyPipelines = agent === "pipelines";
+  const [lineup, runs, all, pipes, allPipes] = await Promise.all([
+    api.lineup(me, workspaceId),
+    onlyPipelines ? Promise.resolve([]) : api.runs(me, workspaceId, { q, state: picked, agentId: agent || undefined }),
+    api.runs(me, workspaceId),
+    agent && !onlyPipelines ? Promise.resolve([]) : api.pipelineRuns(me, workspaceId, { q, state: picked }),
+    api.pipelineRuns(me, workspaceId),
+  ]);
+  const open = all.filter((v) => v.state === "needs_review" || v.state === "ready").length + allPipes.filter((v) => v.state === "needs_review" || v.state === "ready" || v.state === "waiting").length;
+  const total = all.length + allPipes.length;
+  // Runs and pipeline runs together, newest first. A pipeline's own step runs show inside it.
+  const rows = [...runs.map((v) => ({ kind: "run" as const, at: v.run.createdAt, v })), ...pipes.map((v) => ({ kind: "pipeline" as const, at: v.run.createdAt, v }))].sort((a, b) => b.at.localeCompare(a.at));
   const now = currentTime();
   const filtered = Boolean(q || picked !== "all" || agent);
 
@@ -36,7 +48,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           <span className="eyebrow">History</span>
           <h1 className={styles.h1}>Every run, and your say on it</h1>
           <p className={styles.lead}>
-            {all.length === 0 ? "Nothing yet." : `${all.length} run${all.length === 1 ? "" : "s"} in this workspace.`}
+            {total === 0 ? "Nothing yet." : `${total} run${total === 1 ? "" : "s"} in this workspace${allPipes.length ? `, ${allPipes.length} of them pipelines` : ""}.`}
             {open > 0 ? ` ${open} waiting for a decision.` : ""} A result flagged by a check needs your review before it goes anywhere.
           </p>
         </div>
@@ -45,7 +57,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
       <form method="get" className={[styles.panel, styles.panelTight, styles.filters].join(" ")}>
         <Input label="Search" name="q" defaultValue={q} placeholder="A word from the idea or the result" leading={<Icon name="search" size={20} />} />
         <Select label="Status" name="state" defaultValue={picked} options={[{ value: "all", label: "Any status" }, { value: "open", label: "Waiting for a decision" }, ...STATES.filter((s) => s !== "open").map((s) => ({ value: s, label: STATE_LABELS[s as RunState] }))]} />
-        <Select label="Agent" name="agent" defaultValue={agent} options={[{ value: "", label: "Any agent" }, ...lineup.filter((a) => a.status === "live").map((a) => ({ value: a.id, label: a.name }))]} />
+        <Select label="Agent" name="agent" defaultValue={agent} options={[{ value: "", label: "Any agent" }, { value: "pipelines", label: "Pipelines only" }, ...lineup.filter((a) => a.status === "live").map((a) => ({ value: a.id, label: a.name }))]} />
         <div className={styles.actions}>
           <Button type="submit" variant="secondary">
             Filter
@@ -58,7 +70,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         </div>
       </form>
 
-      {runs.length === 0 ? (
+      {rows.length === 0 ? (
         <div className={[styles.panel, styles.panelAlt, styles.wovi].join(" ")}>
           <Mascot pose={filtered ? "wait" : "hello"} size={120} />
           <b>{filtered ? "Nothing matches" : "Nothing made yet"}</b>
@@ -71,9 +83,13 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         </div>
       ) : (
         <div className={styles.runList}>
-          {runs.map((v) => (
-            <RunRow key={v.run.id} view={v} now={now} action={editor && (v.state === "needs_review" || v.state === "ready") ? <ReviewButtons csrf={csrf} runId={v.run.id} compact /> : undefined} />
-          ))}
+          {rows.map((r) =>
+            r.kind === "run" ? (
+              <RunRow key={r.v.run.id} view={r.v} now={now} action={editor && (r.v.state === "needs_review" || r.v.state === "ready") ? <ReviewButtons csrf={csrf} runId={r.v.run.id} compact /> : undefined} />
+            ) : (
+              <PipelineRow key={r.v.run.id} view={r.v} now={now} action={editor && (r.v.state === "needs_review" || r.v.state === "ready") ? <PipelineDecideButtons csrf={csrf} id={r.v.run.id} /> : undefined} />
+            ),
+          )}
         </div>
       )}
     </AppShell>

@@ -11,7 +11,13 @@ import { seedBrains } from "@/lib/brand/seeds";
 import { storeBrainSource } from "@/lib/brand/source";
 import { memoryBrandStore } from "@/lib/brand/store";
 import { memoryFileStorage } from "@/lib/builder/storage";
+import { ensureLaunchAuthor, LAUNCH_AUTHOR_ID } from "@/lib/launch/install";
 import { LAUNCH_AGENTS } from "@/lib/launch/specs";
+import { PipelineEngine, type PipelineEngineOptions } from "@/lib/pipelines/engine";
+import { GuardedPipelines } from "@/lib/pipelines/guard";
+import { installPipelineTemplates } from "@/lib/pipelines/install";
+import { PipelineRegistry } from "@/lib/pipelines/registry";
+import { memoryPipelineStore } from "@/lib/pipelines/store";
 import { RunEngine, type EngineOptions } from "@/lib/runs/engine";
 import { fakeProvider, type FakeOptions } from "@/lib/runs/providers/fake";
 import { memoryRunStore } from "@/lib/runs/store";
@@ -25,7 +31,7 @@ export const as = (userId: string): Principal => ({ kind: "user", userId });
  * launch versions (Trend Scout a draft), and a way to add members by role.
  * `seedBrains` puts the example Brand Brains into ada's team.
  */
-export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<EngineOptions>; launch?: boolean } = {}) {
+export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<EngineOptions>; launch?: boolean; pipelines?: Partial<PipelineEngineOptions>; templates?: boolean } = {}) {
   const t = testAccounts();
   let tick = 0;
   const now = () => new Date(t.clock.t + tick++ * 1000);
@@ -58,7 +64,13 @@ export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<Engin
   const runs = new GuardedRuns(engine, t.accounts);
   const brands = new BrandBrains({ accounts: t.accounts, store: brandStore, files, proposer: new ProfileProposer({ providers: { fake }, providerOverride: "fake" }), now });
   const store = memoryAppStore();
-  const api = new AppApi({ accounts: t.accounts, agents, runs, brands, store, now });
+  const pipelineStore = memoryPipelineStore();
+  const pipelineRegistry = new PipelineRegistry(pipelineStore, registry, () => now().toISOString());
+  const pipelineEngine = new PipelineEngine({ registry: pipelineRegistry, runs: engine, brandBrains: storeBrainSource(brandStore), store: pipelineStore, now, ...opts.pipelines });
+  const pipelines = new GuardedPipelines(pipelineEngine, t.accounts);
+  const launchAuthor = await ensureLaunchAuthor(t.accounts);
+  if ((opts.launch ?? true) && (opts.templates ?? true)) await installPipelineTemplates(pipelines, launchAuthor, LAUNCH_AUTHOR_ID);
+  const api = new AppApi({ accounts: t.accounts, agents, runs, brands, store, pipelines, now });
 
   const ada = (await t.signUp("ada@example.com")).user;
   const eve = (await t.signUp("eve@example.com")).user;
@@ -71,7 +83,7 @@ export async function testApp(opts: { fake?: FakeOptions; engine?: Partial<Engin
   };
   const seedTeamBrains = () => seedBrains(brandStore, files, team.id, { now: () => now().toISOString() });
 
-  return { ...t, registry, engine, fake, agents, runs, brands, brandStore, store, api, ada, eve, team, join, seedTeamBrains };
+  return { ...t, registry, engine, fake, agents, runs, brands, brandStore, store, api, ada, eve, team, join, seedTeamBrains, pipelineStore, pipelineRegistry, pipelineEngine, pipelines, launchAuthor };
 }
 
 export const POSTS = [

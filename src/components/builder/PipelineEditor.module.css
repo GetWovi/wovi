@@ -1,0 +1,367 @@
+/* The builder's pipeline editor: steps as cards down the page, the
+   validation and save beside them. */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--s-5);
+  align-items: start;
+}
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.side {
+  position: sticky;
+  top: calc(var(--header-h) + var(--s-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+@media (max-width: 1080px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .side {
+    position: static;
+  }
+}
+
+.inputSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.inputPill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: var(--surface-alt);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.inputPill b {
+  color: var(--text);
+}
+.details summary {
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--blaze-text);
+  margin-bottom: var(--s-3);
+}
+.details textarea {
+  min-height: 280px;
+}
+
+/* One step */
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  border: var(--stroke) solid transparent;
+}
+.stepError {
+  border-color: var(--blaze);
+}
+.stepHead {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: var(--s-4);
+  align-items: start;
+}
+.stepHead > :last-child {
+  padding-top: 30px;
+}
+.stepNo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 48px;
+  height: 64px;
+  margin-top: 30px;
+  border-radius: 14px;
+  background: var(--cobalt-tint);
+  color: var(--cobalt-glow);
+}
+.stepNo b {
+  font-size: var(--fs-sm);
+  color: var(--text);
+}
+.stepFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+@media (max-width: 760px) {
+  .stepHead {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+  .stepHead > :last-child {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+  .stepFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface-alt);
+}
+.mapHead {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blaze-text);
+}
+.mapRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) 24px minmax(0, 1.2fr);
+  gap: var(--s-3);
+  align-items: start;
+  padding: var(--s-2) 0;
+  border-top: 1px solid var(--hairline);
+}
+.mapRow:first-of-type {
+  border-top: 0;
+}
+.mapRowError .mapName b {
+  color: var(--blaze-text);
+}
+.mapName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 8px;
+}
+.mapName span {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.mapArrow {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  color: var(--text-muted);
+}
+.mapSource {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .mapRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mapArrow {
+    display: none;
+  }
+}
+
+.rules {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+@media (max-width: 760px) {
+  .rules {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.errors {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.errors li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  color: var(--blaze-text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  overflow-wrap: anywhere;
+}
+.errors li svg {
+  margin-top: 2px;
+}
+
+.addStep {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  height: 56px;
+  border: var(--stroke) dashed var(--line);
+  border-radius: var(--r-lg);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.addStep:hover:not(:disabled) {
+  border-color: var(--text-muted);
+  background: var(--text-tint);
+}
+.addStep:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.packageRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.packageRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 180px;
+  gap: var(--s-3);
+  align-items: center;
+}
+@media (max-width: 760px) {
+  .packageRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--blaze);
+}
+
+.check2 {
+  border: var(--stroke) solid transparent;
+}
+.good {
+  border-color: var(--cobalt-glow);
+}
+.bad {
+  border-color: var(--blaze);
+}
+
+.versions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.versions li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 4px var(--s-2);
+  align-items: baseline;
+  font-size: var(--fs-sm);
+}
+.versions li > span:not(.current) {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+}
+.versions small {
+  color: var(--text-muted);
+  grid-column: 3;
+  grid-row: 1;
+}
+.current {
+  justify-self: start;
+  padding: 1px 8px;
+  border-radius: var(--r-pill);
+  background: var(--cobalt-tint);
+  color: var(--cobalt-glow);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+
+/* The list of pipelines */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) 140px 120px 24px;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+}
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rowMain b {
+  font-size: var(--fs-lg);
+}
+.rowMain span {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.chain {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.chainTile {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--cobalt-tint);
+  color: var(--cobalt-glow);
+}
+.chainTileEnd {
+  background: var(--blaze);
+  color: var(--on-blaze);
+}
+.rowVersion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.rowVersion small,
+.rowEdited small {
+  color: var(--text-muted);
+}
+.rowEdited {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-sm);
+}
+@media (max-width: 900px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

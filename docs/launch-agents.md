@@ -172,6 +172,8 @@ What it does, in order:
 4. For each launch agent: creates it if missing; saves the launch version if it is newer than every version and **nobody but the seeds and the launch author has ever saved the agent**; otherwise leaves it alone and says why. A version Funkai saved in the builder always wins. Status (live, or draft for Trend Scout) is applied only when the launch version is saved.
 5. Adds the samples, skipping titles the agent already has. A sample that no longer fits a changed form is reported, not forced in.
 
+6. Installs the pipeline templates (phase 10, [pipelines.md](pipelines.md#templates)): "Idea to ready post", "Repurpose a post that worked" and "Caption and tags for a clip", skipping any a builder has saved over.
+
 Running it again changes nothing. `--bench` always uses the fake provider, even with `OPENROUTER_API_KEY` set. On a fresh data dir it printed: 35 runs, 35 done, 35 clean, 0 refused (a real model would cost about $1.15 for the whole set, capped at $4.15). The fake provider writes filler from the inputs, so this proves the plumbing only: shapes parse first time, every declared guardrail runs, brand fit is read, each sample uses its own Brand Brain.
 
 `npm run agents:try -- <id>` now falls back to the first golden launch sample when the old example inputs no longer fit the current version, and knows Idea Generator.

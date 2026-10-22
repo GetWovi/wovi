@@ -318,8 +318,8 @@ export function AgentRun({
   );
 }
 
-/** One field of the agent's form. */
-function Field({ field, value, error, uploading, onChange, onFiles }: { field: FormField; value: FormValues[string] | undefined; error?: string; uploading: boolean; onChange: (v: FormValues[string]) => void; onFiles: (list: FileList | null) => void }) {
+/** One field of the agent's form. Pipelines use it for their own form too. */
+export function Field({ field, value, error, uploading, onChange, onFiles }: { field: FormField; value: FormValues[string] | undefined; error?: string; uploading: boolean; onChange: (v: FormValues[string]) => void; onFiles: (list: FileList | null) => void }) {
   const label = `${field.label}${field.required ? "" : " (optional)"}`;
   switch (field.kind) {
     case "long_text":

@@ -1,7 +1,8 @@
 /**
  * Installs the launch set into a data dir: the phase 2 seeds as the base,
- * seven Brand Brains, the seven launch agents as new versions, and their
- * golden samples. Local only, safe to run again. See docs/launch-agents.md.
+ * seven Brand Brains, the seven launch agents as new versions, their golden
+ * samples, and the pipeline templates (phase 10). Local only, safe to run
+ * again. See docs/launch-agents.md and docs/pipelines.md.
  *
  *   npm run agents:launch
  *   npm run agents:launch -- --bench          then runs every sample once on the FAKE provider
@@ -19,6 +20,8 @@ import { jsonFileBrandStore } from "@/lib/brand/store";
 import { localBrandBrains, localBuilder } from "@/lib/builder/local";
 import { localFileStorage } from "@/lib/builder/storage";
 import { LAUNCH_AGENTS, LAUNCH_AUTHOR_ID, installLaunchSet } from "@/lib/launch";
+import { installPipelineTemplates } from "@/lib/pipelines/install";
+import { localPipelines } from "@/lib/pipelines/local";
 import { localEngine } from "@/lib/runs/engine";
 import { toUsd } from "@/lib/runs/prices";
 
@@ -48,6 +51,11 @@ async function main() {
   }
   console.log(`Samples added: ${report.samples.added}, already there: ${report.samples.existing}`);
   for (const u of report.samples.unfit) console.log(`  not added, ${u.agentId} / ${u.title}: ${u.reason}`);
+
+  const author = { kind: "user" as const, userId: LAUNCH_AUTHOR_ID };
+  const templates = await installPipelineTemplates(localPipelines(accounts, engine, dataDir), author, LAUNCH_AUTHOR_ID);
+  console.log("Pipeline templates:");
+  for (const p of templates) console.log(`  ${p.name.padEnd(30)} ${p.id.padEnd(17)} ${p.version.padEnd(7)} ${p.action}${p.reason ? `: ${p.reason}` : ""}`);
 
   if (!bench) return;
   const me = { kind: "user" as const, userId: LAUNCH_AUTHOR_ID };

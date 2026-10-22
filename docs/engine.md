@@ -124,9 +124,9 @@ The "Used by" column is the phase 2 seeds. The phase 8 launch versions route Has
 - **Tools.** The engine sends no tools to the model, so nothing outside the spec can be called, and declared tools (like `trend_lookup` for Trend Scout) do not run yet. Their results arrive when the tool layer is built.
 - **Media.** Image, storyboard and video outputs are refused at submit as not runnable.
 
-## Pipelines later (phase 10)
+## Pipelines (phase 10)
 
-A pipeline step is `submitRun` with `parent: { pipelineRunId, step }`, a pinned `version`, and `maxCostUsd` set to what is left of the pipeline's budget; `waitForRun` returns the typed output that feeds the next step.
+A pipeline step is `submitRun` with `parent: { pipelineRunId, step }`, a pinned `version`, an idempotency key per step and try, and `maxCostUsd` set to what is left of the pipeline's budget; `waitForRun` returns the typed output that feeds the next step. Steps share this engine's queue and limits. See [pipelines.md](pipelines.md).
 
 ## Who may call it (phase 4)
 

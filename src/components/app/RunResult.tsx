@@ -158,7 +158,7 @@ export function RunResult({
         <CopyButton text={copyAll(output)} label="Copy everything" />
       </div>
 
-      <Body view={rv} />
+      <ResultBody view={rv} />
 
       <div className={styles.resultFoot}>
         {editor && (
@@ -212,7 +212,8 @@ export function Asked({ run, agent }: { run: RunView["run"]; agent: AgentForResu
   );
 }
 
-function Body({ view }: { view: ResultView }) {
+/** The typed output in its shape: lines, cards, beats or platforms. */
+export function ResultBody({ view }: { view: ResultView }) {
   switch (view.layout) {
     case "lines":
       return (

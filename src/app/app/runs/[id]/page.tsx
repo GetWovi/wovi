@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import styles from "@/components/app/App.module.css";
 import { AppShell } from "@/components/app/AppShell";
 import { RunResult } from "@/components/app/RunResult";
+import p from "@/components/app/Pipeline.module.css";
 import { Mascot } from "@/components/brand/Mascot";
 import { currentTime } from "@/components/builder/labels";
 import { ButtonLink } from "@/components/ui/Button";
@@ -27,6 +28,8 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
   const spec = (await appAgents().get(me, PLATFORM_WORKSPACE_ID, agentId, view.run.agent.version)) ?? (await appAgents().get(me, workspaceId, agentId, view.run.agent.version)) ?? (await appAgents().get(me, PLATFORM_WORKSPACE_ID, agentId));
   const reviewer = view.review ? ((await accounts().getUser(view.review.by))?.name ?? (await accounts().getUser(view.review.by))?.email ?? null) : null;
   const running = view.state === "queued" || view.state === "running";
+  const parent = view.run.parent ? await api.pipelineRun(me, workspaceId, view.run.parent.pipelineRunId).catch(() => null) : null;
+  const stepOf = parent && view.run.parent ? parent.run.steps[view.run.parent.step] : null;
 
   return (
     <AppShell info={info} active="history">
@@ -44,6 +47,16 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
           </ButtonLink>
         )}
       </div>
+      {parent && stepOf && (
+        <Link href={`/app/pipelines/runs/${parent.run.id}`} className={p.partOf}>
+          <Icon name="layers" size={20} />
+          <span>
+            Step {view.run.parent!.step + 1} of {parent.run.steps.length} in <b>{parent.run.pipeline.name}</b>: {stepOf.label}
+            {stepOf.rewrite?.runId === view.run.id ? ", the rewrite" : stepOf.runIds.length > 1 && stepOf.runId !== view.run.id ? ", a draft that was not used" : ""}. See the whole chain.
+          </span>
+          <Icon name="arrow-right" size={18} />
+        </Link>
+      )}
       {running || !spec ? (
         <div className={[styles.panel, styles.panelAlt, styles.wovi].join(" ")}>
           <Mascot pose={running ? "move" : "wait"} size={120} />

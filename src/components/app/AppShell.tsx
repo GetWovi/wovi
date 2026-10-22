@@ -10,13 +10,15 @@ import { appApi } from "@/lib/app/server";
 import styles from "./App.module.css";
 import { WorkspaceSwitch } from "./WorkspaceSwitch";
 
-export type AppArea = "home" | "make" | "history" | "brand" | "settings";
+export type AppArea = "home" | "make" | "pipelines" | "history" | "brand" | "settings";
 
-const NAV: { id: AppArea; href: string; label: string; icon: IconName }[] = [
+/** `short` is the label on the phone's tab bar, where six tabs share the width. */
+const NAV: { id: AppArea; href: string; label: string; short?: string; icon: IconName }[] = [
   { id: "home", href: "/app", label: "Home", icon: "home" },
   { id: "make", href: "/app/make", label: "Make", icon: "bolt" },
+  { id: "pipelines", href: "/app/pipelines", label: "Pipelines", icon: "layers" },
   { id: "history", href: "/app/history", label: "History", icon: "clock" },
-  { id: "brand", href: "/brand-brain", label: "Brand Brain", icon: "bulb" },
+  { id: "brand", href: "/brand-brain", label: "Brand Brain", short: "Brand", icon: "bulb" },
   { id: "settings", href: "/app/settings", label: "Settings", icon: "sliders" },
 ];
 
@@ -80,7 +82,7 @@ export async function AppShell({ info, active, children }: { info: SessionInfo; 
         {NAV.map((n) => (
           <Link key={n.id} href={n.href} className={styles.tab} aria-current={active === n.id ? "page" : undefined}>
             <Icon name={n.icon} size={22} />
-            {n.label}
+            {n.short ?? n.label}
           </Link>
         ))}
       </nav>

@@ -16,11 +16,16 @@ import type { Accounts, Principal } from "@/lib/accounts/accounts";
 import { AccountError } from "@/lib/accounts/errors";
 import { savedBy, type GuardedAgents, type GuardedRuns, type PublicAgent, type PublicRun } from "@/lib/accounts/guard";
 import { PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
+import { PipelineError } from "@/lib/pipelines/errors";
+import type { GuardedPipelines } from "@/lib/pipelines/guard";
+import type { PublicPipelineRun } from "@/lib/pipelines/run";
+import type { PipelineSpec } from "@/lib/pipelines/spec";
 import type { AgentSpec } from "@/lib/agents/spec";
 import { BrandError, publicProposal, type BrainSummary, type BrandBrains, type ProposalEdits, type PublicProposal } from "@/lib/brand/brains";
 import { RunError, type SubmitRequest } from "@/lib/runs/engine";
 import type { Confirmations } from "@/lib/runs/guardrails";
 import { orderLineup, type LineupAgent } from "./lineup";
+import { pipelineSearchText, pipelineState, pipelineTitle, waitsForPerson, type PipelineState } from "./pipelines";
 import { canReadPosts, cleanPatch, emptyOnboarding, filledPosts, reachableStep, type OnboardingPatch, type OnboardingState } from "./onboarding";
 import { applyQuickEdit } from "./quick-edits";
 import { runSearchText, runState, type RunState } from "./results";
@@ -68,8 +73,33 @@ export type AppApiOptions = {
   runs: GuardedRuns;
   brands: BrandBrains;
   store: AppStore;
+  /** Pipelines (phase 10). Left out, the pipeline calls say not found. */
+  pipelines?: GuardedPipelines;
   now?: () => Date;
 };
+
+/** A pipeline a workspace can start, with its steps' agents by name. */
+export type PipelineInfo = {
+  spec: PipelineSpec;
+  /** Where the pipeline lives. */
+  workspaceId: string;
+  steps: { id: string; label: string; agentId: string; agentName: string; agentJob: string }[];
+  /** The confirmations its agents ask for. */
+  confirmations: { rights: boolean; voice: boolean };
+};
+
+export type StartPipelineInput = {
+  pipelineId: string;
+  pipelineWorkspaceId?: string;
+  inputs: Record<string, unknown>;
+  confirmations?: Confirmations;
+  idempotencyKey?: string;
+};
+
+/** A pipeline run with one state and its title. */
+export type PipelineView = { run: PublicPipelineRun; state: PipelineState; title: string };
+
+export type PipelineRunsFilter = { q?: string; state?: PipelineState | RunState | "all" | "open"; pipelineId?: string; limit?: number };
 
 const NOTE = /\n\nNote for this run: ([^]+)$/;
 
@@ -278,7 +308,8 @@ export class AppApi {
 
   /** Every run of the workspace, newest first, with search and a state filter. */
   async runs(caller: Principal, workspaceId: string, filter: RunsFilter = {}): Promise<RunView[]> {
-    const runs = await this.o.runs.listRuns(caller, workspaceId, filter.agentId ? { agentId: filter.agentId } : {});
+    // Runs a pipeline made are shown inside their pipeline run, not on their own.
+    const runs = (await this.o.runs.listRuns(caller, workspaceId, filter.agentId ? { agentId: filter.agentId } : {})).filter((r) => !r.parent);
     const names = await this.agentNames(caller, workspaceId);
     const reviews = new Map((await this.o.store.reviews.find({ workspaceId })).map((r) => [r.runId, r]));
     const q = filter.q?.trim().toLowerCase() ?? "";
@@ -297,7 +328,130 @@ export class AppApi {
 
   /** How many runs wait for a decision. */
   async openCount(caller: Principal, workspaceId: string): Promise<number> {
-    return (await this.runs(caller, workspaceId, { state: "open" })).length;
+    const runs = (await this.runs(caller, workspaceId, { state: "open" })).length;
+    const pipelines = this.o.pipelines ? (await this.pipelineRuns(caller, workspaceId, { state: "open" })).length : 0;
+    return runs + pipelines;
+  }
+
+  /* ---------- Pipelines (phase 10) ---------- */
+
+  private get pl(): GuardedPipelines {
+    if (!this.o.pipelines) throw new AppError("not_found", "Pipelines are not set up here.");
+    return this.o.pipelines;
+  }
+
+  private async pipelineInfo(caller: Principal, workspaceId: string, spec: PipelineSpec, home: string): Promise<PipelineInfo> {
+    const names = await this.agentNames(caller, workspaceId);
+    const guardrails: string[] = [];
+    for (const s of spec.steps) {
+      const a = (await this.o.agents.get(caller, home, s.agent.id)) ?? (home !== PLATFORM_WORKSPACE_ID ? await this.o.agents.get(caller, PLATFORM_WORKSPACE_ID, s.agent.id) : null);
+      guardrails.push(...(a?.guardrails ?? []));
+    }
+    return {
+      spec,
+      workspaceId: home,
+      steps: spec.steps.map((s) => ({ id: s.id, label: s.label, agentId: s.agent.id, agentName: names.get(s.agent.id)?.name ?? s.agent.id, agentJob: names.get(s.agent.id)?.job ?? "" })),
+      confirmations: { rights: guardrails.includes("rights_confirmed"), voice: guardrails.includes("voice_consent") },
+    };
+  }
+
+  /** The pipelines this workspace can start: the platform's templates, then its own. */
+  async pipelines(caller: Principal, workspaceId: string): Promise<PipelineInfo[]> {
+    if (!this.o.pipelines) return [];
+    const list = await this.pl.available(caller, workspaceId);
+    return Promise.all(list.map((p) => this.pipelineInfo(caller, workspaceId, p.spec, p.workspaceId)));
+  }
+
+  async pipeline(caller: Principal, workspaceId: string, id: string): Promise<PipelineInfo | null> {
+    return (await this.pipelines(caller, workspaceId)).find((p) => p.spec.id === id) ?? null;
+  }
+
+  /** Starts a pipeline run. Refusals come back as AppErrors with the engine's issues, "key: message". */
+  async startPipeline(caller: Principal, workspaceId: string, input: StartPipelineInput): Promise<PublicPipelineRun> {
+    const info = await this.pipeline(caller, workspaceId, input.pipelineId);
+    if (!info) throw new AppError("not_found", "No such pipeline.");
+    try {
+      return await this.pl.submit(caller, {
+        workspaceId,
+        pipelineId: input.pipelineId,
+        pipelineWorkspaceId: input.pipelineWorkspaceId ?? info.workspaceId,
+        inputs: input.inputs,
+        ...(input.confirmations ? { confirmations: input.confirmations } : {}),
+        ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
+      });
+    } catch (err) {
+      throw pipelineAppError(err);
+    }
+  }
+
+  async pipelineRun(caller: Principal, workspaceId: string, id: string): Promise<PipelineView | null> {
+    const run = await this.pl.getRun(caller, workspaceId, id);
+    return run ? { run, state: pipelineState(run), title: pipelineTitle(run) } : null;
+  }
+
+  /** The engine runs of a pipeline run, step by step, so the run pages can show the chain. */
+  async pipelineStepRuns(caller: Principal, workspaceId: string, id: string): Promise<PublicRun[]> {
+    return this.pl.stepRuns(caller, workspaceId, id);
+  }
+
+  /** Every pipeline run of the workspace, newest first, with search and a state filter. */
+  async pipelineRuns(caller: Principal, workspaceId: string, filter: PipelineRunsFilter = {}): Promise<PipelineView[]> {
+    if (!this.o.pipelines) return [];
+    const runs = await this.pl.listRuns(caller, workspaceId, filter.pipelineId ? { pipelineId: filter.pipelineId } : {});
+    const q = filter.q?.trim().toLowerCase() ?? "";
+    const out: PipelineView[] = [];
+    for (const run of runs) {
+      const v: PipelineView = { run, state: pipelineState(run), title: pipelineTitle(run) };
+      if (filter.state && filter.state !== "all") {
+        if (filter.state === "open" ? !waitsForPerson(v.state) : v.state !== filter.state) continue;
+      }
+      if (q && !pipelineSearchText(run).includes(q)) continue;
+      out.push(v);
+      if (filter.limit && out.length >= filter.limit) break;
+    }
+    return out;
+  }
+
+  async pickInPipeline(caller: Principal, workspaceId: string, id: string, stepId: string, index: number): Promise<PublicPipelineRun> {
+    try {
+      return await this.pl.pick(caller, workspaceId, id, stepId, index);
+    } catch (err) {
+      throw pipelineAppError(err);
+    }
+  }
+
+  async cancelPipeline(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {
+    try {
+      return await this.pl.cancel(caller, workspaceId, id);
+    } catch (err) {
+      throw pipelineAppError(err);
+    }
+  }
+
+  async retryPipeline(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {
+    try {
+      return await this.pl.retry(caller, workspaceId, id);
+    } catch (err) {
+      throw pipelineAppError(err);
+    }
+  }
+
+  /** The approve step at the end of a pipeline run. */
+  async decidePipeline(caller: Principal, workspaceId: string, id: string, decision: ReviewDecision, note = ""): Promise<PublicPipelineRun> {
+    if (!REVIEW_DECISIONS.includes(decision)) throw new AppError("invalid_request", "Approve or reject.");
+    try {
+      return await this.pl.decide(caller, workspaceId, id, decision, note);
+    } catch (err) {
+      throw pipelineAppError(err);
+    }
+  }
+
+  async clearPipelineDecision(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {
+    try {
+      return await this.pl.clearDecision(caller, workspaceId, id);
+    } catch (err) {
+      throw pipelineAppError(err);
+    }
   }
 
   private view(run: PublicRun, review: ReviewRow | null, names: Map<string, { name: string; job: string }>): RunView {
@@ -339,6 +493,14 @@ export class AppApi {
     if (!(await this.reviewOf(workspaceId, runId))) throw new AccountError("not_found", "No decision on that run.");
     await this.o.store.reviews.delete(runId);
   }
+}
+
+/** A pipeline refusal in the app's words. Account errors pass through. */
+function pipelineAppError(err: unknown): unknown {
+  if (!(err instanceof PipelineError)) return err;
+  if (err.code === "not_found") return new AppError("not_found", err.message);
+  if (err.code === "not_ready") return new AppError("not_ready", err.message);
+  return new AppError("invalid_request", err.code === "invalid_input" ? "Some fields need a look." : err.message.split("\n")[0], err.issues);
 }
 
 function pick(row: OnboardingRow): OnboardingState {

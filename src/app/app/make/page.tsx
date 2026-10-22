@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AgentCard } from "@/components/app/AgentCard";
 import styles from "@/components/app/App.module.css";
 import { AppShell } from "@/components/app/AppShell";
+import { PipelineCard } from "@/components/app/PipelineParts";
 import { groupLineup } from "@/lib/app/lineup";
 import { appPage } from "@/lib/app/server";
 
@@ -10,7 +11,8 @@ export const dynamic = "force-dynamic";
 
 export default async function MakePage() {
   const { info, me, workspaceId, api } = await appPage("/app/make");
-  const groups = groupLineup(await api.lineup(me, workspaceId));
+  const [lineup, pipelines] = await Promise.all([api.lineup(me, workspaceId), api.pipelines(me, workspaceId)]);
+  const groups = groupLineup(lineup);
 
   return (
     <AppShell info={info} active="make">
@@ -36,6 +38,21 @@ export default async function MakePage() {
           </div>
         </section>
       ))}
+      {pipelines.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionHead}>
+            <div>
+              <h2>Or chain them</h2>
+              <p className={[styles.muted, styles.small].join(" ")}>Pipelines run several agents in a row, from the idea to a post you approve.</p>
+            </div>
+          </div>
+          <div className={styles.grid3}>
+            {pipelines.map((p, i) => (
+              <PipelineCard key={p.spec.id} info={p} alt={i % 2 === 1} />
+            ))}
+          </div>
+        </section>
+      )}
     </AppShell>
   );
 }
