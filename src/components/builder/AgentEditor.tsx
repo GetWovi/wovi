@@ -33,7 +33,7 @@ const CONFIRM: Record<StatusAction, { title: string; body: string; button: strin
   unhide: { title: "Unhide this agent?", body: "It returns to the status it had before it was hidden.", button: "Unhide" },
 };
 
-export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, now, initialTab }: { csrf: string; spec: AgentSpec; versions: VersionInfo[]; updatedAt: string; samples: Sample[]; board: BoardItem[]; now: number; initialTab?: string }) {
+export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, now, initialTab, canary = false }: { csrf: string; spec: AgentSpec; versions: VersionInfo[]; updatedAt: string; samples: Sample[]; board: BoardItem[]; now: number; initialTab?: string; canary?: boolean }) {
   const router = useRouter();
   const { toast } = useToast();
   const [body, setBody] = useState<Body>(() => bodyOf(spec));
@@ -56,7 +56,7 @@ export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, n
   async function save(opts: SaveOptions) {
     setSaving(true);
     try {
-      const r = await saveAgent(csrf, spec.id, body as unknown as UpdateInput, { ...opts, canaryShare: spec.status === "live" ? Number(share) : null });
+      const r = await saveAgent(csrf, spec.id, body as unknown as UpdateInput, { ...opts, canaryShare: canary && spec.status === "live" ? Number(share) : null });
       if (!r.ok) return toast({ tone: "warning", title: r.error, description: r.issues?.slice(0, 3).join(" ") });
       toast({ tone: "success", ...savedWords(r.value.version, r.value.canary) });
       router.refresh();
@@ -138,7 +138,7 @@ export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, n
               {actionLabel[a]}
             </Button>
           ))}
-          {status === "live" && <Select aria-label="How the new version goes out" value={share} onChange={(e) => setShare(e.target.value)} options={SHARE_CHOICES} />}
+          {canary && status === "live" && <Select aria-label="How the new version goes out" value={share} onChange={(e) => setShare(e.target.value)} options={SHARE_CHOICES} />}
           <Button onClick={() => save({ bump: "patch", note: "" })} loading={saving} disabled={!changed || issues.length > 0}>
             Save
           </Button>

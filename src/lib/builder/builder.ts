@@ -84,6 +84,13 @@ export type BuilderOptions = {
    * the new version current at once, as before.
    */
   releases?: Releases | null;
+  /**
+   * Canary releases on (WOVI_CANARY=on). Off, a save reaches everyone at once
+   * as before, with no canary and no gate, while the audit log still records.
+   * Defaults to on when releases are given, so callers that pass releases
+   * without saying get the full flow (tests); the app passes the switch.
+   */
+  canary?: boolean;
   now?: () => Date;
 };
 
@@ -230,11 +237,13 @@ export class Builder implements BoardSource {
     }
     const row = (await this.opts.agents.rows(caller, this.workspaceId)).find((r) => r.id === id);
     if (!row) throw new AccountError("not_found", NOT_FOUND);
+    // Canaries off (WOVI_CANARY): every save reaches everyone at once, as before, and is logged.
+    // A canary left from when the switch was on is ended by a save for everyone, so it never comes back stale.
     const active = await rel.active(this.workspaceId, id);
     const live = row.status === "live";
-    const mode = opts.release?.mode ?? (active && live ? "canary" : "everyone");
+    const mode = !this.canary ? "everyone" : (opts.release?.mode ?? (active && live ? "canary" : "everyone"));
     if (mode === "everyone" || !live) {
-      if (live && opts.release?.mode === "everyone") {
+      if (this.canary && live && opts.release?.mode === "everyone") {
         throw new AccountError("invalid_request", "A live agent's new version goes out as a canary first. Publish it to everyone from Stats once the gold set passes.");
       }
       const saved = await this.opts.agents.update(caller, this.workspaceId, id, changes, { bump: opts.bump, note: opts.note });
@@ -256,8 +265,14 @@ export class Builder implements BoardSource {
     return saved;
   }
 
-  /** The version the builder works on: the running canary, or the current version. */
+  /** Whether canary releases are on: releases are set up and WOVI_CANARY is on. */
+  get canary(): boolean {
+    return Boolean(this.opts.releases) && this.opts.canary !== false;
+  }
+
+  /** The version the builder works on: the running canary, or the current version. With canaries off, always the current one. */
   async headVersion(id: string): Promise<string | undefined> {
+    if (!this.canary) return undefined;
     return (await this.opts.releases?.head(this.workspaceId, id)) ?? undefined;
   }
 

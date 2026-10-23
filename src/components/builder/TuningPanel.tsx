@@ -28,7 +28,7 @@ const cleanGate = (g: GateFields): GateFields => Object.fromEntries(Object.entri
  * model slot and fallback, temperature and limits, the spend cap. Save makes
  * a new version; "Save and re-run" runs the chosen samples against it.
  */
-export function TuningPanel({ csrf, spec, sampleIds, onTuned }: { csrf: string; spec: AgentSpec; sampleIds: string[]; onTuned: (version: string, bench: BenchView | null) => void }) {
+export function TuningPanel({ csrf, spec, sampleIds, onTuned, canary = false }: { csrf: string; spec: AgentSpec; sampleIds: string[]; onTuned: (version: string, bench: BenchView | null) => void; canary?: boolean }) {
   const { toast } = useToast();
   const [instructions, setInstructions] = useState(spec.instructions);
   const [routing, setRouting] = useState({ ...spec.routing });
@@ -60,7 +60,7 @@ export function TuningPanel({ csrf, spec, sampleIds, onTuned }: { csrf: string; 
   async function save(rerun: boolean) {
     setSaving(rerun ? "rerun" : "save");
     try {
-      const r = await tuneAgent(csrf, spec.id, changes, { bump, note, rerun: rerun ? sampleIds : null, canaryShare: spec.status === "live" ? Number(share) : null });
+      const r = await tuneAgent(csrf, spec.id, changes, { bump, note, rerun: rerun ? sampleIds : null, canaryShare: canary && spec.status === "live" ? Number(share) : null });
       if (!r.ok) return toast({ tone: "warning", title: r.error, description: r.issues?.slice(0, 3).join(" ") });
       const words = savedWords(r.value.version, r.value.canary);
       toast({ tone: "success", title: words.title, description: rerun ? `Running the same samples against it. ${r.value.canary === null ? "" : words.description}`.trim() : words.description });
@@ -111,7 +111,7 @@ export function TuningPanel({ csrf, spec, sampleIds, onTuned }: { csrf: string; 
         <Input label="Change note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="What changed, in a few words" maxLength={200} />
         <Select label="Bump" value={bump} onChange={(e) => setBump(e.target.value as Bump)} options={[{ value: "patch", label: "Patch" }, { value: "minor", label: "Minor" }, { value: "major", label: "Major" }]} />
       </div>
-      {spec.status === "live" && <Select label="How it goes out" value={share} onChange={(e) => setShare(e.target.value)} options={SHARE_CHOICES} hint="The current version keeps serving everyone else. Publish to everyone on Stats once the gold set passes." />}
+      {canary && spec.status === "live" && <Select label="How it goes out" value={share} onChange={(e) => setShare(e.target.value)} options={SHARE_CHOICES} hint="The current version keeps serving everyone else. Publish to everyone on Stats once the gold set passes." />}
       <div className={styles.actions}>
         <Button onClick={() => save(true)} loading={saving === "rerun"} disabled={!canRerun || saving !== null}>
           Save and re-run

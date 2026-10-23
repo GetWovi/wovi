@@ -28,9 +28,10 @@ export function localDrafter(): SpecDrafter {
   return new SpecDrafter({ providers: fake ? { fake: providers.fake } : providers, providerOverride: fake ? "fake" : undefined });
 }
 
-export function localBuilder(accounts: Accounts, dataDir = dataDirFromEnv(), engine?: RunEngine, releases?: Releases | null): Builder {
+export function localBuilder(accounts: Accounts, dataDir = dataDirFromEnv(), engine?: RunEngine, releases?: Releases | null, canary?: boolean): Builder {
   return new Builder({
     releases: releases ?? null,
+    ...(canary !== undefined ? { canary } : {}),
     accounts,
     agents: new GuardedAgents(localRegistry(dataDir), accounts),
     store: jsonFileBuilderStore(join(dataDir, "builder.json")),

@@ -19,7 +19,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   return (
     <BuilderShell active="agents" who={user.name ?? user.email ?? "Builder"}>
       {/* A new version or status from the server remounts the editor with the fresh spec. */}
-      <AgentEditor key={`${agent.spec.version}:${agent.row.updatedAt}`} csrf={csrf} spec={agent.spec} versions={agent.versions} updatedAt={agent.row.updatedAt} samples={samples} board={board} now={now} initialTab={typeof tab === "string" ? tab : undefined} />
+      <AgentEditor key={`${agent.spec.version}:${agent.row.updatedAt}`} csrf={csrf} spec={agent.spec} versions={agent.versions} updatedAt={agent.row.updatedAt} samples={samples} board={board} now={now} initialTab={typeof tab === "string" ? tab : undefined} canary={builder.canary} />
     </BuilderShell>
   );
 }

@@ -20,7 +20,7 @@ export default async function BenchPage({ params }: { params: Promise<{ id: stri
   return (
     <BuilderShell active="agents" who={user.name ?? user.email ?? "Builder"}>
       <AgentHead spec={agent.spec} versions={agent.versions.length} title="Test bench" active="bench" updatedAt={agent.row.updatedAt} now={now} />
-      <Bench csrf={csrf} spec={agent.spec} history={history} samples={samples} latest={recent[0] ?? null} now={now} brains={brains.map((b) => ({ id: b.id, name: b.name, isDefault: b.isDefault }))} />
+      <Bench csrf={csrf} spec={agent.spec} history={history} samples={samples} latest={recent[0] ?? null} now={now} brains={brains.map((b) => ({ id: b.id, name: b.name, isDefault: b.isDefault }))} canary={builder.canary} />
     </BuilderShell>
   );
 }

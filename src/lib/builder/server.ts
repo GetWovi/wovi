@@ -11,12 +11,14 @@ import type { User } from "@/lib/accounts/types";
 import type { Builder } from "./builder";
 import { localBuilder } from "./local";
 import { appReleases } from "@/lib/stats/server";
+import { canaryEnabled } from "@/lib/stats/config";
 
 const g = globalThis as { __woviBuilder?: Builder };
 
 export function appBuilder(): Builder {
   // Canary releases and the audit log (docs/stats.md) come with the builder of the app.
-  return (g.__woviBuilder ??= localBuilder(accounts(), undefined, appEngine(), appReleases()));
+  // WOVI_CANARY (off by default): saves go to everyone at once; stats and the audit log still record.
+  return (g.__woviBuilder ??= localBuilder(accounts(), undefined, appEngine(), appReleases(), canaryEnabled()));
 }
 
 export type BuilderContext = { info: SessionInfo; user: User; me: Principal; csrf: string; builder: Builder };

@@ -20,7 +20,7 @@ import type { StatsStore } from "@/lib/stats/store";
 
 export const as = (userId: string): Principal => ({ kind: "user", userId });
 
-export async function testBuilder(opts: { seeds?: boolean; fake?: FakeOptions; engine?: Partial<EngineOptions>; stats?: StatsStore } = {}) {
+export async function testBuilder(opts: { seeds?: boolean; fake?: FakeOptions; engine?: Partial<EngineOptions>; stats?: StatsStore; canary?: boolean } = {}) {
   const t = testAccounts();
   let tick = 0;
   const now = () => new Date(t.clock.t + tick++);
@@ -40,7 +40,8 @@ export async function testBuilder(opts: { seeds?: boolean; fake?: FakeOptions; e
     backoff: { baseMs: 5, maxMs: 20 },
     now,
     // Canary releases only when a test asks for them, so the tests before them run as they always did.
-    ...(opts.stats ? { router: storeRouter(opts.stats) } : {}),
+    // With WOVI_CANARY off the app builds its engine without a router; the tests do the same.
+    ...(opts.stats && opts.canary !== false ? { router: storeRouter(opts.stats) } : {}),
     ...opts.engine,
   });
   const stats = opts.stats
@@ -60,6 +61,7 @@ export async function testBuilder(opts: { seeds?: boolean; fake?: FakeOptions; e
     drafter: new SpecDrafter({ providers: { fake }, providerOverride: "fake" }),
     engine,
     releases,
+    ...(opts.canary !== undefined ? { canary: opts.canary } : {}),
     now,
   }));
 

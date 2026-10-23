@@ -43,7 +43,12 @@ export class AgentReleases {
   }
 
   get enabled(): boolean {
-    return Boolean(this.b.deps.releases);
+    return this.b.canary;
+  }
+
+  /** The canary calls refuse while WOVI_CANARY is off. */
+  private requireCanary() {
+    if (!this.b.canary) throw new AccountError("invalid_request", "Canary releases are off here (WOVI_CANARY). A save goes to everyone at once.");
   }
 
   /** The release screen. Looks at the running canary first, so one that is clearly worse is stopped before it is shown. */
@@ -66,6 +71,7 @@ export class AgentReleases {
   /** Starts a canary of a saved version beside the current one. */
   async start(caller: Principal, agentId: string, input: { version: string; share: number; thresholds?: Partial<CanaryThresholds> }): Promise<ReleaseRow> {
     const user = await this.b.requireBuilder(caller);
+    this.requireCanary();
     const row = (await this.b.deps.agents.rows(caller, this.b.workspaceId)).find((r) => r.id === agentId);
     if (!row) throw new AccountError("not_found", "Not found.");
     if (row.status !== "live") throw new AccountError("invalid_request", "Only a live agent has live runs to share. Publish it first.");
@@ -74,12 +80,14 @@ export class AgentReleases {
 
   async update(caller: Principal, agentId: string, patch: { share?: number; thresholds?: Partial<CanaryThresholds> }): Promise<ReleaseRow> {
     const user = await this.b.requireBuilder(caller);
+    this.requireCanary();
     return this.rel.update(this.b.workspaceId, agentId, patch, user.id);
   }
 
   /** Publishes the canary to everyone through the regression gate, then scores the version that is current now. */
   async promote(caller: Principal, agentId: string): Promise<{ release: ReleaseRow; gate: GateResult; spec: AgentSpec }> {
     const user = await this.b.requireBuilder(caller);
+    this.requireCanary();
     const out = await this.rel.promote(this.b.workspaceId, agentId, user.id);
     const spec = await this.b.bench.refreshQuality(caller, agentId);
     return { ...out, spec };
@@ -87,6 +95,7 @@ export class AgentReleases {
 
   async rollBack(caller: Principal, agentId: string): Promise<ReleaseRow> {
     const user = await this.b.requireBuilder(caller);
+    this.requireCanary();
     return this.rel.rollBack(this.b.workspaceId, agentId, user.id);
   }
 
@@ -97,6 +106,7 @@ export class AgentReleases {
    */
   async runGoldSet(caller: Principal, agentId: string, opts: { again?: boolean } = {}): Promise<BenchView[]> {
     await this.b.requireBuilder(caller);
+    this.requireCanary();
     const active = await this.rel.active(this.b.workspaceId, agentId);
     if (!active) throw new AccountError("invalid_request", "Start a canary first; the gold set compares it with the stable version.");
     const gold = await this.rel.goldSamples(this.b.workspaceId, agentId);

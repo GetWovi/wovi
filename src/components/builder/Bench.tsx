@@ -29,7 +29,7 @@ const POLL_MS = 1000;
 /** The test bench page: pick a version and samples, run them through the engine, see each result beside its ideal, rate it, and tune beside it. */
 export type BenchBrain = { id: string; name: string; isDefault: boolean };
 
-export function Bench({ csrf, spec, history, samples, latest, now, brains = [] }: { csrf: string; spec: AgentSpec; history: VersionEntry[]; samples: Sample[]; latest: BenchView | null; now: number; brains?: BenchBrain[] }) {
+export function Bench({ csrf, spec, history, samples, latest, now, brains = [], canary = false }: { csrf: string; spec: AgentSpec; history: VersionEntry[]; samples: Sample[]; latest: BenchView | null; now: number; brains?: BenchBrain[]; canary?: boolean }) {
   const router = useRouter();
   const { toast } = useToast();
   const [version, setVersion] = useState(spec.version);
@@ -217,7 +217,7 @@ export function Bench({ csrf, spec, history, samples, latest, now, brains = [] }
         )}
       </div>
 
-      <TuningPanel key={spec.version} csrf={csrf} spec={spec} sampleIds={mode === "samples" ? selected : []} onTuned={onTuned} />
+      <TuningPanel key={spec.version} csrf={csrf} spec={spec} sampleIds={mode === "samples" ? selected : []} onTuned={onTuned} canary={canary} />
     </div>
   );
 }

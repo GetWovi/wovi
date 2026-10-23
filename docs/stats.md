@@ -67,10 +67,12 @@ Per agent (every version together) and per version, from the counting runs and t
 | Gallery cards (`/app/make`, the app home) | Used as is, Edited, Thumbs up, or "Live stats: New" with how many real runs it has. Beside the quality score. |
 | The agent page (`/app/make/[agent]#live-stats`) | Live stats: the headline, eight tiles with what each was counted from, and how counting works. A chip in the head links to it. |
 | Under every result | Did it work for you? Use it, Edit, Try again, thumbs up and down with a note, what was already done, and the consent note with a link to it. |
-| `/builder/agents/[id]/stats` | Live stats per version (with cost and bench runs), what people changed (only from people who allowed it, the changed lines only), the release panel and the audit log. |
+| `/builder/agents/[id]/stats` | Live stats per version (with cost and bench runs), what people changed (only from people who allowed it, the changed lines only), the release panel (with `WOVI_CANARY=on`) and the audit log. |
 | `/builder/audit` | Every agent's audit log. |
 
 ## Canary releases
+
+**Off by default.** Canary releases only apply with `WOVI_CANARY=on`. Off (the default, and the way to run before launch while agents are being tuned with no real traffic): saving a live agent in the editor or in Tuning reaches everyone at once, exactly as before, with no canary choice, no gold-set gate in the way and nothing routed; the release panel is hidden and the canary calls refuse. Live stats, feedback, the Stats page's numbers per version and the audit log (every save, "it serves everyone") record either way. A canary left from when the switch was on never routes while it is off, and the next save ends it. Everything below is the behaviour with `WOVI_CANARY=on`.
 
 The registry's current version is the **stable** one: what forms, the API and MCP show, and what every run that follows "latest stable" gets. A **release** names a newer version (the canary) and a share of live runs.
 
@@ -124,6 +126,7 @@ Nothing stored before is migrated or rewritten. `stats.json` is created on the f
 
 | Variable | Default | What it does |
 |---|---|---|
+| `WOVI_CANARY` | off | `on` turns on canary releases: a live agent's save goes out as a canary, runs are routed, the release panel shows, and publishing to everyone goes through the regression gate. Off, a save reaches everyone at once as before. Stats, feedback and the audit log record either way. |
 | `WOVI_STATS_EXCLUDE_WORKSPACES` | (none) | Test workspaces whose runs never count, comma separated. |
 
 The minimum count (20), the default share (10%), the share limits (0 to 50%) and the default stop rules are in `types.ts`; the gate's tolerance (0 points) is in `gate.ts`.
@@ -140,7 +143,7 @@ Screenshots, on SAMPLE data in a throwaway local data dir (never a real one; the
 export WOVI_DATA_DIR=/tmp/wovi-stats-screens
 OPENROUTER_API_KEY= npm run agents:launch
 npm run build
-WOVI_APP_URL=http://localhost:3900 OPENROUTER_API_KEY= npm start
+WOVI_CANARY=on WOVI_APP_URL=http://localhost:3900 OPENROUTER_API_KEY= npm start
 OPENROUTER_API_KEY= node scripts/stats-screens.mjs ~/WOVI-stats-screens
 ```
 
@@ -151,6 +154,7 @@ The script signs in through the email flow, skips onboarding, joins the builder 
 - `metrics.test.ts`: the edit distance (same, nothing in common, whitespace, long texts); every number's math from runs and events; New below the minimum and no cost in the public view; failed, cancelled and taken-down runs, and format failures against compliance; one run's outcome; the canary comparison by each rule, never below the minimum, configurable rules; routing (about the share by hash, one side per workspace, a growing share only adds, another release another cohort); the gate (pass, a lower score, a missing gold run, worse live numbers, no gold samples) and the latest gold run per sample.
 - `feedback.test.ts`: one event per action per run (concurrent uses, edits and ratings replacing, the first time kept), an unchanged edit as a use, Try again and quick edits as regenerates; who may act (viewers copy and rate, editors also edit and regenerate, outsiders and other workspaces get nothing, unfinished runs refused, bad input refused); consent (edit text kept and shown only with it, hidden when turned off, counts kept); builders only; approvals and change requests in review, the phase 9 button, a client link's yes, a first yes of two; a pipeline pick, a copied part and a package approval; which runs count; `POST /runs/{id}/feedback` and MCP's `give_feedback`.
 - `releases.test.ts`: a live agent's save as a canary (the current version stays, the builder works on the canary, a further save builds on it and replaces the release); the form rule and bench only; drafts as before; routing by hash with release marks, one side per workspace, pinned and builder runs never routed, rollback; pipelines routing "current" steps and never pinned ones, with the release kept inside; the gate needing the gold set, refusing a worse version with its scores and publishing a good one; the automatic stop with its numbers and routing back, never below the minimum, the rules changed; the audit log for every kind, builders only.
+- `releases.test.ts`, with `WOVI_CANARY` off: the switch reads off unless it says on; a live agent's save (from the editor and from Tuning with a re-run) reaches everyone at once with no canary, no gate and nothing routed, whatever release choice is sent; runs carry no release; feedback, the numbers per version and the audit log still record; every canary call refuses; a canary left from when it was on never routes and the next save ends it.
 - `phase17-stats.test.ts`: the old data dir, above.
 
 ## Later

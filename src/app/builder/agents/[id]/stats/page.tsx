@@ -20,7 +20,8 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const agent = await builder.getAgent(me, id);
   if (!agent) notFound();
-  const view = await builder.release.view(me, id);
+  // The release panel only with WOVI_CANARY=on; stats and the audit log always.
+  const view = builder.canary ? await builder.release.view(me, id) : null;
   const stats = appStats();
   const versions = await builder.release.stats(me, id, stats);
   const audit = await builder.release.audit(me, id, 60);
@@ -29,8 +30,8 @@ export default async function StatsPage({ params }: { params: Promise<{ id: stri
     <BuilderShell active="agents" who={user.name ?? user.email ?? "Builder"}>
       <AgentHead spec={agent.spec} versions={agent.versions.length} title="Stats" active="stats" updatedAt={agent.row.updatedAt} now={now} />
       <div className={s.page}>
-        <ReleasePanel key={`${view.active?.id ?? "none"}:${view.active?.share ?? ""}:${view.active?.updatedAt ?? ""}`} csrf={csrf} view={view} agentName={agent.spec.name} now={now} />
-        <VersionStatsTable versions={versions} stable={view.stable} canary={view.active?.canary ?? null} min={stats.min} now={now} />
+        {view && <ReleasePanel key={`${view.active?.id ?? "none"}:${view.active?.share ?? ""}:${view.active?.updatedAt ?? ""}`} csrf={csrf} view={view} agentName={agent.spec.name} now={now} />}
+        <VersionStatsTable versions={versions} stable={view?.stable ?? agent.row.currentVersion} canary={view?.active?.canary ?? null} min={stats.min} now={now} />
         <Card title="Audit log" className={styles.section}>
           <p className={styles.sectionNote}>Every save, publish, canary, promotion and rollback of this agent, with who and when.</p>
           <AuditLog entries={audit} />

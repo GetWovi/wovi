@@ -12,7 +12,7 @@
  * Chrome's virtual authenticator, then runs scripts/seed-stats.ts.
  *
  *   WOVI_DATA_DIR=/tmp/wovi-stats-screens OPENROUTER_API_KEY= npm run agents:launch
- *   WOVI_DATA_DIR=/tmp/wovi-stats-screens OPENROUTER_API_KEY= npm start
+ *   WOVI_CANARY=on WOVI_DATA_DIR=/tmp/wovi-stats-screens OPENROUTER_API_KEY= npm start
  *   WOVI_DATA_DIR=/tmp/wovi-stats-screens OPENROUTER_API_KEY= node scripts/stats-screens.mjs [outDir]
  */
 import { execFileSync, spawn } from "node:child_process";

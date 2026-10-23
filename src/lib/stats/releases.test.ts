@@ -19,7 +19,8 @@ import type { Run } from "@/lib/runs/run";
 import { Feedback } from "./feedback";
 import { storeRouter } from "./releases";
 import { memoryStatsStore } from "./store";
-import type { ReleaseRow } from "./types";
+import { DEFAULT_THRESHOLDS, type ReleaseRow } from "./types";
+import { canaryEnabled } from "./config";
 
 const HOOK = { idea: "Gerald, our sourdough starter, turns nine this week. He has never missed a bake.", platform: "tiktok" };
 const STOCK = "STOCK LINES ONLY";
@@ -33,9 +34,9 @@ function respond(req: CompletionRequest) {
   return JSON.stringify(answer);
 }
 
-async function world() {
+async function world(opts: { canary?: boolean } = {}) {
   const statsStore = memoryStatsStore();
-  const t = await testBuilder({ stats: statsStore, fake: { respond } });
+  const t = await testBuilder({ stats: statsStore, fake: { respond }, ...(opts.canary !== undefined ? { canary: opts.canary } : {}) });
   const { me, user } = await t.joinBuilder();
   const hook = (await t.registry.get(PLATFORM_WORKSPACE_ID, "hook-writer"))!;
   const feedback = new Feedback({ store: statsStore, runs: t.engine });
@@ -270,5 +271,78 @@ describe("the audit log", () => {
     await rejectsCode(t.builder.release.view(as(someone.user.id), draft.id), "not_found");
     await rejectsCode(t.builder.release.start(t.me, draft.id, { version: "1.0.1", share: 10 }), "invalid_request");
     expect(JSON.stringify(log)).not.toContain("\u2014");
+  });
+});
+
+describe("with WOVI_CANARY off (the default)", () => {
+  it("reads the switch: off unless it says on", () => {
+    expect(canaryEnabled({} as NodeJS.ProcessEnv)).toBe(false);
+    expect(canaryEnabled({ NODE_ENV: "test", WOVI_CANARY: "off" } as NodeJS.ProcessEnv)).toBe(false);
+    expect(canaryEnabled({ NODE_ENV: "test", WOVI_CANARY: "1" } as NodeJS.ProcessEnv)).toBe(false);
+    expect(canaryEnabled({ NODE_ENV: "test", WOVI_CANARY: " On " } as NodeJS.ProcessEnv)).toBe(true);
+  });
+
+  it("a live agent's save reaches everyone at once, as before: no canary, no gate, nothing routed; stats, feedback and the audit log still record", async () => {
+    const t = await world({ canary: false });
+    expect(t.builder.canary).toBe(false);
+    // A canary choice from an old screen is ignored, and so is "everyone": both go to everyone.
+    const saved = await t.builder.saveAgent(t.me, "hook-writer", { instructions: `${t.hook.instructions}\n${STOCK}` }, { release: { mode: "canary", share: 25 } });
+    expect(saved.version).toBe("1.0.1");
+    expect((await t.registry.get(PLATFORM_WORKSPACE_ID, "hook-writer"))!.version).toBe("1.0.1");
+    expect(await t.releases.active(PLATFORM_WORKSPACE_ID, "hook-writer")).toBeNull();
+    // No gold set, a worse version, and still no refusal: the gate is not in the way.
+    const next = await t.builder.saveAgent(t.me, "hook-writer", { job: "Opens a post with one line people stop for." }, { release: { mode: "everyone" } });
+    expect((await t.registry.get(PLATFORM_WORKSPACE_ID, "hook-writer"))!.version).toBe(next.version);
+    // Tuning on the bench too, with a re-run on the new version.
+    await t.builder.addSample(t.me, "hook-writer", { title: "Gerald", inputs: HOOK, idealOutput: "1. Gerald is nine. He has never missed a bake." });
+    const tuned = await t.builder.bench.tune(t.me, "hook-writer", { routing: { ...t.hook.routing, temperature: 0.4 } }, { rerun: {}, release: { mode: "canary", share: 10 } });
+    expect((await t.registry.get(PLATFORM_WORKSPACE_ID, "hook-writer"))!.version).toBe(tuned.spec.version);
+    expect(tuned.bench?.version).toBe(tuned.spec.version);
+    await untilBenchEnds(t, t.me, tuned.bench!.id);
+    expect((await t.builder.getAgent(t.me, "hook-writer"))!.spec.version).toBe(tuned.spec.version);
+
+    // Every customer gets the current version, with no release on the run.
+    const runs: Run[] = [];
+    for (let i = 0; i < 12; i++) runs.push(await t.run(`ws_customer_${i}`));
+    for (const r of runs) {
+      expect(r.agent.version).toBe(tuned.spec.version);
+      expect(r.release).toBeUndefined();
+    }
+    // Feedback and the numbers still record.
+    await t.feedback.record({ workspaceId: runs[0].workspaceId, runId: runs[0].id, action: "use", by: "usr_someone", source: "app" });
+    await t.feedback.record({ workspaceId: runs[1].workspaceId, runId: runs[1].id, action: "regenerate", by: "usr_someone", source: "app" });
+    const versions = await t.builder.release.stats(t.me, "hook-writer", t.stats);
+    const live = versions.find((v) => v.version === tuned.spec.version)!.live;
+    expect(live.runs).toBe(12);
+    expect(live.acceptance).toMatchObject({ count: 1, n: 12 });
+    expect(live.regenerate).toMatchObject({ count: 1, n: 12 });
+    // The audit log keeps every save, saying it went to everyone.
+    const log = await t.builder.release.audit(t.me, "hook-writer");
+    expect(log.map((a) => a.kind)).toEqual(["saved", "saved", "saved"]);
+    expect(log.every((a) => a.detail.endsWith("it serves everyone."))).toBe(true);
+
+    // The canary calls are off.
+    for (const call of [
+      t.builder.release.start(t.me, "hook-writer", { version: "1.0.1", share: 10 }),
+      t.builder.release.update(t.me, "hook-writer", { share: 10 }),
+      t.builder.release.promote(t.me, "hook-writer"),
+      t.builder.release.rollBack(t.me, "hook-writer"),
+      t.builder.release.runGoldSet(t.me, "hook-writer"),
+    ]) {
+      const err = await rejectsCode(call, "invalid_request");
+      expect(err.message).toContain("WOVI_CANARY");
+    }
+    expect(t.builder.release.enabled).toBe(false);
+  });
+
+  it("a canary left from when the switch was on never routes, and the next save ends it", async () => {
+    const t = await world({ canary: false });
+    const canary = await t.registry.update(PLATFORM_WORKSPACE_ID, "hook-writer", { instructions: `${t.hook.instructions}\nKeep it warm.` }, { keepCurrent: true });
+    await t.statsStore.releases.insert({ id: "rel_left", workspaceId: PLATFORM_WORKSPACE_ID, agentId: "hook-writer", stable: "1.0.0", canary: canary.version, share: 50, status: "canary", thresholds: DEFAULT_THRESHOLDS, startedAt: "t", startedBy: t.user.id, endedAt: null, endedBy: null, reason: null, updatedAt: "t" });
+    for (let i = 0; i < 8; i++) expect((await t.run(`ws_shop_${i}`)).agent.version).toBe("1.0.0");
+    expect((await t.builder.getAgent(t.me, "hook-writer"))!.spec.version).toBe("1.0.0");
+    const saved = await t.builder.saveAgent(t.me, "hook-writer", { job: "Opens a post with one line people stop for." });
+    expect((await t.registry.get(PLATFORM_WORKSPACE_ID, "hook-writer"))!.version).toBe(saved.version);
+    expect((await t.statsStore.releases.get("rel_left"))!.status).toBe("replaced");
   });
 });

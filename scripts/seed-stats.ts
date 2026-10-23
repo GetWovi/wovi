@@ -71,7 +71,8 @@ async function main() {
   const engine = localEngine({ dataDir: dir, fake: true, brandBrains: localBrandBrains(dir), references: sampleReferences(builderStore.samples), router: localRouter(dir) });
   const late: { builder?: Builder } = {};
   const s = localStats(dir, { accounts, engine, requireBuilder: (c) => late.builder!.requireBuilder(c) });
-  const builder = (late.builder = localBuilder(accounts, dir, engine, s.releases));
+  // Sample data shows the canary flow, so the builder here has it on; the server shows the panel with WOVI_CANARY=on.
+  const builder = (late.builder = localBuilder(accounts, dir, engine, s.releases, true));
   const privacy = localPrivacy(accounts, dir);
 
   // The sample shops: real accounts on this local dir, each with its own workspace. Half allow their edits to improve agents.
