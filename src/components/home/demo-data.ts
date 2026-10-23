@@ -78,7 +78,7 @@ export const AGENTS: { name: string; job: string; tag: string; fit: number; icon
   { name: "Caption Writer", job: "Writes the caption to match the clip, the format and your voice.", tag: "Captions", fit: 92, icon: "spark", status: "live" },
   { name: "Hashtag Optimizer", job: "Picks the few tags and search words that help the right people find the post.", tag: "Reach", fit: 90, icon: "hash", status: "live" },
   { name: "Platform Repurposer", job: "Turns one post that worked into a native version for each of your other platforms.", tag: "Repurposing", fit: 89, icon: "copy", status: "live" },
-  { name: "Trend Scout", job: "Finds the formats rising in your niche this week and how you could use them.", tag: "Research", fit: 0, icon: "search", status: "coming" },
+  { name: "Trend Scout", job: "Finds the formats rising in your niche this week and how you could use them.", tag: "Research", fit: 93, icon: "search", status: "live" },
   { name: "Storyboarder", job: "Frames, shots and on-screen text for every beat of the script.", tag: "Storyboards", fit: 0, icon: "film", status: "next" },
   { name: "Voice and Cut", job: "Narration in your voice and a first cut from the storyboard.", tag: "Video", fit: 0, icon: "play", status: "next" },
 ];
