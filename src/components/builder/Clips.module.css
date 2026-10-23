@@ -1,0 +1,476 @@
+/* Clip samples in the builder: the library, the upload and one clip. On the brand tokens, like Builder.module.css. */
+
+/* ---------- Tiles ---------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+@media (max-width: 1000px) {
+  .tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tiles > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface-alt);
+  border: 1px solid var(--hairline);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+}
+.notice svg {
+  flex: none;
+  margin-top: 1px;
+}
+.noticeWarn {
+  border-color: var(--blaze);
+}
+.models {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+/* ---------- Upload ---------- */
+.uploadGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--s-5);
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .uploadGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  min-height: 220px;
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  border: 2px dashed var(--hairline-strong);
+  background: var(--surface-alt);
+  text-align: center;
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.dropOver {
+  border-color: var(--blaze);
+  background: var(--blaze-tint);
+}
+.dropOff {
+  opacity: 0.6;
+}
+.dropTitle {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+}
+.dropHint {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  max-width: 38ch;
+}
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 44px;
+  padding-inline: var(--s-4);
+  border-radius: var(--r-pill);
+  border: var(--stroke) solid var(--line);
+  background: var(--surface);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.pick:hover {
+  border-color: var(--blaze);
+}
+.pick:has(input:focus-visible) {
+  box-shadow: var(--focus-ring);
+}
+.pick:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.queueHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+@media (max-width: 600px) {
+  .queueHead {
+    flex-direction: column;
+  }
+}
+.upRow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-1) var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+.upIcon {
+  color: var(--text-muted);
+  display: inline-flex;
+}
+.upName {
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.upState {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.upBar {
+  grid-column: 2 / -1;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--text-tint);
+  overflow: hidden;
+}
+.upBar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cobalt);
+  transition: width var(--t-fast) linear;
+}
+.upDone .upBar > span {
+  background: var(--blaze);
+}
+.upError {
+  grid-column: 2 / -1;
+  color: var(--blaze-text);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+}
+.upError + .upBar {
+  display: none;
+}
+
+/* ---------- The library ---------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--s-4);
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: var(--stroke) solid var(--line);
+  overflow: hidden;
+  color: inherit;
+  min-width: 0;
+  transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.card:hover {
+  text-decoration: none;
+  border-color: var(--blaze);
+  transform: translateY(-2px);
+}
+.thumb {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: var(--surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  overflow: hidden;
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  /* The whole first frame, so a vertical clip's text overlay shows. */
+  object-fit: contain;
+  background: #000;
+}
+.duration {
+  position: absolute;
+  right: var(--s-2);
+  bottom: var(--s-2);
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  min-width: 0;
+}
+.cardTitle {
+  font-weight: var(--fw-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cardHook {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.6em;
+}
+.cardFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.cardError {
+  color: var(--blaze-text);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+}
+
+/* Status pills, beside the agent ones in Builder.module.css */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding-inline: 8px 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  background: var(--text-tint);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.pill::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill_ready {
+  background: var(--blaze-tint);
+  color: var(--blaze-text);
+}
+.pill_reading,
+.pill_uploaded {
+  background: var(--cobalt-tint);
+  color: var(--cobalt-glow);
+}
+.pill_reading::before {
+  animation: clip-pulse 1.2s ease-in-out infinite;
+}
+.pill_failed {
+  background: var(--blaze-tint);
+  color: var(--blaze-text);
+  outline: 1px solid var(--blaze);
+}
+@keyframes clip-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pill_reading::before {
+    animation: none;
+  }
+}
+
+/* ---------- One clip ---------- */
+/* Two columns on a desktop (the clip and where it goes left, its text and books right); one column on a phone in reading order. */
+.detail {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--s-5);
+  align-items: start;
+}
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+@media (max-width: 960px) {
+  .detail {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-4);
+  }
+  .col {
+    display: contents;
+  }
+  .o1 { order: 1; }
+  .o2 { order: 2; }
+  .o3 { order: 3; }
+  .o4 { order: 4; }
+  .o5 { order: 5; }
+  .o6 { order: 6; }
+  .o7 { order: 7; }
+  .o8 { order: 8; }
+}
+.player {
+  width: 100%;
+  max-height: 520px;
+  border-radius: var(--r-lg);
+  background: #000;
+  display: block;
+}
+.facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px var(--s-4);
+  font-size: var(--fs-sm);
+}
+.facts dt {
+  color: var(--text-muted);
+}
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.calls {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-xs);
+}
+.calls th,
+.calls td {
+  text-align: left;
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: top;
+}
+.calls th {
+  color: var(--text-muted);
+  font-weight: var(--fw-semibold);
+}
+.calls td:last-child,
+.calls th:last-child {
+  text-align: right;
+  padding-right: 0;
+  font-variant-numeric: tabular-nums;
+}
+.callsWrap {
+  overflow-x: auto;
+}
+.flags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font-size: var(--fs-sm);
+}
+.flag {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-start;
+}
+.flag svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--blaze-text);
+}
+.agents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.agentRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  min-height: 48px;
+}
+.agentRow input,
+.agentRow > svg {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--blaze);
+  flex: none;
+}
+.agentName {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-sm);
+}
+.agentName small {
+  display: block;
+  color: var(--text-muted);
+  font-weight: var(--fw-regular);
+}
+.reading {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.readingText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  min-width: 0;
+}
+.steps {
+  display: flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  font-size: var(--fs-xs);
+}
+.step {
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  background: var(--text-tint);
+  color: var(--text-muted);
+  font-weight: var(--fw-medium);
+}
+.stepDone {
+  background: var(--blaze-tint);
+  color: var(--blaze-text);
+}

@@ -55,6 +55,8 @@ export type SampleInput = {
   note?: string;
   links?: string[];
   fileIds?: string[];
+  /** The clip a sample was made from (the clip library). */
+  clip?: { id: string; name: string; posterId: string | null };
 };
 
 export type BoardInput = {
@@ -223,6 +225,7 @@ export class Builder implements BoardSource {
 
   async putFile(caller: Principal, kind: FileKind, file: { name: string; mimeType: string; bytes: Uint8Array }): Promise<StoredFile> {
     await this.requireBuilder(caller);
+    if (kind === "video") throw new AccountError("invalid_request", "Clips go through the clip library, which streams them to disk.");
     const problem = checkFile(kind, { name: file.name, mimeType: file.mimeType, sizeBytes: file.bytes.byteLength });
     if (problem) throw new AccountError("invalid_request", problem);
     return this.opts.files.put(this.workspaceId, file);
@@ -230,6 +233,9 @@ export class Builder implements BoardSource {
 
   async getFile(caller: Principal, id: string): Promise<{ meta: StoredFile; bytes: Uint8Array } | null> {
     await this.requireBuilder(caller);
+    // A clip is streamed back by its own route with ranges; it is never read whole into memory here.
+    const head = this.opts.files.head ? await this.opts.files.head(this.workspaceId, id) : null;
+    if (head?.mimeType.startsWith("video/")) return null;
     return this.opts.files.get(this.workspaceId, id);
   }
 
@@ -261,6 +267,29 @@ export class Builder implements BoardSource {
     if (existing.length >= BUILDER_LIMITS.samplesPerAgent) {
       throw new AccountError("invalid_request", `An agent keeps at most ${BUILDER_LIMITS.samplesPerAgent} samples. Remove one first.`);
     }
+    const sample: Sample = { ...(await this.checkSample(spec, input, existing.length)), id: newId("smp"), createdBy: user.id, createdAt: this.iso() };
+    await this.opts.store.samples.insert(sample);
+    return sample;
+  }
+
+  /**
+   * Rewrites a sample made from a clip with the clip's current text, against
+   * the agent's current form. The id, the author and the creation time stay,
+   * so benches that ran it still point at it. Hand-made samples are left to
+   * the builder (remove and add again).
+   */
+  async updateClipSample(caller: Principal, agentId: string, sampleId: string, input: SampleInput): Promise<Sample> {
+    await this.requireBuilder(caller);
+    const s = await this.opts.store.samples.get(sampleId);
+    if (!s || s.workspaceId !== this.workspaceId || s.agentId !== agentId || !s.clip) throw new AccountError("not_found", NOT_FOUND);
+    const spec = await this.requireAgent(caller, agentId);
+    const next: Sample = { ...s, ...(await this.checkSample(spec, { ...input, clip: input.clip ?? s.clip }, 0)), updatedAt: this.iso() };
+    await this.opts.store.samples.update(next);
+    return next;
+  }
+
+  private async checkSample(spec: AgentSpec, input: SampleInput, count: number): Promise<Omit<Sample, "id" | "createdBy" | "createdAt">> {
+    const agentId = spec.id;
     const label = input.label ?? "gold";
     if (!SAMPLE_LABELS.includes(label)) throw new AccountError("invalid_request", "A sample is gold or bad.");
     const checked = validateRunInputs(spec, input.inputs ?? {});
@@ -276,23 +305,19 @@ export class Builder implements BoardSource {
     const files: StoredFile[] = [];
     for (const id of fileIds) files.push(await this.fileMeta(id));
 
-    const sample: Sample = {
-      id: newId("smp"),
+    return {
       workspaceId: this.workspaceId,
       agentId,
       version: spec.version,
       label,
-      title: cleanText(input.title, BUILDER_LIMITS.sampleTitle) || `Sample ${existing.length + 1}`,
+      title: cleanText(input.title, BUILDER_LIMITS.sampleTitle) || `Sample ${count + 1}`,
       inputs: checked.value,
       idealOutput,
       note: cleanText(input.note, BUILDER_LIMITS.sampleNote),
       links: links as string[],
       files,
-      createdBy: user.id,
-      createdAt: this.iso(),
+      ...(input.clip ? { clip: { id: String(input.clip.id), name: cleanText(input.clip.name, 120), posterId: input.clip.posterId ?? null } } : {}),
     };
-    await this.opts.store.samples.insert(sample);
-    return sample;
   }
 
   async removeSample(caller: Principal, agentId: string, sampleId: string): Promise<void> {

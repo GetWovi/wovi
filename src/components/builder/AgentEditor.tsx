@@ -32,11 +32,11 @@ const CONFIRM: Record<StatusAction, { title: string; body: string; button: strin
   unhide: { title: "Unhide this agent?", body: "It returns to the status it had before it was hidden.", button: "Unhide" },
 };
 
-export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, now }: { csrf: string; spec: AgentSpec; versions: VersionInfo[]; updatedAt: string; samples: Sample[]; board: BoardItem[]; now: number }) {
+export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, now, initialTab }: { csrf: string; spec: AgentSpec; versions: VersionInfo[]; updatedAt: string; samples: Sample[]; board: BoardItem[]; now: number; initialTab?: string }) {
   const router = useRouter();
   const { toast } = useToast();
   const [body, setBody] = useState<Body>(() => bodyOf(spec));
-  const [tab, setTab] = useState("spec");
+  const [tab, setTab] = useState(initialTab && ["spec", "samples", "board", "json"].includes(initialTab) ? initialTab : "spec");
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState<StatusAction | null>(null);
   const [acting, setActing] = useState(false);

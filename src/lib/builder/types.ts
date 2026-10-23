@@ -27,6 +27,14 @@ export type Sample = {
   note: string;
   links: string[];
   files: StoredFile[];
+  /**
+   * Set when the sample was made from a clip in the clip library: the clip
+   * keeps the text, and the sample follows the clip's edits. Missing on every
+   * sample made by hand and on samples from before clips.
+   */
+  clip?: { id: string; name: string; posterId: string | null };
+  /** When a clip edit last rewrote the sample. Missing until then. */
+  updatedAt?: string;
   createdBy: string;
   createdAt: string;
 };

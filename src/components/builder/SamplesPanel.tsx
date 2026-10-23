@@ -120,6 +120,11 @@ export function SamplesPanel({ csrf, spec, samples }: { csrf: string; spec: Agen
                       <Tag tone={s.label === "gold" ? "blaze" : "neutral"}>{s.label}</Tag>
                       <span className={styles.sampleTitle}>{s.title}</span>
                       <span className={styles.hint}>v{s.version}</span>
+                      {s.clip && (
+                        <a href={`/builder/clips/${s.clip.id}`} className={styles.fileChip}>
+                          <Icon name="film" size={14} /> From a clip
+                        </a>
+                      )}
                     </div>
                     <div className={styles.sampleBody}>
                       <div className={styles.block}>

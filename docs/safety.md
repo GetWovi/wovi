@@ -16,7 +16,7 @@ From the product doc, section 11: "The main risk is losing creators' accounts or
 | No engagement automation | No tool, MCP tool or REST route may like, follow, post, repost, message or schedule on a platform. A test reads every name against `FORBIDDEN_AUTOMATION_WORDS`. WOVI posts nothing. | `src/lib/safety/platforms.ts`, `safety.test.ts` |
 | People approve | Closed two paths where an API key could decide: `GuardedPipelines.decide` and `clearDecision`, and the app's run decision without teams, now ask for `decide`, which keys never have. The REST API already refused; now every layer does. | `src/lib/pipelines/guard.ts`, `src/lib/app/api.ts` |
 | AI label | Every result says "Made with AI" and lists, for the agent's platforms, when a label is needed and where it is set. A box stores "I will add the AI label where the platform asks for it" on the run (`run.aiLabel`: who, when, which platforms). People only (`decide`). Every public run view and API run carries `aiGenerated: true`; MCP results say "Written by AI". | `src/lib/safety/ai-label.ts`, `src/components/safety/AiLabelPanel.tsx`, `src/lib/runs/run.ts`, `src/lib/api/views.ts`, `src/lib/api/mcp.ts` |
-| Upload rights | No file is stored without the box "I own this, or I have the rights to use it here." (agent form files and mood board images). The server refuses the upload without it and keeps the confirmation (file, who, when, the exact words). A run with any file needs `confirmations.rights`, whatever the agent declares, and every run keeps when each confirmation was given (`run.confirmedAt`). | `src/lib/safety/rights.ts`, `src/app/app/make/actions.ts`, `src/app/brand-brain/actions.ts`, `src/components/safety/RightsCheck.tsx` |
+| Upload rights | No file is stored without the box "I own this, or I have the rights to use it here." (agent form files, mood board images and the builder's clip samples). The server refuses the upload without it and keeps the confirmation (file, who, when, the exact words). A run with any file needs `confirmations.rights`, whatever the agent declares, and every run keeps when each confirmation was given (`run.confirmedAt`). | `src/lib/safety/rights.ts`, `src/app/app/make/actions.ts`, `src/app/brand-brain/actions.ts`, `src/components/safety/RightsCheck.tsx` |
 | Music | The music rule in every prompt, the refusal for requests to use a copyrighted track, and the `music_rights` check on drafts. | as above |
 | Notice and action | `/report`: open to anyone, signed in or not. Where, why (eight reasons), an explanation, optional name and email, a good-faith box. A reference at once and, with an email, a receipt. Rate limited per address. `/app/settings/safety` (WOVI's owners only): the queue, "I am looking at it", and a decision by hand (taken down, account restricted, no action) with the term or law. "Taken down" hides a run's output everywhere (kept in the store for a dispute, `run.withheld`) or deletes a comment. The reporter gets the decision and the workspace's owners and admins get a statement of reasons with how to object. A Report link sits under every result, review item and client view. | `src/lib/safety/reports.ts`, `src/app/report/`, `src/app/app/settings/safety/` |
 | Withdrawal | Before paying (card or $WOVI) the buyer ticks the request to start at once and the withdrawal terms; the exact words are stored on the top-up. Buttons say "Buy and pay $X". For 14 days, "Withdraw from this purchase" with a confirm: the credits from it not yet used leave the balance, the money is written down as owed (never sent by the app), and a receipt goes by email. Once all are used, it can no longer be withdrawn. | `src/lib/legal/operator.ts`, `src/lib/legal/withdrawals.ts`, `src/components/credits/CreditForms.tsx`, `src/components/safety/PurchaseConsent.tsx` |
@@ -35,7 +35,7 @@ Records do change in these cases, each started by a person: a top-up stores its 
 ## Commands
 
 ```
-npm test                      # 629 tests, on the fake provider
+npm test                      # 659 tests, on the fake provider
 ```
 
 Screenshots (1440x900 and 390x844, into `~/WOVI-safety-screens/`):
@@ -51,7 +51,7 @@ ONLY=public node scripts/safety-screens.mjs # the public pages only
 ## Not yet
 
 - Withdrawal for credits paid with $WOVI or by x402 has no button; the terms point to email. Owed money is recorded for the owner to send; no payment provider sends it.
-- Builder uploads (samples and the builder's mood boards) are platform staff only and do not ask for the rights box.
+- Builder uploads of sample files and the builder's mood boards are platform staff only and do not ask for the rights box. Clip samples do (see [builder.md](builder.md#clip-samples)).
 - Removing content from a pipeline run's package after a report: the queue takes runs and comments down; a pipeline run is decided by hand.
 - The content rules are rule-based. A model classifier would fit the quality gate's judge slot.
 - Email goes through the dev sender until a provider is wired; the privacy notice says the provider will be named before it starts.

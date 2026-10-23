@@ -94,7 +94,10 @@ export type SampleForm = {
 };
 
 export async function addSample(csrf: string, agentId: string, form: SampleForm): Promise<Result<Sample>> {
-  return run(csrf, agentId, ({ builder, me }) => builder.addSample(me, agentId, form));
+  // A clip link is only ever set by the clip library, never from a form.
+  const { clip: _clip, ...rest } = form as SampleForm & { clip?: unknown };
+  void _clip;
+  return run(csrf, agentId, ({ builder, me }) => builder.addSample(me, agentId, rest));
 }
 
 export async function removeSample(csrf: string, agentId: string, sampleId: string): Promise<Result<null>> {

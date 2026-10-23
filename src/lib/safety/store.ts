@@ -68,7 +68,7 @@ export type RightsRow = {
   id: string;
   workspaceId: string;
   userId: string;
-  subject: "run_file" | "mood_board";
+  subject: "run_file" | "mood_board" | "clip_sample";
   fileId: string;
   fileName: string;
   /** The words ticked. */

@@ -20,6 +20,7 @@
     "brains:seed": "tsx scripts/seed-brains.ts"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "1.1.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "@simplewebauthn/browser": "^14.0.0",
     "@simplewebauthn/server": "^14.0.3",
