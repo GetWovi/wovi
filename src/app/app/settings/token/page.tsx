@@ -59,11 +59,16 @@ export default async function TokenOwnerPage() {
   const gas = k.gasBalanceWei === null ? null : BigInt(k.gasBalanceWei);
   const lowGas = gas !== null && gas < c.keeper.minGasWei;
   const txLink = (tx: string) => `${c.explorer}/tx/${tx}`;
-  // The other ways to pay for credits: card (Stripe) and USDC or ETH on Robinhood Chain.
+  // The other ways to pay for credits: card (Stripe) and a stablecoin (USDG by default) or ETH on Robinhood Chain.
   const stripe = stripeSettingsFromEnv();
   const cpc = chainPayConfigFromEnv();
   const cps = chainPayStatus(cpc);
-  const cpSum = cps.on ? await chainPay()?.summary() : null;
+  const cp = chainPay();
+  const cpSum = cps.on && cp ? await cp.summary() : null;
+  // The stablecoin as it answered on chain at start: its real symbol and decimals, or why it is not offered.
+  const st = cp && cpc.stable.token ? await cp.stablecoin() : null;
+  const stSymbol = st?.ok ? st.symbol : "Stablecoin";
+  const names = `${stSymbol} and ETH`;
   const webhookUrl = `${(process.env.WOVI_APP_URL ?? "http://localhost:3900").replace(/\/$/, "")}/api/stripe/webhook`;
 
   return (
@@ -74,7 +79,7 @@ export default async function TokenOwnerPage() {
             <Icon name="arrow-left" size={16} /> Settings
           </Link>
           <h1 className={styles.h1}>$WOVI</h1>
-          <p className={styles.lead}>The keeper that sweeps fees and burns $WOVI on a schedule, the holder checks, $WOVI paid for credits, and card, USDC and ETH payments. Only you see this page.</p>
+          <p className={styles.lead}>The keeper that sweeps fees and burns $WOVI on a schedule, the holder checks, $WOVI paid for credits, and card, stablecoin and ETH payments. Only you see this page.</p>
         </div>
         <div className={styles.actions}>
           {c.pageOn && (
@@ -326,11 +331,11 @@ export default async function TokenOwnerPage() {
           </div>
         </section>
 
-        <section className={[styles.panel, styles.stack].join(" ")} aria-label="USDC and ETH payments">
+        <section className={[styles.panel, styles.stack].join(" ")} aria-label="Stablecoin and ETH payments">
           <div className={x.status}>
             <span className={[x.light, cps.on ? x.on : ""].join(" ")}>{cps.on ? "On" : "Off"}</span>
             <span className={x.statusText}>
-              <b>{cps.on ? "USDC and ETH on Robinhood Chain" : "USDC and ETH are off"}</b>
+              <b>{cps.on ? `${names} on Robinhood Chain` : `${names} are off`}</b>
               <span>{cps.on ? "Sent from a linked wallet to your address, checked on chain read only, once per transaction." : "Set a receiving address to switch it on."}</span>
             </span>
           </div>
@@ -350,8 +355,18 @@ export default async function TokenOwnerPage() {
               <span className={x.mono}>{cpc.payTo ? `${cpc.payTo} (${cpc.payToFrom})` : "Not set"}</span>
             </div>
             <div className={x.row}>
-              <span>USDC</span>
-              <span className={x.mono}>{cpc.usdc.token ?? "Not available yet (WOVI_USDC_ADDRESS)"}</span>
+              <span>Stablecoin</span>
+              <span>
+                {!cpc.stable.token ? (
+                  cpc.stable.badSetting ?? "Switched off (WOVI_STABLECOIN_ADDRESS=off)"
+                ) : (
+                  <>
+                    {st?.ok ? `${st.symbol}, ${st.decimals} decimals as read on chain, one to one with the dollar (${cpc.stable.from === "default" ? "the default" : cpc.stable.from})` : `Not offered: ${st && !st.ok ? st.reason : "not read yet"}`}
+                    <br />
+                    <span className={x.mono}>{cpc.stable.token}</span>
+                  </>
+                )}
+              </span>
             </div>
             <div className={x.row}>
               <span>ETH</span>
@@ -361,7 +376,7 @@ export default async function TokenOwnerPage() {
               <span>Paid so far</span>
               <span>
                 {cpSum
-                  ? `${cpSum.payments} ${cpSum.payments === 1 ? "payment" : "payments"}, ${creditWords(cpSum.credits)}: ${unitsWords(cpSum.byAsset.usdc, 6)} USDC and ${unitsWords(cpSum.byAsset.eth, 18)} ETH. ${cpSum.owed} owed back.`
+                  ? `${cpSum.payments} ${cpSum.payments === 1 ? "payment" : "payments"}, ${creditWords(cpSum.credits)}: ${unitsWords(cpSum.byAsset.stable, st?.ok ? st.decimals : 6)} ${stSymbol} and ${unitsWords(cpSum.byAsset.eth, 18)} ETH. ${cpSum.owed} owed back.`
                   : "Nothing yet"}
               </span>
             </div>

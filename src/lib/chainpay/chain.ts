@@ -1,5 +1,5 @@
 /**
- * SERVER ONLY. Reading a USDC or ETH payment on Robinhood Chain, read only:
+ * SERVER ONLY. Reading a stablecoin or ETH payment on Robinhood Chain, read only:
  * nothing here signs or sends, and there is no key anywhere in it. Tests hand
  * in their own ChainPayReader; no test calls a chain.
  */
@@ -30,7 +30,14 @@ export interface ChainPayReader {
   tx(hash: string): Promise<ChainPayTx | null>;
   /** ETH / USD with 8 decimals, or null when the feed is older than `maxAgeSec`. */
   ethUsd(feed: string, maxAgeSec: number): Promise<bigint | null>;
+  /** The RPC's chain id and what a token reports about itself, for the stablecoin's check at start. */
+  tokenInfo(token: string): Promise<{ chainId: number; symbol: unknown; decimals: unknown }>;
 }
+
+const META_ABI = [
+  { type: "function", name: "symbol", stateMutability: "view", inputs: [], outputs: [{ type: "string" }] },
+  { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
+] as const;
 
 const notFound = (err: unknown) => /NotFound|could not be found/i.test(err instanceof Error ? `${err.name} ${err.message}` : String(err));
 
@@ -64,5 +71,10 @@ export function viemChainPayReader(rpcUrl: string): ChainPayReader {
       };
     },
     ethUsd: (feed, maxAgeSec) => readFeed(c as unknown as ChainReader, feed, maxAgeSec, Math.floor(Date.now() / 1000)),
+    async tokenInfo(token) {
+      const address = token as Hex;
+      const [chainId, symbol, decimals] = await Promise.all([c.getChainId(), c.readContract({ address, abi: META_ABI, functionName: "symbol" }), c.readContract({ address, abi: META_ABI, functionName: "decimals" })]);
+      return { chainId, symbol, decimals };
+    },
   };
 }

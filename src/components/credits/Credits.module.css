@@ -561,7 +561,7 @@
   color: var(--text-muted);
 }
 
-/* USDC and ETH: the asset choice and the paid state. */
+/* A stablecoin and ETH: the asset choice and the paid state. */
 .assetPick {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

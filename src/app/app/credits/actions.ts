@@ -100,17 +100,17 @@ export async function woviClaim(csrf: string, quoteId: string, tx: string): Prom
   );
 }
 
-/* ---------- Paying with USDC or ETH on Robinhood Chain ---------- */
+/* ---------- Paying with a stablecoin (USDG by default) or ETH on Robinhood Chain ---------- */
 
 /** Owners and admins of the current workspace only, like every top-up; and only while it is open. */
 async function chainPayFor(me: Principal, workspaceId: string) {
   await accounts().authorize(me, workspaceId, "manage_credits");
   const pay = chainPay();
-  if (!pay || !pay.status().on) throw new AppError("invalid_request", "Paying with USDC or ETH is not open.");
+  if (!pay || !pay.status().on) throw new AppError("invalid_request", "Paying with a stablecoin or ETH is not open.");
   return pay;
 }
 
-/** A price for a pack in USDC or ETH: what to send to WOVI's address, valid for ten minutes. Stores the purchase consent. */
+/** A price for a pack in the stablecoin or ETH: what to send to WOVI's address, valid for ten minutes. Stores the purchase consent. */
 export async function chainQuote(csrf: string, pack: number, asset: string, consent = false): Promise<Result<ChainQuote>> {
   return appCall(csrf, async ({ me, workspaceId }) => {
     // Phase 18: the same request and acceptance as a card purchase, kept with the price.
@@ -125,7 +125,7 @@ export async function chainQuote(csrf: string, pack: number, asset: string, cons
   });
 }
 
-/** Counts a USDC or ETH payment for a price by its transaction hash, read on chain. `pending`: ask again in a moment. */
+/** Counts a stablecoin or ETH payment for a price by its transaction hash, read on chain. `pending`: ask again in a moment. */
 export async function chainClaim(csrf: string, quoteId: string, tx: string): Promise<Result<ChainClaimResult>> {
   return appCall(
     csrf,

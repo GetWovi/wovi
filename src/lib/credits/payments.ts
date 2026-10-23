@@ -2,7 +2,7 @@
  * Payment providers for top-ups, behind one small interface. The test
  * provider says "paid" at once and moves no money, and every top-up it makes
  * is marked as a test in the ledger and on screen. Stripe (card, stripe.ts)
- * implements the same two methods; USDC and ETH on Robinhood Chain are
+ * implements the same two methods; a stablecoin and ETH on Robinhood Chain are
  * checked on chain instead (src/lib/chainpay).
  *
  * The test provider is on for a local app only (WOVI_APP_URL on localhost,

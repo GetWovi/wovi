@@ -30,7 +30,7 @@ export type ChainAssetView = { asset: PayAsset; symbol: string; available: boole
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** An exact amount in its smallest unit, in whole units with every digit that matters: "0.002076118" ETH, "5" USDC. */
+/** An exact amount in its smallest unit, in whole units with every digit that matters: "0.002076118" ETH, "5" USDG. */
 function units(amount: string, decimals: number): string {
   const v = BigInt(amount);
   const base = BigInt(10) ** BigInt(decimals);
@@ -39,7 +39,7 @@ function units(amount: string, decimals: number): string {
 }
 
 /**
- * Buying credits with USDC or ETH on Robinhood Chain: a price for a pack, one
+ * Buying credits with a stablecoin (USDG by default) or ETH on Robinhood Chain: a price for a pack, one
  * plain payment from a linked wallet to WOVI's address (signed in the
  * person's own wallet), then the transaction is checked on chain and the
  * credits land. A phone with no wallet opens this page inside MetaMask.
@@ -198,7 +198,7 @@ export function PayWithChain({ csrf, packs, wallets, assets, explorer }: { csrf:
                 }}
               >
                 <b>{a.symbol}</b>
-                <span>{a.available ? (a.asset === "usdc" ? "One to one with the dollar" : "At Chainlink's ETH price") : (a.note ?? "Not available")}</span>
+                <span>{a.available ? (a.asset === "stable" ? "A stablecoin, one to one with the dollar" : "At Chainlink's ETH price") : (a.note ?? "Not available")}</span>
               </button>
             ))}
           </div>
@@ -218,7 +218,7 @@ export function PayWithChain({ csrf, packs, wallets, assets, explorer }: { csrf:
               </button>
             ))}
           </div>
-          <p className={styles.woviFine}>{asset === "usdc" ? "One USDC is one dollar, so 500 credits are 5 USDC." : "Priced from Chainlink's ETH/USD when you ask, and held for ten minutes."} One credit is always one cent. The price shown is the total you pay; the network fee is paid by your wallet.</p>
+          <p className={styles.woviFine}>{asset === "stable" ? `One ${chosen.symbol} is one dollar, so 500 credits are 5 ${chosen.symbol}.` : "Priced from Chainlink's ETH/USD when you ask, and held for ten minutes."} One credit is always one cent. The price shown is the total you pay; the network fee is paid by your wallet.</p>
         </>
       ) : (
         <div className={styles.woviQuote}>

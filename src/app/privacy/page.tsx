@@ -105,7 +105,7 @@ const sections: LegalSection[] = [
         <p>
           OpenRouter and the model makers are in the United States. Data goes there under the European Commission&apos;s Standard Contractual Clauses in OpenRouter&apos;s data processing agreement, or under the EU-US Data Privacy Framework for companies certified under it. Ask us at {mail} for a copy of the safeguards.
         </p>
-        <p>Wallet addresses and payments in $WOVI, USDC and ETH are on Robinhood Chain, a public blockchain, where anyone can read them. We only read from it.</p>
+        <p>Wallet addresses and payments in $WOVI, stablecoins and ETH are on Robinhood Chain, a public blockchain, where anyone can read them. We only read from it.</p>
       </>
     ),
   },

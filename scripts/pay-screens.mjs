@@ -1,15 +1,15 @@
 /**
- * Screen-sized screenshots of paying for credits with USDC, ETH and a card,
+ * Screen-sized screenshots of paying for credits with USDG, ETH and a card,
  * with headless Chrome over the DevTools protocol, at 1440x900 and 390x844,
  * each checked for sideways scroll.
  *
- *   node scripts/pay-screens.mjs chain    # USDC and ETH on a local fork of Robinhood Chain
- *   node scripts/pay-screens.mjs nousdc   # the launch state: USDC not available yet, ETH on
+ *   node scripts/pay-screens.mjs chain    # USDG (the real token, on a local fork of Robinhood Chain) and ETH
  *   node scripts/pay-screens.mjs card     # cards through Stripe in test mode, against a local stand-in for Stripe's API
  *
  * chain: start the server with WOVI_PAY_RPC_URL (and FORK_RPC here) on a LOCAL anvil fork, WOVI_PAY_TO a throwaway
- * address, WOVI_USDC_ADDRESS a stand-in 6-decimal token deployed on that fork, and WOVI_BUILDER_EMAILS=maya@example.com.
- * The wallet injected into the page answers with FORK_USER_KEY, a throwaway key funded on the fork only. Nothing
+ * address, the stablecoin left at its default (USDG), and WOVI_BUILDER_EMAILS=maya@example.com. The wallet injected
+ * into the page answers with FORK_USER_KEY, a throwaway key funded on the fork only (ETH by anvil_setBalance, USDG
+ * sent to it on the fork from an impersonated holder). Nothing
  * here touches the real chain: FORK_RPC must be http://127.0.0.1:<port>.
  *
  * card: start the server with a made-up STRIPE_SECRET_KEY=sk_test_..., STRIPE_WEBHOOK_SECRET=whsec_... (the same
@@ -37,7 +37,7 @@ mkdirSync(OUT, { recursive: true });
 /* ---------- The wallet (chain mode, the local fork only) ---------- */
 let user = null;
 let walletClient = null;
-if (MODE === "chain" || MODE === "nousdc") {
+if (MODE === "chain") {
   const rpc = process.env.FORK_RPC;
   if (!rpc || !/^http:\/\/127\.0\.0\.1:\d+$/.test(rpc)) throw new Error("FORK_RPC must be the local fork, http://127.0.0.1:<port>");
   user = privateKeyToAccount(process.env.FORK_USER_KEY);
@@ -310,7 +310,7 @@ async function payDesktop(asset, pack, prefix) {
   await consent("#pay-chain");
   await scrollTo("#pay-chain", -8);
   await shot(`${prefix}-1-pick`, 900);
-  await clickSel(`#pay-chain button[aria-label="Pay for ${pack.toLocaleString("en-US")} credits with ${asset === "eth" ? "ETH" : "USDC"}"]`);
+  await clickSel(`#pay-chain button[aria-label="Pay for ${pack.toLocaleString("en-US")} credits with ${asset === "eth" ? "ETH" : "USDG"}"]`);
   await waitFor(has("Send from my wallet"), 30000);
   await scrollTo("#pay-chain", -8);
   await shot(`${prefix}-2-price`, 900);
@@ -339,9 +339,9 @@ if (MODE === "chain") {
   await noSideScroll();
   await shot("01-credits-desktop", 1500);
   await scrollTo("#pay-chain", -8);
-  await shot("02-usdc-eth-desktop", 1200);
+  await shot("02-usdg-eth-desktop", 1200);
 
-  await payDesktop("usdc", 500, "03-usdc-desktop");
+  await payDesktop("stable", 500, "03-usdg-desktop");
   await payDesktop("eth", 1000, "04-eth-desktop");
 
   await open("/app/credits");
@@ -355,7 +355,7 @@ if (MODE === "chain") {
   await open("/app/credits");
   await noSideScroll();
   await scrollTo("#pay-chain", -8);
-  await shot("06-usdc-eth-phone", 1200);
+  await shot("06-usdg-eth-phone", 1200);
   await clickSel('#pay-chain [role=radio]:nth-child(2)');
   await consent("#pay-chain");
   await clickSel('#pay-chain button[aria-label="Pay for 500 credits with ETH"]');
@@ -380,7 +380,7 @@ if (MODE === "chain") {
   await scrollTo("#pay-chain", -8);
   await shot("08-eth-paid-phone", 1200);
 
-  // The owner's page: card, USDC and ETH status.
+  // The owner's page: card, USDG and ETH status.
   await setViewport(1440, 900, false);
   await open("/app/settings/token");
   await scrollTo('[aria-label="Card payments"]', -8);
@@ -388,21 +388,9 @@ if (MODE === "chain") {
   await shot("09-owner-payments-desktop", 1200);
   await setViewport(390, 844, true);
   await open("/app/settings/token");
-  await scrollTo('[aria-label="USDC and ETH payments"]', -8);
+  await scrollTo('[aria-label="Stablecoin and ETH payments"]', -8);
   await noSideScroll();
-  await shot("10-owner-usdc-eth-phone", 1200);
-} else if (MODE === "nousdc") {
-  await setViewport(1440, 900, false);
-  await signIn("/app/credits");
-  await open("/app/credits");
-  await scrollTo("#pay-chain", -8);
-  await noSideScroll();
-  await shot("11-launch-state-usdc-not-yet-desktop", 1200);
-  await setViewport(390, 844, true);
-  await open("/app/credits");
-  await scrollTo("#pay-chain", -8);
-  await noSideScroll();
-  await shot("11-launch-state-usdc-not-yet-phone", 1200);
+  await shot("10-owner-usdg-eth-phone", 1200);
 } else if (MODE === "card") {
   await setViewport(1440, 900, false);
   await signIn("/app/credits");

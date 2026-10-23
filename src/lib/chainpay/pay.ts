@@ -1,17 +1,18 @@
 /**
- * SERVER ONLY. Topping up credits with USDC or ETH on Robinhood Chain, from
+ * SERVER ONLY. Topping up credits with a stablecoin or ETH on Robinhood Chain, from
  * the product doc's "$WOVI or stablecoin (including x402) for crypto users".
  * The same shape as paying with $WOVI (token/pay.ts) and x402: no custody,
  * no key, every check read only.
  *
  *   1. quote: an owner or admin ticks the purchase consent (phase 18) and
- *      picks a pack and USDC or ETH. USDC is one to one with the dollar (six
- *      decimals: 500 credits are 5,000,000 units); ETH is priced from
+ *      picks a pack and the stablecoin or ETH. The stablecoin (USDG by
+ *      default) is one to one with the dollar in the decimals it reports on
+ *      chain (six for USDG: 500 credits are 5,000,000 units); ETH is priced from
  *      Chainlink's ETH/USD feed on Robinhood Chain and rounded up to a whole gwei.
  *      One credit is always one cent. The price is single use, lasts ten
  *      minutes, and keeps the consent word for word.
  *   2. pay: a wallet linked to the account sends the amount to WOVI's
- *      receiving address: a plain USDC transfer, or plain ETH.
+ *      receiving address: a plain stablecoin transfer, or plain ETH.
  *   3. claim: the transaction is read on chain: Robinhood Chain, succeeded,
  *      enough confirmations, from a linked wallet to the receiving address,
  *      in the price's asset, mined inside the price's window. Each
@@ -33,7 +34,7 @@ import { creditWords } from "@/lib/credits/config";
 import type { OwedRow } from "@/lib/safety/store";
 import { atomicForUsd, unitsWords, usdMicroForCredits } from "@/lib/x402/money";
 import type { ChainPayReader } from "./chain";
-import { chainPayStatus, sameAddress, type ChainPayConfig, type PayAsset } from "./config";
+import { chainPayStatus, sameAddress, stableAsset, stablecoinCheck, type AssetInfo, type ChainPayConfig, type PayAsset, type StablecoinState } from "./config";
 import type { ChainPaymentRow, ChainPayStore, ChainQuoteRow } from "./store";
 
 export type ChainQuote = { id: string; credits: number; asset: PayAsset; symbol: string; token: string; decimals: number; amount: string; payTo: string; expiresAt: string };
@@ -84,7 +85,11 @@ export type ChainPayDeps = {
   /** Whether a transaction already paid for something else (an x402 call to the same address). */
   usedElsewhere?: (paymentId: string) => Promise<boolean>;
   now?: () => Date;
+  log?: (line: string) => void;
 };
+
+/** A failed stablecoin check is tried again after this long. */
+const RECHECK_MS = 60_000;
 
 const ZERO = BigInt(0);
 const HASH = /^0x[0-9a-fA-F]{64}$/;
@@ -96,9 +101,12 @@ export function creditsAtQuote(paid: bigint, quote: Pick<ChainQuoteRow, "credits
   return Number((paid * BigInt(quote.credits)) / q);
 }
 
-/** What an amount is worth in US cents at the quote's rate, rounded down: USDC one to one, ETH at the quote's feed price. */
+/** The asset of a stored row: anything but ETH is the stablecoin (rows written before the rename say "usdc"). */
+export const assetOf = (asset: string): PayAsset => (asset === "eth" ? "eth" : "stable");
+
+/** What an amount is worth in US cents at the quote's rate, rounded down: the stablecoin one to one, ETH at the quote's feed price. */
 export function centsAtQuote(amount: bigint, quote: Pick<ChainQuoteRow, "asset" | "ethUsd" | "decimals">): number {
-  if (quote.asset === "usdc") return Number(amount / BigInt(10) ** BigInt(quote.decimals - 2));
+  if (assetOf(quote.asset) === "stable") return Number(amount / BigInt(10) ** BigInt(quote.decimals - 2));
   if (!quote.ethUsd) return 0;
   // wei x (USD with 8 decimals) / 1e18 / 1e8 x 100 cents
   return Number((amount * BigInt(quote.ethUsd)) / BigInt(10) ** BigInt(24));
@@ -111,25 +119,67 @@ export class ChainPay {
     return this.d.now?.() ?? new Date();
   }
 
+  private stableState: StablecoinState | null = null;
+  private stableAt = 0;
+  private stableReading: Promise<StablecoinState | null> | null = null;
+
   status() {
     return { ...chainPayStatus(this.d.config), payTo: this.d.config.payTo, packs: this.d.config.packs };
   }
 
-  /** A price for a pack in USDC or ETH, for one person and workspace. Throws ChainPayError. */
+  /**
+   * The stablecoin's symbol and decimals, read from the token on chain and
+   * checked (stablecoinCheck). Read when the server starts; a good answer is
+   * kept, a failed one is tried again after a minute. Null when none is set.
+   */
+  async stablecoin(): Promise<StablecoinState | null> {
+    const c = this.d.config;
+    if (!c.stable.token) return null;
+    if (this.stableState?.ok) return this.stableState;
+    if (this.stableState && Date.now() - this.stableAt < RECHECK_MS) return this.stableState;
+    this.stableReading ??= (async () => {
+      let state: StablecoinState;
+      try {
+        state = stablecoinCheck(c, await this.d.reader.tokenInfo(c.stable.token!));
+      } catch (err) {
+        state = { ok: false, token: c.stable.token, note: "Not available right now", reason: `The token did not answer symbol() and decimals(), or Robinhood Chain did not answer (${(err as Error)?.name ?? "error"}). Tried again in a minute.` };
+      }
+      if (!state.ok) (this.d.log ?? ((l: string) => console.error(l)))(`The stablecoin ${c.stable.token} is not offered: ${state.reason}`);
+      this.stableState = state;
+      this.stableAt = Date.now();
+      this.stableReading = null;
+      return state;
+    })();
+    return this.stableReading;
+  }
+
+  /**
+   * What the screens show: on or off, both assets with the stablecoin's real
+   * symbol, the address and the packs. Waits at most `waitMs` for a read of
+   * the stablecoin, so a slow node never holds a page; until it answers the
+   * stablecoin shows as being checked.
+   */
+  async view(waitMs = 3000): Promise<ReturnType<ChainPay["status"]> & { assets: AssetInfo[]; stable: StablecoinState | null }> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const stable = await Promise.race([this.stablecoin(), new Promise<StablecoinState | null>((r) => (timer = setTimeout(() => r(this.stableState), waitMs)))]).finally(() => clearTimeout(timer));
+    return { ...this.status(), assets: [stableAsset(this.d.config, stable), this.d.config.eth], stable };
+  }
+
+  /** A price for a pack in the stablecoin or ETH, for one person and workspace. Throws ChainPayError. */
   async quote(userId: string, workspaceId: string, input: { credits: number; asset: unknown; consent: { at: string; wording: string } | null }): Promise<ChainQuote> {
     const c = this.d.config;
-    if (!chainPayStatus(c).on) throw new ChainPayError("off", "Paying with USDC or ETH is not open.");
+    if (!chainPayStatus(c).on) throw new ChainPayError("off", "Paying with a stablecoin or ETH is not open.");
     if (!input.consent?.wording) throw new ChainPayError("no_consent", "Tick the box about starting your credits now first.");
     if (!c.packs.includes(input.credits)) throw new ChainPayError("invalid_request", `Pick one of the packs: ${c.packs.join(", ")} credits.`);
-    if (input.asset !== "usdc" && input.asset !== "eth") throw new ChainPayError("invalid_request", "Pick USDC or ETH.");
-    const info = input.asset === "usdc" ? c.usdc : c.eth;
-    if (!info.available || !info.token) throw new ChainPayError("unavailable", `${info.symbol} is not available yet.`);
+    if (input.asset !== "stable" && input.asset !== "eth") throw new ChainPayError("invalid_request", "Pick the stablecoin or ETH.");
+    const info = input.asset === "stable" ? stableAsset(c, await this.stablecoin()) : c.eth;
+    if (!info.available || !info.token) throw new ChainPayError("unavailable", `${info.symbol} is not available right now.`);
     if (!(await this.d.accounts.wallets.find({ userId })).length) throw new ChainPayError("no_wallet", `Link a wallet first: the ${info.symbol} has to come from a wallet linked to your account.`);
     const usdMicro = usdMicroForCredits(input.credits);
     let amount: bigint;
     let ethUsd: bigint | null = null;
-    if (input.asset === "usdc") {
-      // Six decimals: one unit is one micro-dollar.
+    if (input.asset === "stable") {
+      // One to one with the dollar in the token's own decimals (at least two, so a cent is whole units).
       amount = (usdMicro * BigInt(10) ** BigInt(info.decimals)) / BigInt(1_000_000);
     } else {
       try {
@@ -137,7 +187,7 @@ export class ChainPay {
       } catch {
         throw new ChainPayError("chain_down", "Robinhood Chain did not answer. Try again in a moment.");
       }
-      if (!ethUsd) throw new ChainPayError("no_price", "There is no fresh ETH price right now. Try again later, or pay with USDC.");
+      if (!ethUsd) throw new ChainPayError("no_price", "There is no fresh ETH price right now. Try again later, or pay with the stablecoin.");
       // Rounded up to a whole gwei, so the amount is short enough to read and type (at most a gwei, a tiny fraction of a cent, over).
       const GWEI = BigInt(1_000_000_000);
       amount = ((atomicForUsd(usdMicro, ethUsd, info.decimals) + GWEI - BigInt(1)) / GWEI) * GWEI;
@@ -173,7 +223,7 @@ export class ChainPay {
   async claim(userId: string, quoteId: unknown, txInput: unknown): Promise<ChainClaimResult> {
     const c = this.d.config;
     const no = (code: ChainPayCode, message: string, pending = false): ChainClaimResult => ({ ok: false, code, message, ...(pending ? { pending } : {}) });
-    if (!chainPayStatus(c).on) return no("off", "Paying with USDC or ETH is not open.");
+    if (!chainPayStatus(c).on) return no("off", "Paying with a stablecoin or ETH is not open.");
     if (typeof txInput !== "string" || !HASH.test(txInput.trim())) return no("invalid_request", "That is not a transaction hash.");
     const tx = txInput.trim().toLowerCase();
     const paymentId = `${c.chainId}:${tx}`;
@@ -307,8 +357,8 @@ export class ChainPay {
   /** For the owner's page: payments counted, credits from them, and what is owed back. */
   async summary(): Promise<{ payments: number; credits: number; owed: number; byAsset: Record<PayAsset, string> }> {
     const rows = await this.d.store.payments.find();
-    const byAsset: Record<PayAsset, string> = { usdc: "0", eth: "0" };
-    for (const r of rows) if (r.outcome === "credited") byAsset[r.asset] = (BigInt(byAsset[r.asset]) + BigInt(r.amount)).toString();
+    const byAsset: Record<PayAsset, string> = { stable: "0", eth: "0" };
+    for (const r of rows) if (r.outcome === "credited") byAsset[assetOf(r.asset)] = (BigInt(byAsset[assetOf(r.asset)]) + BigInt(r.amount)).toString();
     return { payments: rows.filter((r) => r.outcome === "credited").length, credits: rows.reduce((s, r) => s + r.credits, 0), owed: rows.filter((r) => r.outcome === "owed").length, byAsset };
   }
 

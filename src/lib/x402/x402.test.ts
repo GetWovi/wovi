@@ -182,7 +182,7 @@ describe("x402: paying", () => {
     expect((await t.engine.listRuns(X402_WORKSPACE_ID)).length).toBe(1);
   });
 
-  it("refuses a transaction that already topped up credits (USDC or ETH to the same address), and takes the next one", async () => {
+  it("refuses a transaction that already topped up credits (a stablecoin or ETH to the same address), and takes the next one", async () => {
     const toppedUp = new Set<string>();
     const t = await testX402({ usedElsewhere: async (id) => toppedUp.has(id) });
     const { req } = await quoted(t);

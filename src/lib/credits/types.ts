@@ -115,14 +115,14 @@ export type TopUp = {
    */
   payment?: { ref: string; amount: number; currency: string } | null;
   /**
-   * USDC or ETH sent on Robinhood Chain (chainpay): the asset, the exact amount
+   * A stablecoin (USDG by default) or ETH sent on Robinhood Chain (chainpay): the asset and its symbol, the exact amount
    * in its smallest unit, the linked wallet it came from and the transaction.
    * Missing on every other top-up.
    */
   chain?: TopUpChain | null;
 };
 
-export type TopUpChain = { asset: "usdc" | "eth"; symbol: string; token: string; decimals: number; amount: string; payer: string; tx: string; chainId: number };
+export type TopUpChain = { asset: "stable" | "eth"; symbol: string; token: string; decimals: number; amount: string; payer: string; tx: string; chainId: number };
 
 /** Monthly limits in credits. Null means no limit. */
 export type CreditLimits = {

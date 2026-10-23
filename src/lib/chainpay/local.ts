@@ -1,5 +1,5 @@
 /**
- * SERVER ONLY. USDC and ETH top-ups for this process: the settings, the
+ * SERVER ONLY. Stablecoin and ETH top-ups for this process: the settings, the
  * reader, the store in .data/chainpay.json (or WOVI_DATA_DIR), sharing the
  * app's accounts, credits and the owed rows of safety.json. Null while
  * credits are off on this server.
@@ -43,12 +43,25 @@ function services() {
   return g.__woviChainPay;
 }
 
-/** The USDC and ETH top-ups of this process, or null while credits are off. */
+/**
+ * Called once when the server starts (instrumentation.ts) with a receiving
+ * address set: reads the stablecoin's symbol and decimals on chain and checks
+ * them against the settings, so the first screen already knows them. A
+ * failure is logged with the reason by ChainPay and read again later.
+ */
+export async function checkStablecoinAtStart(): Promise<void> {
+  const pay = services().pay;
+  if (!pay || !pay.status().on) return;
+  const s = await pay.stablecoin();
+  if (s?.ok) console.log(`Stablecoin top-ups: ${s.symbol} at ${s.token}, ${s.decimals} decimals as read on chain.`);
+}
+
+/** The stablecoin and ETH top-ups of this process, or null while credits are off. */
 export function chainPay(): ChainPay | null {
   return services().pay;
 }
 
-/** Whether a transaction was counted as a USDC or ETH top-up. x402 asks before it takes one. */
+/** Whether a transaction was counted as a stablecoin or ETH top-up. x402 asks before it takes one. */
 export async function usedForTopUp(paymentId: string): Promise<boolean> {
   return Boolean(await services().store.payments.get(paymentId.toLowerCase()));
 }

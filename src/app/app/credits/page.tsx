@@ -42,9 +42,11 @@ export default async function CreditsPage({ searchParams }: PageProps<"/app/cred
   const holderView = ts.config.holder.on ? await ts.holders.view(info.user.id) : null;
   const showHolder = balance.holder.available > 0 || Boolean(holderView?.creditsOn);
   const pay = ts.pay?.status().on ? ts.pay.status() : null;
-  // USDC and ETH on Robinhood Chain: off unless a receiving address is set.
+  // A stablecoin (USDG by default) and ETH on Robinhood Chain: off unless a receiving address is set.
   const cp = chainPay();
-  const chain = cp?.status().on ? cp.status() : null;
+  const chain = cp?.status().on ? await cp.view() : null;
+  const usable = chain?.assets.filter((a) => a.available).map((a) => a.symbol) ?? [];
+  const chainTitle = `Pay with ${usable.length ? usable.join(" or ") : "a stablecoin or ETH"}`;
   const myWallets = pay || chain ? (await accounts().wallets.list(info.user.id)).map((w) => w.address) : [];
   const card = payments?.id === "stripe";
   // Back from Stripe's page (?paid=<session>, ?cancelled=1): what happened, read from the top-up, never from the link.
@@ -101,7 +103,7 @@ export default async function CreditsPage({ searchParams }: PageProps<"/app/cred
             </div>
             {back && <BackFromCard state={back.state} credits={back.credits} />}
             {!payments ? (
-              <p className={styles.muted}>{chain ? "Card payments are not open yet. Pay with USDC or ETH below." : "Top-ups are not open yet."}</p>
+              <p className={styles.muted}>{chain ? `Card payments are not open yet. ${chainTitle} below.` : "Top-ups are not open yet."}</p>
             ) : summary.canManage ? (
               <>
                 {payments.test && (
@@ -140,10 +142,10 @@ export default async function CreditsPage({ searchParams }: PageProps<"/app/cred
           )}
 
           {chain && summary.canManage && (
-            <section id="pay-chain" className={[styles.panel, styles.stack].join(" ")} aria-label="Pay with USDC or ETH">
+            <section id="pay-chain" className={[styles.panel, styles.stack].join(" ")} aria-label="Pay with a stablecoin or ETH">
               <div className={c.panelHead}>
                 <div>
-                  <h2>Pay with USDC or ETH</h2>
+                  <h2>{chainTitle}</h2>
                   <p>Send it from a linked wallet on Robinhood Chain. It is checked on chain and the credits land here.</p>
                 </div>
               </div>

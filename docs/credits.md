@@ -56,7 +56,7 @@ Append-only, per workspace. The balance is the sum of the entries.
 
 | Kind | Amount | When |
 |---|---|---|
-| `top_up` | + | A payment provider said paid (Stripe's verified webhook for cards), an x402 payment (phase 15), $WOVI sent to the burn pot (phase 17), or USDC or ETH sent to WOVI's address. Test top-ups are marked `test`. |
+| `top_up` | + | A payment provider said paid (Stripe's verified webhook for cards), an x402 payment (phase 15), $WOVI sent to the burn pot (phase 17), or a stablecoin (USDG by default) or ETH sent to WOVI's address. Test top-ups are marked `test`. |
 | `grant` | + | Credits given, one per source id: support (paid credits), or a $WOVI holder's monthly holder credits (phase 17, `grantHolder` only). |
 | `hold` | - | The estimate, held when a run or pipeline starts. |
 | `release` | + | Gives a hold back: all of it when the run ends (paired with the charge), or part of a pipeline's hold per step. Its reason: settled, failed, cancelled, step, ended. |
@@ -145,7 +145,7 @@ Use this month is charges minus refunds this month, plus whatever is held right 
 - **The test provider** says paid at once and moves no money. It is on for a local app (`WOVI_APP_URL` on localhost, the default), or with `WOVI_TEST_PAYMENTS=on` on a server that is not running in production, and off with `WOVI_TEST_PAYMENTS=off`. A production server off localhost never gets it, whatever the switch says. With no real provider there, top-ups are closed ("Top-ups are not open yet."), so a deployed site never hands out credits for nothing.
 - Every test top-up says so: the "Test payments" badge, the test-mode note, "test, not charged" on each pack, "Test" in the history and "no money moved" in the toast.
 - Packs only, from 500 credits. With an idempotency key (one per button press), a second call returns the first top-up.
-- **Stripe** (card) is the real provider behind the same interface once it is set up; then the test provider is gone. USDC and ETH on Robinhood Chain are checked on chain instead (below).
+- **Stripe** (card) is the real provider behind the same interface once it is set up; then the test provider is gone. A stablecoin (USDG by default) and ETH on Robinhood Chain are checked on chain instead (below).
 
 ## Card top-ups (Stripe)
 
@@ -178,28 +178,35 @@ From the product doc: "card or other fiat rails for owners with no wallet" and "
 8. **The server:** set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` (and any optional settings above), then restart. The owner's $WOVI page shows the card status, the webhook URL and the events.
 9. **Try it in test mode first:** a `sk_test_` key, a test-mode webhook with its own secret (or locally `stripe listen --forward-to localhost:3900/api/stripe/webhook`, which prints a `whsec_`), and Stripe's test card 4242 4242 4242 4242 with any future date and any CVC. Then swap in the live key and the live webhook's secret.
 
-## USDC and ETH top-ups (Robinhood Chain)
+## Stablecoin and ETH top-ups (Robinhood Chain)
 
 From the product doc's "$WOVI or stablecoin (including x402) for crypto users". The code is `src/lib/chainpay/` (`config.ts`, `chain.ts`, `pay.ts`, `store.ts` in `.data/chainpay.json`, `local.ts`) and `src/components/credits/PayWithChain.tsx`. The same shape as paying with $WOVI and x402: no custody, no key, every check read only.
 
-1. **The price.** An owner or admin ticks the purchase consent, picks USDC or ETH and a pack (500 to 5,000 credits). USDC is one to one with the dollar in six decimals (500 credits are 5,000,000 units, 5 USDC). ETH is priced from Chainlink's ETH/USD feed on Robinhood Chain (`0x78F3556b67E17Df817D51Ef5a990cDaF09E8d3A9`, 8 decimals, refused when older than 26 hours), rounded up to a whole gwei so the amount is short enough to read: `wei = ceil(credits x 10,000 micro-dollars x 100 x 10^18 / USD per ETH with 8 decimals)`, then up to the next multiple of 10^9. The price is single use, lasts ten minutes and keeps the consent word for word.
-2. **The payment.** The person's own wallet sends it from a linked wallet (MetaMask; a phone with no wallet opens the page inside MetaMask, like the other wallet buttons): a plain USDC `transfer` to WOVI's receiving address, or plain ETH to it. The wallet is moved to Robinhood Chain first. A transaction hash can also be pasted.
-3. **The check**, read only: Robinhood Chain (4663), succeeded, at least `WOVI_PAY_MIN_CONFIRMATIONS` blocks, not mined more than two minutes before the price; for USDC the token's Transfer logs from a linked wallet to the receiving address, for ETH the transaction's own value from a linked wallet straight to it. Each transaction counts once ever (`4663:<hash>`), and never if x402 already took it (both may use the same address; x402 also refuses a transaction counted here). Each price counts once. A node that does not answer, a transaction not mined yet and too few confirmations say "try again", and the screen asks every two seconds.
-4. **What it becomes.** Mined inside the price's ten minutes: a paid top-up (`provider` usdc or eth, the consent, the asset, amount, wallet and transaction on `topUp.chain`) and one ledger entry (`chain:4663:<hash>`), for the price's credits for what was sent at the price's own rate, rounded down. Less than the price adds fewer credits, more adds more, as with $WOVI. Mined after the price ran out, or worth less than one credit: no credits, and the whole amount is written down as owed back to the wallet it came from (a `chain_payment` row in `safety.json`, on Reports and refunds with the exact amount and address). A price can still be checked for seven days after it ran out, so a payment made in time but checked late (a closed tab) still counts.
+**The stablecoin is USDG out of the box.** Robinhood Chain's official token page (docs.robinhood.com/chain/contracts) lists one stablecoin, USDG at `0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`, and no USDC, and the issuer's own list of USDC contract addresses does not include Robinhood Chain (both checked on 2026-10-23). So the stablecoin defaults to USDG on chain 4663, and another one (USDC once it exists there) is one setting away. Whatever it is, it is treated one to one with the US dollar, like USDC would be.
+
+**Read and checked at start.** The stablecoin's symbol and decimals are never taken from settings. When the server starts (and before the first price), WOVI reads `symbol()` and `decimals()` from the token and the RPC's chain id, and offers the stablecoin only when the RPC is Robinhood Chain, the symbol is a short plain word, the decimals are 2 to 18 (so a cent is a whole number of units) and, when set, they match `WOVI_STABLECOIN_SYMBOL` and `WOVI_STABLECOIN_DECIMALS`. A good answer is kept; a failed one is logged with the reason, shown on the owner's page, and tried again after a minute. A page waits at most three seconds for the read. Until then the stablecoin shows "Not available right now" and ETH still works. Every screen, price, top-up, history line, receipt and owed row uses the symbol the token reported (USDG), and the section is called "Pay with USDG or ETH".
+
+1. **The price.** An owner or admin ticks the purchase consent, picks the stablecoin or ETH and a pack (500 to 5,000 credits). The stablecoin is one to one with the dollar in its own decimals (USDG has six: 500 credits are 5,000,000 units, 5 USDG). ETH is priced from Chainlink's ETH/USD feed on Robinhood Chain (`0x78F3556b67E17Df817D51Ef5a990cDaF09E8d3A9`, 8 decimals, refused when older than 26 hours), rounded up to a whole gwei so the amount is short enough to read: `wei = ceil(credits x 10,000 micro-dollars x 100 x 10^18 / USD per ETH with 8 decimals)`, then up to the next multiple of 10^9. The price is single use, lasts ten minutes and keeps the consent word for word, with the symbol and decimals it was made in.
+2. **The payment.** The person's own wallet sends it from a linked wallet (MetaMask; a phone with no wallet opens the page inside MetaMask, like the other wallet buttons): a plain stablecoin `transfer` to WOVI's receiving address, or plain ETH to it. The wallet is moved to Robinhood Chain first. A transaction hash can also be pasted.
+3. **The check**, read only: Robinhood Chain (4663), succeeded, at least `WOVI_PAY_MIN_CONFIRMATIONS` blocks, not mined more than two minutes before the price; for the stablecoin the token's Transfer logs from a linked wallet to the receiving address, for ETH the transaction's own value from a linked wallet straight to it. Each transaction counts once ever (`4663:<hash>`), and never if x402 already took it (both may use the same address; x402 also refuses a transaction counted here). Each price counts once. A node that does not answer, a transaction not mined yet and too few confirmations say "try again", and the screen asks every two seconds.
+4. **What it becomes.** Mined inside the price's ten minutes: a paid top-up (`provider` stable or eth, the consent, the asset and its symbol, amount, wallet and transaction on `topUp.chain`) and one ledger entry (`chain:4663:<hash>`, "Paid with USDG, 500 credits"), for the price's credits for what was sent at the price's own rate, rounded down. Less than the price adds fewer credits, more adds more, as with $WOVI. Mined after the price ran out, or worth less than one credit: no credits, and the whole amount is written down as owed back to the wallet it came from (a `chain_payment` row in `safety.json`, on Reports and refunds with the exact amount, symbol and address). A price can still be checked for seven days after it ran out, so a payment made in time but checked late (a closed tab) still counts.
 5. **Withdrawal.** Like any purchase, within 14 days: the unused credits leave, and the same asset in proportion is owed back to the paying wallet. The owner sends it from their own wallet and marks it paid.
 
 | Setting | Default | What it does |
 |---|---|---|
 | `WOVI_PAY_TO` | empty: `WOVI_X402_PAY_TO`; both empty: off | WOVI's receiving address. |
-| `WOVI_USDC_ADDRESS` | empty: USDC shows "Not available yet" | USDC on Robinhood Chain (below). |
+| `WOVI_STABLECOIN_ADDRESS` | empty: USDG (`0x5fc5...d168`) | The stablecoin on Robinhood Chain. `off` offers none. A malformed address turns it off and the owner's page says why. |
+| `WOVI_USDC_ADDRESS` | empty | The older name of `WOVI_STABLECOIN_ADDRESS`, still read when that one is empty. |
+| `WOVI_STABLECOIN_SYMBOL` | empty: any | The symbol the token must report on chain (for example `USDC`), else it is not offered. |
+| `WOVI_STABLECOIN_DECIMALS` | empty: any from 2 to 18 | The decimals it must report on chain. |
 | `WOVI_PAY_ETH` | on | `off` hides ETH. |
-| `WOVI_PAY_RPC_URL` | then `WOVI_TOKEN_RPC_URL`, `WOVI_X402_RPC_URL`, then the public node | Robinhood Chain RPC for the checks and the feed. A paid node is better in production. |
+| `WOVI_PAY_RPC_URL` | then `WOVI_TOKEN_RPC_URL`, `WOVI_X402_RPC_URL`, then the public node | Robinhood Chain RPC for the checks, the stablecoin's read and the feed. A paid node is better in production. |
 | `WOVI_PAY_ETH_USD_FEED` | Chainlink ETH/USD on Robinhood Chain | Another feed with the same interface. |
 | `WOVI_PAY_MIN_CONFIRMATIONS` | 3 | Blocks before a payment counts. |
 
-**USDC's address.** Checked on 2026-10-23: Circle's list of USDC contract addresses (developers.circle.com/stablecoins/usdc-contract-addresses) does not include Robinhood Chain, and Robinhood Chain's own token page (docs.robinhood.com/chain/contracts) lists WETH (`0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73`) and the stablecoin USDG (`0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168`, 6 decimals, read on chain) but no USDC. The explorer's API refuses scripted reads. So there is no default: set `WOVI_USDC_ADDRESS` once an official USDC is listed in one of those places, and USDC shows as not available until then. ETH works without it.
+To switch to USDC once its issuer or Robinhood Chain lists it: `WOVI_STABLECOIN_ADDRESS=<its address>` and `WOVI_STABLECOIN_SYMBOL=USDC`, then restart. Prices made before keep their own asset.
 
-The owner's $WOVI page shows both: the card status with the webhook URL and the events, and USDC and ETH with the receiving address, the USDC address, what was paid so far and how many are owed back.
+The owner's $WOVI page shows both: the card status with the webhook URL and the events, and the stablecoin and ETH with the receiving address, the stablecoin's address with the symbol and decimals read on chain (or why it is not offered), what was paid so far and how many are owed back.
 
 ## Who can do what
 
@@ -238,16 +245,15 @@ WOVI_DATA_DIR=/tmp/wovi-credits-screens OPENROUTER_API_KEY= node scripts/credits
 
 It signs in through the email flow, skips onboarding, runs `scripts/seed-credits.ts` (the team and the example Brand Brains), then does the rest through the screens: the not-enough state at 0, a test top-up, a run that is charged, a run that is stopped, a pipeline, a run left going, and limits. Output goes to `~/WOVI-credits-screens/`.
 
-Screenshots of card, USDC and ETH top-ups (`scripts/pay-screens.mjs`, output in `~/WOVI-pay-screens/`), with throwaway keys only:
+Screenshots of card, USDG and ETH top-ups (`scripts/pay-screens.mjs`, output in `~/WOVI-pay-screens/`), with throwaway keys only:
 
 ```
 anvil --fork-url https://rpc.mainnet.chain.robinhood.com --port 8653 --block-time 1 --chain-id 4663
-# fund two throwaway wallets with anvil_setBalance; deploy a 6-decimal stand-in token minted to the "user" wallet
-WOVI_PAY_TO=<a throwaway address> WOVI_PAY_RPC_URL=http://127.0.0.1:8653 WOVI_USDC_ADDRESS=<the stand-in> \
+# fund a throwaway "user" wallet on the fork: ETH by anvil_setBalance, and real USDG sent from a holder impersonated
+# with anvil_impersonateAccount (anvil_dealERC20 finds no balance slot for USDG; the fork only, nothing is sent on the real chain)
+WOVI_PAY_TO=<a throwaway address> WOVI_PAY_RPC_URL=http://127.0.0.1:8653 \
   WOVI_APP_URL=http://localhost:3911 WOVI_BUILDER_EMAILS=maya@example.com npx next start -p 3911
 BASE=http://localhost:3911 FORK_RPC=http://127.0.0.1:8653 FORK_USER_KEY=<the user key> WOVI_PAY_TO=<same> node scripts/pay-screens.mjs chain
-# the same server without WOVI_USDC_ADDRESS: the launch state
-node scripts/pay-screens.mjs nousdc
 # cards: a made-up sk_test_ key and whsec_ secret, Stripe's API answered by the script itself
 STRIPE_SECRET_KEY=sk_test_<random> STRIPE_WEBHOOK_SECRET=whsec_<random> STRIPE_API_BASE=http://127.0.0.1:12111 ... npx next start -p 3911
 BASE=http://localhost:3911 STRIPE_WEBHOOK_SECRET=<same> node scripts/pay-screens.mjs card
@@ -269,10 +275,10 @@ The earlier phases' screenshot scripts run agents from a workspace with no credi
 
 ## Later
 
-- Cards through Stripe and USDC or ETH on Robinhood Chain are in (above). Agents and software without an account pay per call with x402 since phase 15 ([x402.md](x402.md)): each paid call lands in the `ws_x402` workspace as a top-up of its quote and settles like any run.
+- Cards through Stripe and a stablecoin (USDG) or ETH on Robinhood Chain are in (above). Agents and software without an account pay per call with x402 since phase 15 ([x402.md](x402.md)): each paid call lands in the `ws_x402` workspace as a top-up of its quote and settles like any run.
 - Card disputes (`charge.dispute.created`) are not handled yet: a dispute shows in Stripe's dashboard only. Taking the credits off on a dispute is the next step.
 - Prices in euros of WOVI's own (a second price list). Today Stripe's Adaptive Pricing covers buyers who want to pay in their currency.
-- USDC from smart contract wallets works (it is a token transfer); ETH sent from inside a contract is not seen.
+- The stablecoin from smart contract wallets works (it is a token transfer); ETH sent from inside a contract is not seen.
 - Holder credits are in since phase 17 (above). One allocation per account; one person with several accounts is not caught yet.
 - Swaps and creator payouts only after the legal check.
 - A small starter pack or a low first top-up for new users outside crypto, as the doc says to revisit.
@@ -281,9 +287,9 @@ The earlier phases' screenshot scripts run agents from a workspace with no credi
 ## Tests for paying
 
 - `src/lib/credits/stripe.test.ts` (13): the settings and descriptor rules; Stripe only when both secrets are set, the test provider never on a production server; the Checkout Session asked for (USD, the pack, WOVI's name and suffix, the links, the expiry, one per top-up by idempotency key, a Stripe Price when set, a refusal without the key in the message); the webhook with Stripe's own signature code (lands once however often it is sent, a bad, missing or foreign signature, a changed body, the other mode, off), a wrong amount, currency, pack, session, top-up or mode never counted, an unpaid session, Adaptive Pricing, expiry, a 500 that Stripe sends again; refunds from the owner's page (the share, once, its idempotency key, the owed row paid) with `charge.refunded` taking nothing more, a refund from Stripe's dashboard taken once and counted by a later withdrawal, spent credits never below zero, and no card refund of what was not paid by card.
-- `src/lib/chainpay/chainpay.test.ts` (12): the settings and USDC unavailable without its address; exact money; USDC and ETH prices with the consent, every refusal; a USDC and an ETH payment landing once with the consent, each transaction once (another price, another person, x402), under, over and less than a credit, late (owed back) and checked late (still counted), a price over a week old, every on-chain refusal with the price usable after, and withdrawal of such a top-up owing the same asset back.
+- `src/lib/chainpay/chainpay.test.ts` (19): the settings with USDG by default, another stablecoin and the older `WOVI_USDC_ADDRESS`; the stablecoin read on chain once and kept, refused on another chain, a strange symbol or decimals, or a mismatch with the settings (ETH still working), tried again a minute after a silent chain, never holding a page for a slow node, switched off, and one with 18 decimals priced one to one; exact money; USDG and ETH prices with the consent, every refusal; a USDG and an ETH payment landing once with the consent, each transaction once (another price, another person, x402), under, over and less than a credit, late (owed back) and checked late (still counted), a price over a week old, every on-chain refusal with the price usable after, and withdrawal of such a top-up owing the same asset back.
 - `src/lib/x402/x402.test.ts`: a transaction that topped up credits never pays a call.
-- `src/lib/safety/phase17-compat.test.ts`: a phase 17 data dir reads unchanged with all of this in place, no new file appears until it is used, and a USDC top-up lands beside the old top-ups without changing them.
+- `src/lib/safety/phase17-compat.test.ts`: a phase 17 data dir reads unchanged with all of this in place, no new file appears until it is used, and a USDG top-up lands beside the old top-ups without changing them.
 
 ## Buying and withdrawing (phase 18)
 

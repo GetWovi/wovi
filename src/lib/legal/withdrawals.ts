@@ -83,7 +83,7 @@ export class Withdrawals {
       createdAt: at,
       paidAt: null,
       paidBy: null,
-      // Paid in USDC or ETH: the share of what was sent, back to the wallet it came from, in the same asset.
+      // Paid in a stablecoin or ETH: the share of what was sent, back to the wallet it came from, in the same asset.
       ...(topUp.chain ? { chain: { symbol: topUp.chain.symbol, token: topUp.chain.token, decimals: topUp.chain.decimals, amount: ((BigInt(topUp.chain.amount) * BigInt(back)) / BigInt(topUp.credits)).toString(), to: topUp.chain.payer, tx: topUp.chain.tx, chainId: topUp.chain.chainId } } : {}),
     };
     await this.o.safety.owed.insert(row);

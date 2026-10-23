@@ -118,7 +118,7 @@ export default async function SafetyPage() {
 
       <section className={styles.stack} aria-label="Money owed back">
         <h2>Money owed back</h2>
-        <p className={styles.muted}>From withdrawals within 14 days, deleted accounts, and USDC or ETH that came too late or as less than a credit. A card purchase is refunded through Stripe with one button; anything else, send it yourself (USDC and ETH from your own wallet to the address shown), then mark it paid. WOVI never sends money on its own.</p>
+        <p className={styles.muted}>From withdrawals within 14 days, deleted accounts, and stablecoin or ETH payments that came too late or as less than a credit. A card purchase is refunded through Stripe with one button; anything else, send it yourself (stablecoins and ETH from your own wallet to the address shown), then mark it paid. WOVI never sends money on its own.</p>
         {owed.length === 0 && <p className={styles.muted}>Nothing owed.</p>}
         <div className={s.queue}>
           {owed.map((o) => (

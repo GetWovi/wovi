@@ -62,7 +62,7 @@ export type PrivacyOptions = {
   balance?: (workspaceId: string) => Promise<Balance>;
   pipelines: PipelineStore;
   token: TokenStore;
-  /** USDC and ETH top-ups. Optional: missing, there are none to export or anonymise. */
+  /** Stablecoin and ETH top-ups. Optional: missing, there are none to export or anonymise. */
   chainpay?: ChainPayStore;
   webhooks: WebhookStore;
   safety: SafetyStore;

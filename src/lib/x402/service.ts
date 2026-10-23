@@ -95,7 +95,7 @@ export type X402Options = {
   appUrl: string;
   /** A Chainlink feed's price, scaled to 8 decimals. Only for assets priced by a feed. */
   readFeed?: (feed: string, maxAgeSec: number) => Promise<bigint | null>;
-  /** Whether a transaction already counted elsewhere (a USDC or ETH top-up to the same address). Such a transaction never pays a call. */
+  /** Whether a transaction already counted elsewhere (a stablecoin or ETH top-up to the same address). Such a transaction never pays a call. */
   usedElsewhere?: (paymentId: string) => Promise<boolean>;
   now?: () => number;
   log?: (line: string) => void;

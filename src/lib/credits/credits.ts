@@ -691,7 +691,7 @@ export class Credits implements RunBilling {
   }
 
   /**
-   * A top-up already paid outside a checkout: USDC or ETH sent on Robinhood
+   * A top-up already paid outside a checkout: a stablecoin or ETH sent on Robinhood
    * Chain and checked there (chainpay). The row and its ledger entry are
    * written once: the id and the ledger key come from the payment, so the
    * same payment again returns the first row.

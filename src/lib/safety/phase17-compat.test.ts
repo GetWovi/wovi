@@ -153,7 +153,7 @@ describe("a phase 17 data dir", () => {
     expect(after.sort()).toEqual([...runsBefore].sort());
   });
 
-  it("reads unchanged with card, USDC and ETH payments and real email in place, and a new USDC top-up lands beside the old ones", async () => {
+  it("reads unchanged with card, stablecoin and ETH payments and real email in place, and a new USDG top-up lands beside the old ones", async () => {
     const dir = copy();
     const before = hashes(dir);
     const accounts = localAccounts(dir, ENV);
@@ -172,11 +172,11 @@ describe("a phase 17 data dir", () => {
     expect(hashes(dir)).toEqual(before);
     for (const f of ["chainpay.json", "stripe.json", "safety.json"]) expect(existsSync(join(dir, f))).toBe(false);
 
-    // A USDC top-up on top of phase 17 data, with its consent: the old rows are untouched.
+    // A USDG top-up on top of phase 17 data, with its consent: the old rows are untouched.
     const balance = (await credits.balance(MAYA_WS)).paid;
     const oldRows = old.map((t) => JSON.stringify(t)).sort();
-    const top = await credits.recordPaidTopUp(MAYA_WS, { id: "top_chain_compat", provider: "usdc", providerRef: "4663:0xabc", credits: 500, amountCents: 500, by: MAYA, label: "Paid with USDC, 500 credits", ledgerKey: "chain:4663:0xabc", consent: { at: new Date().toISOString(), wording: "words" }, chain: { asset: "usdc", symbol: "USDC", token: "0x00000000000000000000000000000000000000c1", decimals: 6, amount: "5000000", payer: "0x00000000000000000000000000000000000000a1", tx: "0xabc", chainId: 4663 } });
-    expect(top).toMatchObject({ status: "paid", provider: "usdc", consent: { wording: "words" } });
+    const top = await credits.recordPaidTopUp(MAYA_WS, { id: "top_chain_compat", provider: "stable", providerRef: "4663:0xabc", credits: 500, amountCents: 500, by: MAYA, label: "Paid with USDG, 500 credits", ledgerKey: "chain:4663:0xabc", consent: { at: new Date().toISOString(), wording: "words" }, chain: { asset: "stable", symbol: "USDG", token: "0x5fc5360d0400a0fd4f2af552add042d716f1d168", decimals: 6, amount: "5000000", payer: "0x00000000000000000000000000000000000000a1", tx: "0xabc", chainId: 4663 } });
+    expect(top).toMatchObject({ status: "paid", provider: "stable", consent: { wording: "words" } });
     expect((await credits.balance(MAYA_WS)).paid).toBe(balance + 500);
     const after = (await credits.topUps(MAYA_WS)).filter((t) => t.id !== top.id).map((t) => JSON.stringify(t)).sort();
     expect(after).toEqual(oldRows);
