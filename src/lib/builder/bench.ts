@@ -25,7 +25,8 @@ import { validateRunInputs, type RunInputs } from "@/lib/runs/inputs";
 import type { RunOutput } from "@/lib/runs/output";
 import { DEFAULT_MAX_OUTPUT_TOKENS, estimateCallMicroUsd, toMicroUsd, toUsd } from "@/lib/runs/prices";
 import { assemblePrompt, promptText } from "@/lib/runs/prompt";
-import type { Run, RunStatus } from "@/lib/runs/run";
+import { toolEstimateMicroUsd } from "@/lib/runs/tools";
+import { runSources, type Run, type RunStatus } from "@/lib/runs/run";
 import type { Builder, SaveRelease } from "./builder";
 import { autoScore, parsedHow, scorecard, type Scorecard } from "./scoring";
 import { BENCH_LIMITS, RATINGS, type Batch, type Bench, type BenchItem, type Rating, type RatingValue, type Sample } from "./types";
@@ -56,6 +57,10 @@ export type BenchResult = {
   costUsd: number;
   autoScore: number | null;
   rating: { rating: RatingValue; note: string } | null;
+  /** The samples the run was given as examples (titles), and whether its own sample was kept out. Null before the run starts. */
+  examples: { gold: string[]; bad: string[]; ownKeptOut: boolean } | null;
+  /** The web sources its declared tools found (trend_lookup). */
+  sources: { url: string; title: string; published: string | null }[];
 };
 
 export type BenchView = {
@@ -156,7 +161,7 @@ export function estimateRunMicroUsd(spec: AgentSpec, inputs: RunInputs): { estim
   const model = findModelRoute(spec.routing.model)?.model;
   if (!model) return { estimate: cap, cap };
   const text = promptText(assemblePrompt(spec, inputs, null));
-  const first = estimateCallMicroUsd(model, text, spec.routing.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS);
+  const first = estimateCallMicroUsd(model, text, spec.routing.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS) + toolEstimateMicroUsd(spec, null);
   return { estimate: Math.min(first, cap), cap };
 }
 
@@ -256,7 +261,8 @@ export class AgentBench {
     for (const item of items) {
       try {
         // Bench runs are the builders' own tests: they never cost credits.
-        const run = await this.engine.submitRun({ workspaceId: this.ws, agentId: spec.id, version: spec.version, inputs: item.inputs, confirmations, ...(brandBrainId ? { brandBrainId } : {}), billing: { userId, free: "bench" } });
+        // A sample never sees itself: kept out of the examples and the reference lines, so the gold eval stays honest.
+        const run = await this.engine.submitRun({ workspaceId: this.ws, agentId: spec.id, version: spec.version, inputs: item.inputs, confirmations, ...(brandBrainId ? { brandBrainId } : {}), ...(item.sampleId ? { excludeSampleIds: [item.sampleId] } : {}), billing: { userId, free: "bench" } });
         const e = estimateRunMicroUsd(spec, run.inputs);
         bench.estimateMicroUsd += e.estimate;
         bench.capMicroUsd += e.cap;
@@ -588,7 +594,7 @@ export function resultOf(index: number, item: BenchItem, run: Run | null, rating
     runId: item.runId,
   };
   if (!run) {
-    return { ...base, status: "refused", error: item.error ?? "The run is missing.", output: null, checks: [], needsReview: false, parsed: null, model: null, ms: null, tokensIn: 0, tokensOut: 0, costMicroUsd: 0, costUsd: 0, autoScore: null, rating: null };
+    return { ...base, status: "refused", error: item.error ?? "The run is missing.", output: null, checks: [], needsReview: false, parsed: null, model: null, ms: null, tokensIn: 0, tokensOut: 0, costMicroUsd: 0, costUsd: 0, autoScore: null, rating: null, examples: null, sources: [] };
   }
   return {
     ...base,
@@ -606,5 +612,7 @@ export function resultOf(index: number, item: BenchItem, run: Run | null, rating
     costUsd: run.costUsd,
     autoScore: autoScore(run),
     rating: rating ? { rating: rating.rating, note: rating.note } : null,
+    examples: run.examples ? { gold: run.examples.gold.map((e) => e.title), bad: run.examples.bad.map((e) => e.title), ownKeptOut: Boolean(item.sampleId && run.examples.excluded.includes(item.sampleId)) } : null,
+    sources: runSources(run).map(({ url, title, published }) => ({ url, title, published })),
   };
 }

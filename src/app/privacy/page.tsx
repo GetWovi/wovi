@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, legalStyles as s, type LegalSection } from "@/components/safety/LegalPage";
-import { MODEL_ROUTES } from "@/lib/agents/catalog";
 import { CONTACT_EMAIL, IMPROVE_CONSENT, operatorLine } from "@/lib/legal/operator";
+import { processorsFromEnv, type Processor } from "@/lib/legal/processors";
 import { RETENTION } from "@/lib/privacy/privacy";
 
 export const metadata: Metadata = {
@@ -10,11 +10,10 @@ export const metadata: Metadata = {
   description: "What WOVI collects, why, who helps us run it, how long we keep it and how to get a copy or delete it.",
 };
 
-const mail = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
+// The processors follow the live settings (card on or off, the email provider, the chain node), so the page is read at request time.
+export const dynamic = "force-dynamic";
 
-/** The companies whose models the agents use, from the model routes in code. */
-const MODEL_MAKERS: Record<string, string> = { openai: "OpenAI", anthropic: "Anthropic", google: "Google" };
-const makers = [...new Set(MODEL_ROUTES.filter((r) => r.provider === "openrouter" && r.model).map((r) => MODEL_MAKERS[r.model!.split("/")[0]] ?? r.model!.split("/")[0]))];
+const mail = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
 
 const ROWS: { what: string; why: string; basis: string; kept: string }[] = [
   { what: "Your email, name, passkeys (public keys only) and sign-ins (device, times)", why: "Your account and signing you in safely", basis: "Our agreement with you; security is our legitimate interest", kept: "While you have an account. A session ends after 30 days at most." },
@@ -29,7 +28,9 @@ const ROWS: { what: string; why: string; basis: string; kept: string }[] = [
   { what: "Sign-in links and codes, rate limits", why: "Security", basis: "Our legitimate interest", kept: "Until used or expired (minutes)" },
 ];
 
-const sections: LegalSection[] = [
+function sectionsFor(processors: Processor[]): LegalSection[] {
+  const us = processors.filter((p) => /United States/.test(p.where)).map((p) => p.name);
+  return [
   {
     id: "who",
     title: "1. Who is responsible",
@@ -76,7 +77,8 @@ const sections: LegalSection[] = [
     title: "3. AI and your data",
     body: (
       <ul>
-        <li>When an agent runs, what you typed and the parts of your Brand Brain it reads are sent to an AI model to write the draft. Nothing else is sent.</li>
+        <li>When an agent runs, what you typed and the parts of your Brand Brain it reads are sent to an AI model to write the draft. Nothing else is sent. Trend Scout also runs a web search with the niche and platform you typed.</li>
+        <li>When you ask the AI to read your past posts for a Brand Brain, those posts are sent to an AI model. Reading them with plain counts sends nothing.</li>
         <li>No decision about you with legal or similar effects is made by automated means. Automated rules do read requests and drafts for the content rules in the terms.</li>
         <li>
           <b>{IMPROVE_CONSENT.label}.</b> {IMPROVE_CONSENT.text} You change it under <Link href="/account#your-data">Account, Your data</Link>. Without it, builders see counts and scores only.
@@ -90,21 +92,36 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>These companies process data for us under data processing agreements, only to provide their part:</p>
-        <ul>
-          <li>
-            <b>Railway</b> hosts WOVI and its data, in its EU West region (Amsterdam, the Netherlands).
-          </li>
-          <li>
-            <b>OpenRouter</b> (United States) passes each run to the AI model that writes it. Today those models come from {makers.join(", ")}.
-          </li>
-          <li>
-            <b>Stripe</b> takes the card on its own page when you pay by card. We never see the card number; Stripe tells us whether the payment went through, and handles refunds to the card.
-          </li>
-          <li>When we start sending email through a provider, it will be named here before it starts.</li>
-        </ul>
-        <p>
-          OpenRouter and the model makers are in the United States. Data goes there under the European Commission&apos;s Standard Contractual Clauses in OpenRouter&apos;s data processing agreement, or under the EU-US Data Privacy Framework for companies certified under it. Ask us at {mail} for a copy of the safeguards.
-        </p>
+        <div className={s.tableWrap}>
+          <table className={s.table}>
+            <thead>
+              <tr>
+                <th>Who</th>
+                <th>What they do</th>
+                <th>What they get</th>
+                <th>Where</th>
+              </tr>
+            </thead>
+            <tbody>
+              {processors.map((p) => (
+                <tr key={p.name}>
+                  <td data-label="Who">
+                    <b>{p.name}</b>
+                  </td>
+                  <td data-label="What they do">{p.role}</td>
+                  <td data-label="What they get">{p.data}</td>
+                  <td data-label="Where">{p.where}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {us.length > 0 && (
+          <p>
+            {us.join(", ")}
+            {processors.some((p) => p.name === "OpenRouter") ? " and the model makers" : ""} process data in the United States. Data goes there under the European Commission&apos;s Standard Contractual Clauses in each one&apos;s data processing agreement, or under the EU-US Data Privacy Framework for companies certified under it. Ask us at {mail} for a copy of the safeguards.
+          </p>
+        )}
         <p>Wallet addresses and payments in $WOVI, stablecoins and ETH are on Robinhood Chain, a public blockchain, where anyone can read them. We only read from it.</p>
       </>
     ),
@@ -158,7 +175,8 @@ const sections: LegalSection[] = [
     body: <p>When this notice changes in a way that matters, we tell you by email and in the app before it takes effect.</p>,
   },
 ];
+}
 
 export default function PrivacyPage() {
-  return <LegalPage eyebrow="Legal" title="Privacy" lead="We collect what WOVI needs to write drafts for you, keep it in the EU, send it to an AI model only for your own runs, and never sell it. You can download it or delete it yourself." sections={sections} />;
+  return <LegalPage eyebrow="Legal" title="Privacy" lead="We collect what WOVI needs to write drafts for you, keep it in the EU, send it to an AI model only for your own runs, and never sell it. You can download it or delete it yourself." sections={sectionsFor(processorsFromEnv())} />;
 }

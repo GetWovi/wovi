@@ -9,8 +9,8 @@ export async function saveOnboarding(csrf: string, patch: OnboardingPatch): Prom
 }
 
 /** Reads the pasted posts into a proposed voice and moves to the review step. */
-export async function readPosts(csrf: string): Promise<Result<{ state: OnboardingState; proposal: PublicProposal }>> {
-  return appCall(csrf, ({ api, me, workspaceId }) => api.readOnboardingPosts(me, workspaceId));
+export async function readPosts(csrf: string, read: { useModel?: boolean; quotedCredits?: number } = {}): Promise<Result<{ state: OnboardingState; proposal: PublicProposal }>> {
+  return appCall(csrf, ({ api, me, workspaceId }) => api.readOnboardingPosts(me, workspaceId, read));
 }
 
 /** Saves the reviewed voice as the first Brand Brain and lands in the app. */

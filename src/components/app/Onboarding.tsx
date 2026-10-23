@@ -15,7 +15,8 @@ import { useToast } from "@/components/ui/Toast";
 import type { Platform } from "@/lib/agents/catalog";
 import { STEP_TITLES, canReadPosts, filledPosts, progressLabel, stepIndex, type OnboardingState } from "@/lib/app/onboarding";
 import { ONBOARDING_STEPS, type OnboardingStep } from "@/lib/app/types";
-import type { PublicProposal } from "@/lib/brand/brains";
+import type { PublicProposal, ReadQuote } from "@/lib/brand/brains";
+import { ReadChoice, defaultUseModel } from "@/components/brand-brain/ReadChoice";
 import { BRAND_LIMITS, type OpeningKind, type ProfileProposal } from "@/lib/brand/types";
 import styles from "./App.module.css";
 
@@ -27,7 +28,7 @@ const pct = (n: number) => `${Math.round(n * 100)}%`;
  * past posts, check the proposed voice, and land in the app with your first
  * Brand Brain. Every step is skippable and progress is saved as you go.
  */
-export function Onboarding({ csrf, start, proposal: initialProposal, editor }: { csrf: string; start: OnboardingState; proposal: PublicProposal | null; editor: boolean }) {
+export function Onboarding({ csrf, start, proposal: initialProposal, editor, quote = { mode: "free" } }: { csrf: string; start: OnboardingState; proposal: PublicProposal | null; editor: boolean; quote?: ReadQuote }) {
   const router = useRouter();
   const { toast } = useToast();
   const [step, setStep] = useState<OnboardingStep>(start.step);
@@ -40,6 +41,7 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor }: {
   const [idea, setIdea] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [useModel, setUseModel] = useState(defaultUseModel(quote));
 
   function go(next: OnboardingStep) {
     setStep(next);
@@ -66,7 +68,7 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor }: {
       setBusy(null);
       return setError(saved.error);
     }
-    const r = await readPosts(csrf);
+    const r = await readPosts(csrf, quote.mode === "credits" && useModel ? { useModel: true, quotedCredits: quote.credits } : {});
     setBusy(null);
     if (!r.ok) return setError(r.error);
     setProposal(r.value.proposal);
@@ -253,6 +255,7 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor }: {
                 </div>
               )}
             </div>
+            <ReadChoice quote={quote} value={useModel} onChange={setUseModel} />
             {error && <Problem text={error} />}
             <div className={styles.onbBar}>
               <span>
@@ -365,11 +368,13 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor }: {
                 </div>
               </div>
             )}
-            {proposal.unread.length > 0 && (
+            {(proposal.unread.length > 0 || proposal.charge || (proposal.source === "heuristics" && proposal.notes[0])) && (
               <ul className={[styles.muted, styles.small].join(" ")} style={{ margin: 0, paddingLeft: 18 }}>
                 {proposal.unread.map((u) => (
                   <li key={u}>{u}</li>
                 ))}
+                {proposal.source === "heuristics" && proposal.notes[0] && <li>{proposal.notes[0]}</li>}
+                {proposal.charge && <li>{proposal.charge.charged > 0 ? `The AI read cost ${proposal.charge.charged} credit${proposal.charge.charged === 1 ? "" : "s"}.` : "The AI did not answer, so nothing was charged."}</li>}
               </ul>
             )}
           </div>

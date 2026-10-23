@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LegalPage, legalStyles as s, type LegalSection } from "@/components/safety/LegalPage";
 import { CREDITS, creditWords, priceWords } from "@/lib/credits/config";
 import { CONTACT_EMAIL, OPERATOR, PURCHASE_CONSENT, WITHDRAWAL_DAYS } from "@/lib/legal/operator";
+import { cryptoWaysWords, paymentWaysFromEnv, type PaymentWays } from "@/lib/legal/processors";
 import { CATEGORY_INFO, SAFETY_CATEGORIES } from "@/lib/safety/rules";
 
 export const metadata: Metadata = {
@@ -10,9 +11,29 @@ export const metadata: Metadata = {
   description: "The terms for using WOVI: what the agents do, credits and prices, your right of withdrawal, the content rules, your content and how reports are handled.",
 };
 
+// How people can pay follows the live settings (card on or off, which crypto ways are on), so the page is read at request time.
+export const dynamic = "force-dynamic";
+
 const mail = <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
 
-const sections: LegalSection[] = [
+/** How to pay, in the words of the terms, for the ways that are on. */
+function payingWords(w: PaymentWays): string {
+  const crypto = cryptoWaysWords(w);
+  const onChain = crypto ? `${crypto} sent on Robinhood Chain from a wallet linked to your account` : "";
+  if (w.card && onChain) return `You pay by card on Stripe's own page, or with ${onChain}. Credits bought by card are added once Stripe confirms the payment to us.`;
+  if (w.card) return "You pay by card on Stripe's own page. Credits are added once Stripe confirms the payment to us.";
+  if (onChain) return `You pay with ${onChain}.`;
+  return "Buying credits is not open yet. When it opens, these terms say how you pay before you can buy.";
+}
+
+/** Where a withdrawal is paid back to, for the ways that are on. */
+function refundWords(w: PaymentWays): string {
+  const back = [w.card ? "to your card" : null, w.stablecoin || w.eth ? `in the same ${[w.stablecoin ? "stablecoin" : null, w.eth ? "ETH" : null].filter(Boolean).join(" or ")} to the wallet it came from` : null].filter(Boolean);
+  return back.length ? `: ${back.join(", or ")}` : "";
+}
+
+function sectionsFor(w: PaymentWays): LegalSection[] {
+  return [
   {
     id: "who",
     title: "1. Who we are",
@@ -67,7 +88,10 @@ const sections: LegalSection[] = [
           </li>
           <li>The price shown on a pack is the total you pay, taxes included.</li>
           <li>
-            You pay by card on Stripe&apos;s own page, where we offer it, or with a stablecoin such as USDG, ETH or $WOVI sent on Robinhood Chain from a wallet linked to your account. Credits bought by card are added once Stripe confirms the payment to us. A payment in a stablecoin or ETH that arrives after its price ran out, or that is worth less than one credit, adds no credits and is sent back to the wallet it came from; one that is less than the price adds the credits it pays for.
+            {payingWords(w)}
+            {w.stablecoin || w.eth
+              ? ` A payment in ${[w.stablecoin ? "a stablecoin" : null, w.eth ? "ETH" : null].filter(Boolean).join(" or ")} that arrives after its price ran out, or that is worth less than one credit, adds no credits and is sent back to the wallet it came from; one that is less than the price adds the credits it pays for.`
+              : ""}
           </li>
           <li>Before a run starts you see its estimate. The run never costs more than that. A run that fails or that you stop costs nothing; the credits go back.</li>
           <li>
@@ -92,7 +116,7 @@ const sections: LegalSection[] = [
           </p>
         </div>
         <ul>
-          <li>If you withdraw, the credits from that purchase you have not used leave your balance and we pay them back to the way you paid, within 14 days: to your card, or in the same stablecoin or ETH to the wallet it came from.</li>
+          <li>If you withdraw, the credits from that purchase you have not used leave your balance and we pay them back to the way you paid, within 14 days{refundWords(w)}.</li>
           <li>Credits you already used are paid for.</li>
           <li>Once every credit from a purchase is used, you can no longer withdraw from it.</li>
           <li>
@@ -176,12 +200,12 @@ const sections: LegalSection[] = [
   },
   {
     id: "api",
-    title: "9. The API, MCP and x402",
+    title: w.x402 ? "9. The API, MCP and x402" : "9. The API and MCP",
     body: (
       <ul>
         <li>API keys belong to a workspace. Keep them secret; a run started with a key is charged to that workspace.</li>
         <li>Keys and assistants can run agents and read results. They can never approve, reject, top up or change limits.</li>
-        <li>With x402, software pays per call without an account. What a call does not use is written down as owed back to the paying wallet.</li>
+        {w.x402 && <li>With x402, software pays per call without an account. What a call does not use is written down as owed back to the paying wallet.</li>}
       </ul>
     ),
   },
@@ -228,7 +252,8 @@ const sections: LegalSection[] = [
     ),
   },
 ];
+}
 
 export default function TermsPage() {
-  return <LegalPage eyebrow="Legal" title="Terms" lead="The short version: agents write drafts, you approve and post them yourself, credits are for runs only, and WOVI will not write fakes, hate or anything unsafe. The full terms follow." sections={sections} />;
+  return <LegalPage eyebrow="Legal" title="Terms" lead="The short version: agents write drafts, you approve and post them yourself, credits are for runs only, and WOVI will not write fakes, hate or anything unsafe. The full terms follow." sections={sectionsFor(paymentWaysFromEnv())} />;
 }

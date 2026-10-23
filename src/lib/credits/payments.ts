@@ -5,11 +5,12 @@
  * implements the same two methods; a stablecoin and ETH on Robinhood Chain are
  * checked on chain instead (src/lib/chainpay).
  *
- * The test provider is on for a local app only (WOVI_APP_URL on localhost,
- * the default) or when WOVI_TEST_PAYMENTS=on. Anywhere else, with no real
- * provider set up, top-ups are closed, so a deployed site never hands out
- * credits for nothing.
+ * The test provider is on for a local app only (src/lib/runtime.ts). On a
+ * production server, with no real provider set up, top-ups are closed, so a
+ * deployed site never hands out credits for nothing, even when WOVI_APP_URL
+ * is missing.
  */
+import { isLocalApp } from "@/lib/runtime";
 
 export type CheckoutRequest = {
   topUpId: string;
@@ -56,22 +57,26 @@ export function testPaymentProvider(opts: { fail?: boolean } = {}): PaymentProvi
 function isLocalUrl(url: string): boolean {
   try {
     const host = new URL(url).hostname;
-    return host === "localhost" || host === "127.0.0.1" || host === "::1";
+    return host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
   } catch {
     return false;
   }
 }
 
 /**
- * The test provider for this process, or null. On for a local app; with
- * WOVI_TEST_PAYMENTS=on also on a server that is not running in production;
- * never on a production server off localhost, whatever the switch says. A
- * real provider (Stripe, stripe.ts) takes its place when it is set up.
+ * The test provider for this process, or null. On for a local app
+ * (WOVI_APP_URL on localhost, or left out outside production); with
+ * WOVI_TEST_PAYMENTS=on also on a server that is not running in production.
+ * Never in production off localhost, whatever the switch says, and a
+ * production process without WOVI_APP_URL counts as off localhost. A real
+ * provider (Stripe, stripe.ts) takes its place when it is set up.
  */
 export function paymentProviderFromEnv(env: Record<string, string | undefined> = process.env): PaymentProvider | null {
   const flag = env.WOVI_TEST_PAYMENTS;
   if (flag === "off") return null;
-  if (isLocalUrl(env.WOVI_APP_URL ?? "http://localhost:3900")) return testPaymentProvider();
+  const url = env.WOVI_APP_URL?.trim();
+  const local = url ? isLocalUrl(url) : env.NODE_ENV !== "production";
+  if (local && isLocalApp(env)) return testPaymentProvider();
   if (flag === "on" && env.NODE_ENV !== "production") return testPaymentProvider();
   return null;
 }

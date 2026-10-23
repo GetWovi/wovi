@@ -27,6 +27,7 @@ import { DEFAULT_MAX_OUTPUT_TOKENS, costMicroUsd, estimateCallMicroUsd, toUsd } 
 import { assemblePrompt, promptText } from "./prompt";
 import { ProviderError, asProviderError, type ChatMessage, type ModelProvider } from "./providers/types";
 import type { ModelCall, Run, RunFailureCode } from "./run";
+import { DEFAULT_TOOL_LIMITS, ToolAborted, runDeclaredTools, toolSourceChecks, type ToolCache, type ToolLimits, type ToolSet } from "./tools";
 
 export type ExecContext = {
   spec: AgentBody;
@@ -42,6 +43,12 @@ export type ExecContext = {
   references?: QualityReferences;
   /** The optional model judge. Null or left out: off. */
   judge?: QualityJudge | null;
+  /** The tools this engine can run. Only the ones the spec declares are called. */
+  tools?: ToolSet;
+  toolCache?: ToolCache | null;
+  toolLimits?: ToolLimits;
+  /** The examples section for the system message, picked by the engine. Empty: none. */
+  examples?: string;
 };
 
 export type ExecResult =
@@ -62,7 +69,16 @@ export class RunAborted extends Error {
 export async function executeRun(ctx: ExecContext): Promise<ExecResult> {
   const { spec, run, brain } = ctx;
   run.brandBrain = brain ? brandBrainRef(brain, spec.brandBrain) : null;
-  const messages = assemblePrompt(spec, run.inputs, brain);
+  // Declared tools run first, so the model writes from what they found. The model itself is never given a tool.
+  let tools;
+  try {
+    tools = await runDeclaredTools({ spec, run, inputs: run.inputs, tools: ctx.tools ?? {}, cache: ctx.toolCache ?? null, limits: ctx.toolLimits ?? DEFAULT_TOOL_LIMITS, signal: ctx.signal, now: ctx.now });
+  } catch (err) {
+    if (err instanceof ToolAborted) throw new RunAborted();
+    throw err;
+  }
+  if (!tools.ok) return tools;
+  const messages = assemblePrompt(spec, run.inputs, brain, { examples: ctx.examples, tools: tools.material });
 
   const first = await callRouted(ctx, messages, "answer", [spec.routing.model, spec.routing.fallback]);
   if (!first.ok) return first;
@@ -90,7 +106,8 @@ export async function executeRun(ctx: ExecContext): Promise<ExecResult> {
     }
   }
 
-  return gateLoop(ctx, messages, { output: parsed.value, answer });
+  const result = await gateLoop(ctx, messages, { output: parsed.value, answer });
+  return result.ok && tools.checks.length ? { ...result, checks: [...tools.checks, ...result.checks] } : result;
 }
 
 type Scored = GateDraft & { output: RunOutput; reading: QualityReading; guards: CheckResult[]; answer: Answer };
@@ -160,7 +177,7 @@ async function gateLoop(ctx: ExecContext, messages: ChatMessage[], first: { outp
 /** One draft through the guardrails, the quality checks and, when one is set, the judge. */
 async function score(ctx: ExecContext, output: RunOutput, answer: Answer, bar: number): Promise<Scored> {
   const { spec, run, brain } = ctx;
-  const guards = runAfterChecks({ spec, inputs: run.inputs, output, brain });
+  const guards = [...runAfterChecks({ spec, inputs: run.inputs, output, brain }), ...toolSourceChecks(output, run.tools)];
   const input: QualityInput = { spec, inputs: run.inputs, output, brain, references: ctx.references ?? NO_REFERENCES };
   const checks = runDeterministicChecks(input);
   if (ctx.judge) {
@@ -215,8 +232,9 @@ async function callRouted(ctx: ExecContext, messages: ChatMessage[], purpose: Mo
     const signal = AbortSignal.any([ctx.signal, timeout]);
     const started = Date.now();
     try {
-      const r = await provider.complete({ model: route.model, messages, temperature: spec.routing.temperature, maxOutputTokens: maxOut, signal });
-      const cost = costMicroUsd(route.model, r.tokensIn, r.tokensOut);
+      const r = await provider.complete({ model: route.model, messages, temperature: spec.routing.temperature, maxOutputTokens: maxOut, ...(route.reasoning ? { reasoning: route.reasoning } : {}), signal });
+      // What the provider charged when it says so (prompt caching makes it lower); the price table otherwise.
+      const cost = r.costMicroUsd ?? costMicroUsd(route.model, r.tokensIn, r.tokensOut);
       run.calls.push(record(ctx, base, { ok: true, tokensIn: r.tokensIn, tokensOut: r.tokensOut, costMicroUsd: cost, ms: Date.now() - started }));
       run.tokensIn += r.tokensIn;
       run.tokensOut += r.tokensOut;
@@ -230,7 +248,15 @@ async function callRouted(ctx: ExecContext, messages: ChatMessage[], purpose: Mo
       if (ctx.signal.aborted) throw new RunAborted();
       const pe = timeout.aborted ? new ProviderError("timeout", `No answer within ${ctx.callTimeoutMs} ms.`) : asProviderError(err);
       errors.push(pe);
-      run.calls.push(record(ctx, base, { ok: false, error: `${pe.kind}: ${pe.message}`, ms: Date.now() - started }));
+      // A failed call the provider still billed counts toward the run's cost, so totals match the bill.
+      const billed = pe.billed ? (pe.billed.costMicroUsd ?? costMicroUsd(route.model, pe.billed.tokensIn, pe.billed.tokensOut)) : 0;
+      run.calls.push(record(ctx, base, { ok: false, error: `${pe.kind}: ${pe.message}`, ms: Date.now() - started, ...(pe.billed ? { tokensIn: pe.billed.tokensIn, tokensOut: pe.billed.tokensOut, costMicroUsd: billed } : {}) }));
+      if (billed) {
+        run.tokensIn += pe.billed!.tokensIn;
+        run.tokensOut += pe.billed!.tokensOut;
+        run.costMicroUsd += billed;
+        run.costUsd = toUsd(run.costMicroUsd);
+      }
     }
   }
 

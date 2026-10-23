@@ -104,7 +104,8 @@ describe("api: agents are their public view only", () => {
     expect(list.status).toBe(200);
     const agents = listOf(AgentSchema).parse(list.json).data;
     expect(agents.map((a) => a.id)).toContain("hook-writer");
-    expect(agents.map((a) => a.id)).not.toContain("trend-scout");
+    // Trend Scout is live since the trend lookup exists.
+    expect(agents.map((a) => a.id)).toContain("trend-scout");
     const hook = agents.find((a) => a.id === "hook-writer")!;
     expect(hook.inputs.map((i) => i.key)).toEqual(["idea", "platform", "who_for", "brand"]);
     expect(hook.inputSchema).toMatchObject({ type: "object", required: ["idea", "platform"], properties: { idea: { type: "string", minLength: 10, maxLength: 600 }, platform: { enum: expect.arrayContaining(["tiktok", "x"]) } } });
@@ -117,7 +118,7 @@ describe("api: agents are their public view only", () => {
     const one = await t.call("GET", "/agents/hook-writer", { key });
     expect(AgentSchema.parse(one.json).id).toBe("hook-writer");
     expectNoSecrets(one.json);
-    expect((await t.call("GET", "/agents/trend-scout", { key })).status).toBe(404);
+    expect((await t.call("GET", "/agents/trend-scout", { key })).status).toBe(200);
     expect((await t.call("GET", "/agents/nope", { key })).status).toBe(404);
   });
 });
@@ -156,6 +157,16 @@ describe("api: runs", () => {
     const after = (await t.call("GET", "/credits", { key: editor })).json;
     expect(after.available).toBe(1000 - asAdmin.charge!.charged!);
     expect(after.held).toBe(0);
+    expect(run.sources).toEqual([]);
+
+    // Trend Scout's run carries the pages its lookup found.
+    const scout = await t.call("POST", "/agents/trend-scout/runs", { key: editor, body: { inputs: { niche: "small bakery", platform: "tiktok" } } });
+    expect(scout.status).toBe(202);
+    await t.engine.waitForRun(t.ws, scout.json.id);
+    const scoutRun = RunSchema.parse((await t.call("GET", `/runs/${scout.json.id}`, { key: editor })).json);
+    expect(scoutRun.status).toBe("succeeded");
+    expect(scoutRun.sources.length).toBeGreaterThanOrEqual(5);
+    expect(scoutRun.sources[0]).toMatchObject({ url: expect.stringMatching(/^https:\/\//), searchedAt: expect.any(String) });
 
     const list = await t.call("GET", "/runs?limit=5&status=succeeded&agent=hook-writer", { key: editor });
     expect(listOf(RunSchema).parse(list.json).data.map((r) => r.id)).toEqual([run.id]);

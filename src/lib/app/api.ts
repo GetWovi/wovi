@@ -211,14 +211,14 @@ export class AppApi {
   }
 
   /** Reads the pasted posts into a proposed voice (the phase 7 proposal) and moves to the review step. */
-  async readOnboardingPosts(caller: Principal, workspaceId: string): Promise<{ state: OnboardingState; proposal: PublicProposal }> {
+  async readOnboardingPosts(caller: Principal, workspaceId: string, read: { useModel?: boolean; quotedCredits?: number } = {}): Promise<{ state: OnboardingState; proposal: PublicProposal }> {
     await this.o.accounts.authorize(caller, workspaceId, "edit_brand_brain");
     const id = this.onboardingId(workspaceId, caller);
     const row = await this.o.store.onboarding.get(id);
     if (!row) throw new AppError("not_ready", "Add your posts first.");
     const can = canReadPosts(row.posts);
     if (!can.ok) throw new AppError("invalid_request", can.reason);
-    const proposal = await this.o.brands.propose(caller, workspaceId, { name: row.name, niche: row.niche, platforms: row.platforms, posts: filledPosts(row.posts) });
+    const proposal = await this.o.brands.propose(caller, workspaceId, { name: row.name, niche: row.niche, platforms: row.platforms, posts: filledPosts(row.posts), useModel: read.useModel, quotedCredits: read.quotedCredits });
     const next: OnboardingRow = { ...row, proposalId: proposal.id, step: "review", updatedAt: this.iso() };
     await this.write(next, true);
     return { state: pick(next), proposal: publicProposal(proposal) };

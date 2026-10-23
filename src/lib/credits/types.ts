@@ -36,7 +36,8 @@ export type GrantSource = (typeof GRANT_SOURCES)[number];
 /** Why a hold gave credits back. */
 export type ReleaseReason = "settled" | "failed" | "cancelled" | "step" | "ended";
 
-export type LedgerRef = { type: "run" | "pipeline_run" | "top_up" | "grant" | "manual"; id: string };
+/** What an entry is about. "job": a paid job that is not an agent run, like reading past posts into a Brand Brain. */
+export type LedgerRef = { type: "run" | "pipeline_run" | "top_up" | "grant" | "manual" | "job"; id: string };
 
 export type LedgerEntry = {
   id: string;

@@ -152,6 +152,7 @@ export function apiRun(run: PublicRun, agentName: string | null, review: ReviewR
     createdAt: run.createdAt,
     finishedAt: run.finishedAt,
     aiGenerated: true,
+    sources: (run.sources ?? []).map((x) => ({ ...x })),
   };
 }
 

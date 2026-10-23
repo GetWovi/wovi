@@ -162,6 +162,12 @@ export type Proposal = {
   savedBrainId: string | null;
   createdBy: string;
   createdAt: string;
+  /**
+   * What the AI read cost in credits: the estimate held and what was charged
+   * (a read with plain counts is free and has none). Missing on proposals
+   * from before reads were charged.
+   */
+  charge?: { estimate: number; charged: number; state: "charged" | "refunded" } | null;
 };
 
 export const TONE_TAGS = [

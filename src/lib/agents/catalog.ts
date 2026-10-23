@@ -21,6 +21,13 @@ export type ModelRoute = {
    */
   provider: string | null;
   model: string | null;
+  /**
+   * How hard the model thinks before it answers. The text models on
+   * OpenRouter reason by default (Claude 5.5 must, at "high"), and those
+   * tokens count against the output limit and are billed, so a high default
+   * truncates answers. "low" is the lowest every route's model takes.
+   */
+  reasoning?: { effort: "none" | "minimal" | "low" | "medium" | "high" };
 };
 
 /**
@@ -32,9 +39,9 @@ export type ModelRoute = {
  * picks are placeholders for later phases, and OpenRouter has no video model.
  */
 export const MODEL_ROUTES: readonly ModelRoute[] = [
-  { id: "text-fast", modality: "text", tier: "fast", provider: "openrouter", model: "openai/gpt-6-luna" },
-  { id: "text-standard", modality: "text", tier: "standard", provider: "openrouter", model: "anthropic/claude-sonnet-5.5" },
-  { id: "text-strong", modality: "text", tier: "strong", provider: "openrouter", model: "anthropic/claude-opus-5.5" },
+  { id: "text-fast", modality: "text", tier: "fast", provider: "openrouter", model: "openai/gpt-6-luna", reasoning: { effort: "low" } },
+  { id: "text-standard", modality: "text", tier: "standard", provider: "openrouter", model: "anthropic/claude-sonnet-5.5", reasoning: { effort: "low" } },
+  { id: "text-strong", modality: "text", tier: "strong", provider: "openrouter", model: "anthropic/claude-opus-5.5", reasoning: { effort: "low" } },
   { id: "image-standard", modality: "image", tier: "standard", provider: "openrouter", model: "google/gemini-3.1-flash-image" },
   { id: "video-standard", modality: "video", tier: "standard", provider: null, model: null },
   { id: "audio-standard", modality: "audio", tier: "standard", provider: "openrouter", model: "openai/gpt-audio-mini" },

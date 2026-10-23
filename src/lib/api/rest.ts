@@ -8,6 +8,7 @@
  * Errors come back in one shape (errors.ts). Keys are never logged: the only
  * thing logged is an internal error's id and message.
  */
+import { clientIpFrom } from "@/lib/accounts/client-ip";
 import type { Accounts } from "@/lib/accounts/accounts";
 import { ApiError, toApiError } from "./errors";
 import { WindowCounter, type Hit } from "./limits";
@@ -34,8 +35,9 @@ export type RestOptions = {
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" };
 
-export function clientIp(headers: Headers): string {
-  return headers.get("x-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip") || "local";
+/** The caller's address for rate limits: the hop the trusted proxy added, never one the client wrote (src/lib/accounts/client-ip.ts). */
+export function clientIp(headers: Headers, env: Record<string, string | undefined> = process.env): string {
+  return clientIpFrom(headers, env);
 }
 
 /** The key from the Authorization header, or null. Never logged. */

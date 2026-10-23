@@ -77,11 +77,14 @@ export function defaultAnswer(req: CompletionRequest): string {
   const seed = hash(userText);
   const used = new Set<string>();
   let leaf = 0;
+  // A field named "source" cites what a tool found, the way a model would: the addresses in the tool blocks, in turn.
+  const urls = toolUrls(userText);
+  let cited = 0;
 
   const fill = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(fill);
     if (value && typeof value === "object") {
-      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, fill(v)]));
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, k === "source" && urls.length && typeof v === "string" ? urls[cited++ % urls.length] : fill(v)]));
     }
     if (typeof value === "string" && value.startsWith("<") && value.endsWith(">")) {
       return phrase(value, pool, seed + leaf++ * 7, used);
@@ -89,6 +92,15 @@ export function defaultAnswer(req: CompletionRequest): string {
     return value;
   };
   return JSON.stringify(fill(example), null, 2);
+}
+
+function toolUrls(text: string): string[] {
+  const out: string[] = [];
+  for (const block of text.matchAll(DATA_BLOCK)) {
+    if (!block[1].startsWith("tool")) continue;
+    for (const m of block[2].matchAll(/source: (https?:\/\/\S+)/g)) if (!out.includes(m[1])) out.push(m[1]);
+  }
+  return out;
 }
 
 function wordPool(text: string): string[] {

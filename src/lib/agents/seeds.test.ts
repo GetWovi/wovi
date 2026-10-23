@@ -15,12 +15,15 @@ describe("seed agents", () => {
     expect(r.ok ? [] : r.errors).toEqual([]);
   });
 
-  it("matches the agents on the homepage: live ones live, Trend Scout coming (a draft), the video agents next (hidden)", () => {
+  it("matches the agents on the homepage: live ones live, coming ones a draft (or just made live), the video agents next (hidden)", () => {
     expect([...LINEUP.map((s) => s.name)].sort()).toEqual([...AGENTS.map((a) => a.name)].sort());
     for (const card of AGENTS) {
       const spec = LINEUP.find((s) => s.name === card.name)!;
       expect([card.name, spec.job]).toEqual([card.name, card.job]);
-      expect([card.name, spec.status]).toEqual([card.name, card.status === "live" ? "live" : card.status === "coming" ? "draft" : "hidden"]);
+      // A card may still say "coming" for an agent the launch set has just made live (Trend Scout, with the
+      // trend lookup); the homepage reveals it in its own drop. A live card for a draft agent is never allowed.
+      const allowed = card.status === "live" ? ["live"] : card.status === "coming" ? ["draft", "live"] : ["hidden"];
+      expect([card.name, allowed.includes(spec.status ?? "draft")]).toEqual([card.name, true]);
     }
     // Live cards first, then the coming one, then the next ones, so the grid reads in order.
     const order = AGENTS.map((a) => a.status);

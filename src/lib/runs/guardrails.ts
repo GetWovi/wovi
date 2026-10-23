@@ -108,6 +108,9 @@ export const PLATFORM_LIMITS: Record<Platform, { maxChars: number }> = {
 };
 
 /** Common words that say nothing about a specific idea. Used by the specificity check. */
+/** Three-letter words that name nothing, left out of a short input's anchors. */
+const SMALL_WORDS = new Set("the and for but not you your our are was its his her has had can all one two out off too who why how any new now get got use way day per via app".split(" "));
+
 const STOPWORDS = new Set(
   "about after again also because been before being could does doing down each every from have here into just like make many more most much only other over same should some such than that their them then there these they this those through very what when where which while will with would your yours post posts video videos content".split(
     " ",
@@ -223,7 +226,11 @@ export const GUARDRAIL_CHECKS: GuardrailCheck[] = [
         .map((i) => inputs[i.key])
         .filter((v): v is string => typeof v === "string");
       const anchors = new Set(source.flatMap(contentWords));
-      if (anchors.size && !texts.some((t) => contentWords(t).some((w) => anchors.has(w)))) {
+      // A short input ("beginner strength gym") keeps its three-letter words too, or the one word a draft is sure to use is lost.
+      const short = source.join(" ").trim().split(/\s+/).length <= 6;
+      if (short) for (const w of source.flatMap((t) => normalize(t).match(/\b[a-z]{3}\b/g) ?? [])) if (!SMALL_WORDS.has(w)) anchors.add(w);
+      const words = (t: string) => (short ? (normalize(t).match(/[a-z][a-z']{2,}/g) ?? []) : contentWords(t));
+      if (anchors.size && !texts.some((t) => words(t).some((w) => anchors.has(w)))) {
         findings.push("Nothing in the output names anything from the user's input.");
       }
       const seen = new Set<string>();

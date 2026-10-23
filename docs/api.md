@@ -203,4 +203,5 @@ It signs in through the email flow, skips onboarding, runs `scripts/seed-credits
 
 - `content_blocked` (422): the request asks for something WOVI does not write. Nothing was started or charged; each issue names the field.
 - Every run carries `aiGenerated: true`. MCP results say the output was written by AI.
+- Every run carries `sources`: the web pages its trend lookup found (address, title, date, when the search ran), empty for agents without one. MCP results list them under the output.
 - Keys still never approve or reject; the pipeline guard now refuses too, not only the REST layer. See [safety.md](safety.md).

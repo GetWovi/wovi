@@ -24,7 +24,8 @@ import { jsonFileBuilderStore } from "./store";
 
 export function localDrafter(): SpecDrafter {
   const providers = providersFromEnv();
-  const fake = !providers.openrouter;
+  // The fake only where providersFromEnv offers it (a local app); a server without a key drafts from templates.
+  const fake = !providers.openrouter && Boolean(providers.fake);
   return new SpecDrafter({ providers: fake ? { fake: providers.fake } : providers, providerOverride: fake ? "fake" : undefined });
 }
 

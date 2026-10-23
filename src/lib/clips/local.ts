@@ -6,6 +6,7 @@
  */
 import { join } from "node:path";
 import { dataDirFromEnv } from "@/lib/accounts/local";
+import { isLocalApp } from "@/lib/runtime";
 import type { Builder } from "@/lib/builder/builder";
 import { localFileStorage } from "@/lib/builder/storage";
 import { localSafetyStore } from "@/lib/safety/local";
@@ -18,7 +19,8 @@ import { jsonFileClipStore } from "./store";
 
 /** OpenRouter with the key, the fake only when asked for by name, else none (clips wait). */
 export function clipProviderFromEnv(env: NodeJS.ProcessEnv = process.env): ClipProvider | null {
-  if ((env.WOVI_CLIP_PROVIDER ?? "").trim().toLowerCase() === "fake") return fakeClipProvider();
+  // The fake reads nothing; only a local app may ask for it.
+  if ((env.WOVI_CLIP_PROVIDER ?? "").trim().toLowerCase() === "fake") return isLocalApp(env) ? fakeClipProvider() : null;
   const key = env.OPENROUTER_API_KEY?.trim();
   return key ? openRouterClipProvider({ apiKey: key }) : null;
 }

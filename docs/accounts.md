@@ -150,7 +150,7 @@ At each sign-in a builder becomes an owner of `ws_wovi`; anyone else loses any m
 
 ## Email
 
-Accounts only talk to `EmailSender`. In development the dev sender prints each mail to the console and writes it to `.data/mail/`, so links and codes can be read without any email account. Off localhost without a provider, sending refuses (so sign-in cannot start), and sign-in links never land in server logs.
+Accounts only talk to `EmailSender`. In development the dev sender prints each mail to the console and writes it to `.data/mail/`, so links and codes can be read without any email account. Off localhost without a provider, sending refuses (so sign-in cannot start), and sign-in links never land in server logs. A production process without `WOVI_APP_URL` counts as off localhost ([below](#production-fails-closed)).
 
 The real senders are in `src/lib/accounts/email-providers.ts`, chosen by `EMAIL_PROVIDER`:
 
@@ -177,7 +177,7 @@ Both send every mail as plain text and a simple HTML version (`email-html.ts`): 
 3. Press Verify in Resend and wait for all records to show verified.
 4. Resend, API Keys, Create: sending access, domain `wovi.fun`. Put it in `RESEND_API_KEY`, set `EMAIL_PROVIDER=resend`, restart.
 5. `hello@wovi.fun` is the contact address everywhere and must reach a person: it needs its own inbox or forwarding (MX records on the root domain from the mailbox host). Resend only sends.
-6. Name the provider in the privacy notice ("Who helps us run WOVI") the same day.
+6. The privacy notice names the provider by itself: "Who helps us run WOVI" reads `EMAIL_PROVIDER` (`src/lib/legal/processors.ts`).
 
 Sign in once with a real address to check: the mail arrives with a code, the link works, and the HTML shows the code large.
 
@@ -185,13 +185,32 @@ Sign in once with a real address to check: the mail arrives with a code, the lin
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `WOVI_APP_URL` | `http://localhost:3900` | Links in emails, the passkey origin, the wallet message domain. |
+| `WOVI_APP_URL` | `http://localhost:3900` outside production | Links in emails, the passkey origin, the wallet message domain. Required in production: without it the accounts refuse to start. |
 | `WOVI_SECRET` | generated into `.data/secret` on a local app | Server secret for code hashes and CSRF tokens. Required off localhost. |
+| `WOVI_TRUSTED_PROXY_HOPS` | 1 | Proxies in front of WOVI that each add one `X-Forwarded-For` entry (Railway's edge is one). 0: no proxy, forwarded headers are ignored. |
+| `WOVI_CLIENT_IP_HEADER` | empty | Read the client address from this one header instead (like `x-real-ip`), only when the proxy sets it and replaces any the client sent. |
 | `WOVI_BUILDER_EMAILS` | empty | The optional builder email allowlist. Builder codes are the usual way in. |
 | `EMAIL_PROVIDER` | off | `resend` or `smtp` (above, with their settings). |
 | `WOVI_DATA_DIR` | `.data` | Where the JSON stores, mail and the dev secret live. |
 
-Rate limits use the first `X-Forwarded-For` hop, which is only trustworthy behind our own proxy; that is set at deploy.
+### The client address
+
+Rate limits (sign-in, codes, passkeys, builder joins, unknown API keys, x402, reports) key on the client address from `clientIpFrom` (`src/lib/accounts/client-ip.ts`). `X-Forwarded-For` lists whatever the client sent first and then one address per proxy, each added on the right, so only the entries the trusted proxies added can be believed: the client is the entry `WOVI_TRUSTED_PROXY_HOPS` from the right. With Railway's one edge proxy (the default) that is the last entry, the address the edge saw; a client that fakes the header only adds entries further left, which are never read, and a faked `X-Real-IP` is ignored. Anything that is not an address reads as `unknown`.
+
+### Production fails closed
+
+`src/lib/runtime.ts` decides once whether this is a local app: not in production, or in production with `WOVI_APP_URL` on localhost. Everything else, including production with `WOVI_APP_URL` missing, is a server, where no dev helper is reachable:
+
+| Part | On a server without its setting |
+|---|---|
+| Accounts | `WOVI_APP_URL` or `WOVI_SECRET` missing: they refuse to start with a message naming the setting. No secret is ever generated. |
+| Email | No `EMAIL_PROVIDER`: every mail refuses, so sign-in by email stops. The dev mailer never runs. |
+| Payments | No Stripe: top-ups are closed. Test payments (free credits) never run, whatever `WOVI_TEST_PAYMENTS` says. `STRIPE_API_BASE` is ignored. |
+| Agents | No `OPENROUTER_API_KEY`: runs refuse as not runnable. The fake model and the fake trend lookup never run. |
+| Brand Brains | No credits: the AI read of past posts is off; plain counts only. |
+| Others | The fake x402 verifier, the fake clip reader and the dev webhook sender stay off. |
+
+At start the server logs each missing setting once (`productionProblems`, from `src/instrumentation.ts`). `next build` renders in production mode on the build machine and serves nobody, so the build phase counts as local; the running server never does. For a production build on this machine set `WOVI_APP_URL=http://localhost:3900`.
 
 ## Storage
 

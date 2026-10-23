@@ -24,6 +24,8 @@ import { defaultBrain, storeBrainSource } from "./source";
 import type { BrandStore } from "./store";
 import { BODY_FIELDS, BRAND_LIMITS, FIELD_LABELS, emptyBody, type BodyField, type Brain, type BrainBody, type BrainVersion, type PastPost, type ProfileProposal, type Proposal } from "./types";
 import { checkBody, cleanLink, cleanText } from "./validate";
+import type { RunCredits } from "@/lib/credits/types";
+import { BillingRefusal } from "@/lib/runs/billing";
 
 export type BrandErrorCode = "invalid_body" | "invalid_request" | "not_found" | "no_change" | "version_conflict" | "limit";
 
@@ -76,7 +78,35 @@ export type ProposeInput = {
   posts: string[];
   /** Rebuild this Brand Brain instead of making a new one. */
   brainId?: string;
+  /**
+   * Have the AI model read the posts, for credits (shown first with
+   * `readQuote`). Left out or false where reads are charged: plain counts
+   * only, free.
+   */
+  useModel?: boolean;
+  /** The estimate the person was shown. The read never holds or costs more. */
+  quotedCredits?: number;
 };
+
+/** How a Brand Brain bills the AI read of past posts. The credits service implements it. */
+export interface ReadBilling {
+  estimateJob(typicalMicroUsd: number, capMicroUsd: number): number;
+  reserveJob(input: { workspaceId: string; jobId: string; estimate: number; userId: string | null; label: string }): Promise<RunCredits>;
+  settleJob(workspaceId: string, c: RunCredits, result: { done: boolean; costMicroUsd: number }): Promise<RunCredits>;
+  balance(workspaceId: string): Promise<{ paid: number }>;
+}
+
+/** What reading past posts with the AI costs here, before anything runs. */
+export type ReadQuote =
+  /** Reads are charged: about this many credits at most, from the workspace's paid credits. */
+  | { mode: "credits"; credits: number; available: number }
+  /** A local app with no billing: the model reads for free, as in development. */
+  | { mode: "free" }
+  /** No model can read here: plain counts only. */
+  | { mode: "off" };
+
+/** Model reads per person and per workspace, so nobody can run up a bill by clicking. */
+export const READ_LIMITS = { perUserHour: { max: 10, windowMs: 3_600_000 }, perWorkspaceDay: { max: 40, windowMs: 86_400_000 } } as const;
 
 /** What the person may change before a proposal is saved. */
 export type ProposalEdits = Partial<Pick<BrainBody, "name" | "niche" | "platforms" | "voice" | "topics" | "dos" | "donts" | "idea">>;
@@ -89,6 +119,14 @@ export type BrandBrainsOptions = {
   /** Reads links in past posts. Left out, links are kept as references and not read. */
   fetcher?: LinkFetcher;
   now?: () => Date;
+  /**
+   * Charges the AI read of past posts in credits, like a run (product doc:
+   * "no general free trial"). Left out, the model reads only on a local app
+   * (`freeModelReads`); a server without billing reads with plain counts.
+   */
+  billing?: ReadBilling | null;
+  /** Without billing: may the model read for free? Only on a local app. Defaults to false. */
+  freeModelReads?: boolean;
 };
 
 const NOT_FOUND = "No such Brand Brain in this workspace.";
@@ -366,10 +404,11 @@ export class BrandBrains {
     if (!texts.length) throw new BrandError("invalid_request", "Paste the text of at least one post. Links alone are not read yet.");
 
     const platforms = (input.platforms ?? []).filter((p): p is Platform => PLATFORMS.includes(p as Platform));
-    const r = await this.opts.proposer.propose(texts);
+    const proposalId = newId("prp");
+    const { result: r, charge } = await this.read(caller, workspaceId, proposalId, texts, input);
     const before = input.brainId ? (await this.get(caller, workspaceId, input.brainId)).body : null;
     const proposal: Proposal = {
-      id: newId("prp"),
+      id: proposalId,
       workspaceId,
       brainId: input.brainId ?? null,
       name: cleanText(input.name).slice(0, L.name) || before?.name || "My brand",
@@ -389,9 +428,76 @@ export class BrandBrains {
       savedBrainId: null,
       createdBy: savedBy(caller),
       createdAt: this.iso(),
+      ...(charge ? { charge } : {}),
     };
     await this.opts.store.proposals.insert(proposal);
     return proposal;
+  }
+
+  /** How reads are paid for here: charged in credits, free (a local app), or off (plain counts only). */
+  private readMode(): ReadQuote["mode"] {
+    const reads = this.opts.proposer.modelReads?.() ?? "real";
+    if (reads === "none") return "off";
+    if (reads === "fake") return "free";
+    if (this.opts.billing) return "credits";
+    return this.opts.freeModelReads ? "free" : "off";
+  }
+
+  /** What reading these posts (or typical ones) with the AI would cost, shown before the person asks for it. */
+  async readQuote(caller: Principal, workspaceId: string, posts: string[] = []): Promise<ReadQuote> {
+    await this.opts.accounts.authorize(caller, workspaceId, "edit_brand_brain");
+    const mode = this.readMode();
+    if (mode !== "credits") return { mode };
+    const b = this.opts.billing!;
+    return { mode, credits: b.estimateJob(this.opts.proposer.estimateMicroUsd(posts), this.opts.proposer.capMicroUsd()), available: (await b.balance(workspaceId)).paid };
+  }
+
+  /**
+   * The read itself. Charged reads hold their estimate first and are charged
+   * the real cost after (nothing when the model did not answer); without
+   * enough credits the posts are read with plain counts instead. Model reads
+   * are also limited per person and per workspace.
+   */
+  private async read(caller: Principal, workspaceId: string, jobId: string, texts: string[], input: ProposeInput) {
+    const mode = this.readMode();
+    const plain = (note?: string) => this.opts.proposer.propose(texts, { model: false }).then((result) => ({ result: note ? { ...result, notes: [note] } : result, charge: null }));
+    if (mode === "off") return plain(this.opts.billing ? undefined : "Read with plain counts: no AI model reads posts on this server yet.");
+    if (mode === "credits" && input.useModel !== true) return plain();
+    if (this.opts.proposer.modelReads?.() === "real") {
+      const userId = caller.kind === "user" ? caller.userId : null;
+      try {
+        if (userId) await this.opts.accounts.limiter.hit(`brand-read:user:${userId}`, READ_LIMITS.perUserHour, "You asked the AI to read posts many times this hour. Wait a little, or read with plain counts.");
+        await this.opts.accounts.limiter.hit(`brand-read:ws:${workspaceId}`, READ_LIMITS.perWorkspaceDay, "This workspace asked the AI to read posts many times today. Try again tomorrow, or read with plain counts.");
+      } catch (err) {
+        if ((err as { code?: string })?.code === "rate_limited") throw new BrandError("limit", (err as Error).message);
+        throw err;
+      }
+    }
+    if (mode === "free") return { result: await this.opts.proposer.propose(texts), charge: null };
+
+    const b = this.opts.billing!;
+    let estimate = b.estimateJob(this.opts.proposer.estimateMicroUsd(texts), this.opts.proposer.capMicroUsd());
+    if (input.quotedCredits !== undefined) {
+      if (!Number.isInteger(input.quotedCredits) || input.quotedCredits < 1) throw new BrandError("invalid_request", "The quoted estimate must be a whole number of credits.");
+      estimate = Math.min(estimate, input.quotedCredits);
+    }
+    let hold: RunCredits;
+    try {
+      hold = await b.reserveJob({ workspaceId, jobId, estimate, userId: caller.kind === "user" ? caller.userId : null, label: "Read past posts for a Brand Brain" });
+    } catch (err) {
+      if (!(err instanceof BillingRefusal)) throw err;
+      return plain(`The AI read needs up to ${estimate} credit${estimate === 1 ? "" : "s"}: ${err.message} Read with plain counts instead, for free. Top up to have the AI read them.`);
+    }
+    let result;
+    try {
+      result = await this.opts.proposer.propose(texts);
+    } catch (err) {
+      await b.settleJob(workspaceId, hold, { done: false, costMicroUsd: 0 });
+      throw err;
+    }
+    const settled = await b.settleJob(workspaceId, hold, { done: result.source === "model", costMicroUsd: result.costMicroUsd });
+    const charged = settled.charged ?? 0;
+    return { result, charge: { estimate, charged, state: charged > 0 ? ("charged" as const) : ("refunded" as const) } };
   }
 
   async getProposal(caller: Principal, workspaceId: string, id: string): Promise<Proposal> {

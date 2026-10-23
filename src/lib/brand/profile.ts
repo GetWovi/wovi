@@ -324,29 +324,60 @@ export function readProposal(text: string): { ok: true; value: ProfileProposal }
   };
 }
 
+/** The model output a proposal may use per call. */
+const PROPOSER_MAX_OUT = 1500;
+
 export class ProfileProposer {
   constructor(private readonly opts: ProposerOptions) {}
 
-  async propose(posts: string[]): Promise<ProposeResult> {
-    const base = heuristicProfile(posts);
-    const empty = { tokensIn: 0, tokensOut: 0, costMicroUsd: 0 };
+  private pick() {
     const route = findModelRoute(this.opts.route ?? "text-standard");
     const providerId = this.opts.providerOverride ?? route?.provider ?? null;
     const provider = providerId ? this.opts.providers[providerId] : null;
-    if (!route?.model || !provider) return { ...base, source: "heuristics", model: null, ...empty, notes: ["Read with plain counts; no model is set up."] };
+    return route?.model && provider ? { route, provider } : null;
+  }
+
+  /** Whether a model can read the posts here, and whether it is a real one (that costs money). */
+  modelReads(): "real" | "fake" | "none" {
+    const p = this.pick();
+    return !p ? "none" : p.provider.id === "fake" ? "fake" : "real";
+  }
+
+  /** The hard cap for one proposal, in micro-dollars. */
+  capMicroUsd(): number {
+    return toMicroUsd(this.opts.maxCostUsd ?? 0.05);
+  }
+
+  /** What one model read of these posts typically costs: one full answer, never above the cap. */
+  estimateMicroUsd(posts: string[]): number {
+    const p = this.pick();
+    if (!p) return 0;
+    const base = heuristicProfile(posts.length ? posts : ["A typical past post of a few lines. ".repeat(12)]);
+    const text = `${PROPOSER_RULES}\n${JSON.stringify(base.profile, null, 2)}\n${posts.join("\n")}`;
+    return Math.min(this.capMicroUsd(), estimateCallMicroUsd(p.route.model!, text, PROPOSER_MAX_OUT));
+  }
+
+  /** `model: false` reads with plain counts only: free, no model call. */
+  async propose(posts: string[], opts: { model?: boolean } = {}): Promise<ProposeResult> {
+    const base = heuristicProfile(posts);
+    const empty = { tokensIn: 0, tokensOut: 0, costMicroUsd: 0 };
+    if (opts.model === false) return { ...base, source: "heuristics", model: null, ...empty, notes: ["Read with plain counts: free, no AI model."] };
+    const picked = this.pick();
+    if (!picked) return { ...base, source: "heuristics", model: null, ...empty, notes: ["Read with plain counts; no model is set up."] };
+    const { route, provider } = picked;
 
     const messages: ChatMessage[] = [
       { role: "system", content: `${PROPOSER_RULES}\n\nEXAMPLE (a proposal from plain counts; improve it for these posts)\n\`\`\`json\n${JSON.stringify(base.profile, null, 2)}\n\`\`\`` },
       { role: "user", content: `${posts.map((p, i) => dataBlock(`post_${i + 1}`, p)).join("\n\n")}\n\nDescribe this brand's voice, topics, dos and don'ts.` },
     ];
-    const cap = toMicroUsd(this.opts.maxCostUsd ?? 0.05);
-    const maxOut = 1500;
-    const model = { route: route.id, provider: provider.id, model: route.model };
+    const cap = this.capMicroUsd();
+    const maxOut = PROPOSER_MAX_OUT;
+    const model = { route: route.id, provider: provider.id, model: route.model! };
     const usage = { ...empty };
     const call = async (msgs: ChatMessage[]) => {
       const estimate = estimateCallMicroUsd(route.model!, msgs.map((m) => m.content).join("\n"), maxOut);
       if (usage.costMicroUsd + estimate > cap) throw new Error("the call would pass the spend cap");
-      const r = await provider.complete({ model: route.model!, messages: msgs, temperature: 0.2, maxOutputTokens: maxOut, signal: AbortSignal.timeout(this.opts.callTimeoutMs ?? 45_000) });
+      const r = await provider.complete({ model: route.model!, messages: msgs, temperature: 0.2, maxOutputTokens: maxOut, ...(route.reasoning ? { reasoning: route.reasoning } : {}), signal: AbortSignal.timeout(this.opts.callTimeoutMs ?? 45_000) });
       usage.tokensIn += r.tokensIn;
       usage.tokensOut += r.tokensOut;
       usage.costMicroUsd += costMicroUsd(route.model!, r.tokensIn, r.tokensOut);

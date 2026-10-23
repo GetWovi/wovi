@@ -312,11 +312,13 @@ export class Credits implements RunBilling {
    * Takes `amount` for a new hold from the two pools, after writing off any
    * expired holder credits. Refuses when the two together are short.
    */
-  private holdDrafts(entries: LedgerEntry[], amount: number): { expire: Draft[]; holder: number; period: string } {
+  private holdDrafts(entries: LedgerEntry[], amount: number, paidOnly = false): { expire: Draft[]; holder: number; period: string } {
     const expire = this.expiryDrafts(entries);
     const s = this.spendableOf(this.pools(entries));
-    if (amount > s.available) throw new BillingRefusal("not_enough_credits", `This needs ${creditWords(amount)}. The workspace has ${creditWords(s.available)}.`, { needed: amount, available: s.available });
-    return { expire, holder: this.holderTake(amount, s.paid, s.holder), period: s.period };
+    // Holder credits are for running agents only; other paid jobs take paid credits.
+    const available = paidOnly ? s.paid : s.available;
+    if (amount > available) throw new BillingRefusal("not_enough_credits", `This needs ${creditWords(amount)}. The workspace has ${creditWords(available)}${paidOnly && s.holder ? " in paid credits (holder credits are for agent runs only)" : ""}.`, { needed: amount, available });
+    return { expire, holder: paidOnly ? 0 : this.holderTake(amount, s.paid, s.holder), period: s.period };
   }
 
   async hold(workspaceId: string, holdId: string): Promise<HoldState | null> {
@@ -521,22 +523,65 @@ export class Credits implements RunBilling {
       });
     }
 
+    const reason: ReleaseReason = run.status === "succeeded" ? "settled" : run.status === "failed" ? "failed" : "cancelled";
+    return this.settleOwn(ws, c, holdId, paid, run.costMicroUsd, reason);
+  }
+
+  /** Charges an own hold its real cost (never more than it held) and gives the rest back, once. */
+  private settleOwn(ws: string, c: RunCredits, holdId: string, paid: boolean, cost: number, reason: ReleaseReason): Promise<RunCredits> {
     return this.lock(ws, async () => {
       const entries = await this.entries(ws);
       const hold = this.holdFrom(entries, holdId);
       if (!hold) return c;
       if (hold.closed) return { ...c, state: hold.charged > 0 ? "charged" : "refunded", charged: hold.charged, back: hold.amount - hold.charged };
-      const amount = paid ? chargeFor(run.costMicroUsd, hold.amount, this.cfg) : 0;
-      const reason: ReleaseReason = run.status === "succeeded" ? "settled" : run.status === "failed" ? "failed" : "cancelled";
+      const amount = paid ? chargeFor(cost, hold.amount, this.cfg) : 0;
       // Everything goes back to the pools it came from; the charge takes from the hold's two parts in spend order.
       const h = this.holderTake(amount, hold.amount - hold.holder, hold.holder);
       const period = hold.period ?? undefined;
       await this.write(ws, [
         { key: `release:${holdId}`, kind: "release", amount: hold.amount, holder: hold.holder, period, holdId, ref: hold.ref, userId: hold.userId, label: hold.label, reason },
-        ...(amount > 0 ? [{ key: `charge:${holdId}`, kind: "charge" as const, amount: -amount, holder: -h, period, holdId, ref: hold.ref, userId: hold.userId, label: hold.label, costMicroUsd: run.costMicroUsd }] : []),
+        ...(amount > 0 ? [{ key: `charge:${holdId}`, kind: "charge" as const, amount: -amount, holder: -h, period, holdId, ref: hold.ref, userId: hold.userId, label: hold.label, costMicroUsd: cost }] : []),
       ]);
       return { ...c, state: amount > 0 ? "charged" : "refunded", charged: amount, back: hold.amount - amount };
     });
+  }
+
+  /* ---------- Other paid jobs ---------- */
+
+  /**
+   * The estimate for a paid job that is not an agent run (reading past posts
+   * into a Brand Brain): its typical cost times the headroom, never above its
+   * cap, at least the minimum. The most it can be charged.
+   */
+  estimateJob(typicalMicroUsd: number, capMicroUsd: number): number {
+    return estimateCredits(typicalMicroUsd, capMicroUsd, this.cfg);
+  }
+
+  /**
+   * Holds a job's estimate, like a run: refused (BillingRefusal) when the
+   * balance or a monthly limit does not cover it. A job hold left open by a
+   * crash for more than 15 minutes is given back first.
+   */
+  async reserveJob(input: { workspaceId: string; jobId: string; estimate: number; userId: string | null; label: string }): Promise<RunCredits> {
+    const { workspaceId, jobId, estimate, userId, label } = input;
+    if (!POSITIVE_INT(estimate)) throw new CreditError("invalid_request", "A job's estimate must be a whole number of credits.");
+    const stale = (await this.openHoldsOf(workspaceId)).filter((h) => h.ref?.type === "job" && Date.parse(h.createdAt) < this.now().getTime() - 15 * 60_000);
+    for (const h of stale) await this.settleOwn(workspaceId, { mode: "own", estimate: h.amount, holdId: h.holdId, state: "held", charged: null, back: null, userId: h.userId }, h.holdId, false, 0, "failed");
+    const holdId = `job:${jobId}`;
+    return this.lock(workspaceId, async () => {
+      const entries = await this.entries(workspaceId);
+      if (entries.some((e) => e.key === `hold:${holdId}`)) return { mode: "own", estimate, holdId, state: "held", charged: null, back: null, userId };
+      await this.checkLimits(workspaceId, userId, estimate, entries);
+      const take = this.holdDrafts(entries, estimate, true);
+      await this.write(workspaceId, [...take.expire, { key: `hold:${holdId}`, kind: "hold", amount: -estimate, holder: 0, period: take.period, holdId, ref: { type: "job", id: jobId }, userId, label }]);
+      return { mode: "own", estimate, holdId, state: "held", charged: null, back: null, userId };
+    });
+  }
+
+  /** Charges a job its real cost when it was done, or gives the hold back. Settling twice changes nothing. */
+  async settleJob(workspaceId: string, c: RunCredits, result: { done: boolean; costMicroUsd: number }): Promise<RunCredits> {
+    if (c.mode !== "own" || !c.holdId) return c;
+    return this.settleOwn(workspaceId, c, c.holdId, result.done, result.costMicroUsd, result.done ? "settled" : "failed");
   }
 
   /* ---------- Pipelines ---------- */

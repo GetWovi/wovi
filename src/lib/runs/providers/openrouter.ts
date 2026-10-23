@@ -15,8 +15,8 @@ export type OpenRouterOptions = {
 };
 
 type ChatResponse = {
-  choices?: { message?: { content?: string | null } }[];
-  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  choices?: { message?: { content?: string | null }; finish_reason?: string | null }[];
+  usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number };
   error?: { code?: number; message?: string };
 };
 
@@ -42,6 +42,8 @@ export function openRouterProvider(opts: OpenRouterOptions): ModelProvider {
             messages: req.messages,
             max_tokens: req.maxOutputTokens,
             ...(req.temperature === undefined ? {} : { temperature: req.temperature }),
+            // The reasoning stays out of the answer; it is still billed, so it is kept low (see MODEL_ROUTES).
+            ...(req.reasoning ? { reasoning: { effort: req.reasoning.effort, exclude: true } } : {}),
           }),
           signal: req.signal,
         });
@@ -57,15 +59,26 @@ export function openRouterProvider(opts: OpenRouterOptions): ModelProvider {
       }
 
       const text = body?.choices?.[0]?.message?.content;
-      if (typeof text !== "string" || !text.trim()) throw new ProviderError("bad_response", "OpenRouter returned no answer text.");
+      if (typeof text !== "string" || !text.trim()) {
+        const cut = body?.choices?.[0]?.finish_reason === "length";
+        // An empty answer can still be billed (the reasoning before it), so the usage goes with the error.
+        const billed = body?.usage ? { tokensIn: body.usage.prompt_tokens ?? 0, tokensOut: body.usage.completion_tokens ?? 0, ...(charged(body.usage.cost) !== undefined ? { costMicroUsd: charged(body.usage.cost) } : {}) } : undefined;
+        throw new ProviderError("bad_response", cut ? "The model used its whole output limit before it answered (reasoning counts toward it)." : "OpenRouter returned no answer text.", billed);
+      }
       // When usage is missing, count by estimate so a run's cost is never under-counted.
       return {
         text,
         tokensIn: body?.usage?.prompt_tokens ?? estimateTokens(req.messages.map((m) => m.content).join("\n")),
         tokensOut: body?.usage?.completion_tokens ?? estimateTokens(text),
+        ...(charged(body?.usage?.cost) !== undefined ? { costMicroUsd: charged(body?.usage?.cost) } : {}),
       };
     },
   };
+}
+
+/** OpenRouter's usage.cost (US dollars) in whole micro-dollars, rounded up. Undefined when it is missing or not a number. */
+function charged(cost: unknown): number | undefined {
+  return typeof cost === "number" && Number.isFinite(cost) && cost >= 0 ? Math.ceil(cost * 1_000_000) : undefined;
 }
 
 export function kindForStatus(status: number): ProviderError["kind"] {

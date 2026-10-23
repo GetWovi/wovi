@@ -181,6 +181,8 @@ export function RunResult({
 
       <ResultBody view={rv} onCopy={() => used("copy")} />
 
+      {run.sources && run.sources.length > 0 && <Sources sources={run.sources} />}
+
       <ResultFeedback csrf={csrf} runId={run.id} agentId={agent.id} text={copyAll(output)} initial={view.feedback} editor={editor} onRegenerated={onRerun} />
 
       {run.quality && <QualityBreakdown q={run.quality} />}
@@ -211,6 +213,30 @@ export function RunResult({
       </div>
       <ReportLink id={run.id} />
     </section>
+  );
+}
+
+/** The web pages a run's trend lookup found, with their dates and when the search ran. Results are only as good as these. */
+export function Sources({ sources }: { sources: NonNullable<RunView["run"]["sources"]> }) {
+  const searched = sources.map((x) => x.searchedAt).filter(Boolean).sort()[0];
+  return (
+    <div className={[styles.panelAlt, styles.panelTight, styles.panel].join(" ")}>
+      <b>Sources</b>
+      <span className={[styles.muted, styles.small].join(" ")}>
+        {" "}
+        From a live web search{searched ? ` on ${searched.slice(0, 10)}` : ""}. Check a trend on the platform before you build a post on it.
+      </span>
+      <ul className={styles.sourceList}>
+        {sources.map((x) => (
+          <li key={x.url}>
+            <a href={x.url} target="_blank" rel="noreferrer noopener nofollow">
+              {x.title}
+            </a>
+            <span className={[styles.muted, styles.small].join(" ")}>{x.published ? ` published ${x.published}` : " date not given"}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

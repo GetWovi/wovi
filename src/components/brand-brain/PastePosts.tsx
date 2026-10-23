@@ -11,7 +11,8 @@ import { Chip } from "@/components/ui/Chip";
 import { Input, Textarea } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import type { Platform } from "@/lib/agents/catalog";
-import type { PublicProposal } from "@/lib/brand/brains";
+import type { PublicProposal, ReadQuote } from "@/lib/brand/brains";
+import { ReadChoice, defaultUseModel } from "./ReadChoice";
 import { BRAND_LIMITS, type OpeningKind, type ProfileProposal } from "@/lib/brand/types";
 import styles from "./Brain.module.css";
 import { Issues, LinesField, PlatformsField, ToneField, WordsField } from "./fields";
@@ -22,7 +23,7 @@ const pct = (n: number) => `${Math.round(n * 100)}%`;
 type Start = { brainId?: string; name: string; niche: string; platforms: Platform[] };
 
 /** Paste 3 to 5 past posts, get a proposed profile, review and edit it, then save. Nothing is saved before the last step. */
-export function PastePosts({ csrf, start }: { csrf: string; start: Start }) {
+export function PastePosts({ csrf, start, quote = { mode: "free" } }: { csrf: string; start: Start; quote?: ReadQuote }) {
   const router = useRouter();
   const [name, setName] = useState(start.name);
   const [niche, setNiche] = useState(start.niche);
@@ -33,6 +34,7 @@ export function PastePosts({ csrf, start }: { csrf: string; start: Start }) {
   const [idea, setIdea] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ error: string; issues?: string[] } | null>(null);
+  const [useModel, setUseModel] = useState(defaultUseModel(quote));
 
   const filled = posts.filter((p) => p.trim()).length;
 
@@ -40,7 +42,8 @@ export function PastePosts({ csrf, start }: { csrf: string; start: Start }) {
     setBusy(true);
     setError(null);
     try {
-      const r = await proposeProfile(csrf, { name, niche, platforms, posts: posts.filter((p) => p.trim()), brainId: start.brainId });
+      const paid = quote.mode === "credits" && useModel;
+      const r = await proposeProfile(csrf, { name, niche, platforms, posts: posts.filter((p) => p.trim()), brainId: start.brainId, ...(paid ? { useModel: true, quotedCredits: quote.credits } : {}) });
       if (!r.ok) return setError(r);
       setProposal(r.value);
       setProfile(r.value.profile);
@@ -87,6 +90,7 @@ export function PastePosts({ csrf, start }: { csrf: string; start: Start }) {
               </div>
             ))}
           </div>
+          <ReadChoice quote={quote} value={useModel} onChange={setUseModel} />
           <Issues error={error?.error ?? null} issues={error?.issues} />
           <div className={shell.runBar}>
             <span className={shell.estimate}>
@@ -210,6 +214,8 @@ export function PastePosts({ csrf, start }: { csrf: string; start: Start }) {
             {proposal.unread.map((u) => (
               <li key={u}>{u}</li>
             ))}
+            {proposal.source === "heuristics" && proposal.notes[0] && <li>{proposal.notes[0]}</li>}
+            {proposal.charge && <li>{proposal.charge.charged > 0 ? `The AI read cost ${proposal.charge.charged} credit${proposal.charge.charged === 1 ? "" : "s"}.` : "The AI did not answer, so nothing was charged."}</li>}
             <li>Nothing is saved until you press save.</li>
           </ul>
         </Card>

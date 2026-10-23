@@ -1941,3 +1941,16 @@
   font-weight: var(--fw-semibold);
   color: var(--blaze-text);
 }
+
+/* The sources a run's trend lookup found. */
+.sourceList {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.sourceList a {
+  color: var(--link);
+}

@@ -10,7 +10,8 @@ import { join } from "node:path";
 import { localBrandBrains } from "@/lib/builder/local";
 import { creditsEnabled, processCredits } from "@/lib/credits/local";
 import { jsonFileBuilderStore } from "@/lib/builder/store";
-import { sampleReferences } from "@/lib/quality/service";
+import { sampleExamples, sampleReferences } from "@/lib/quality/service";
+import { clientIpFrom } from "./client-ip";
 import { localEngine, type RunEngine } from "@/lib/runs/engine";
 import { localRouter } from "@/lib/stats/local";
 import { canaryEnabled } from "@/lib/stats/config";
@@ -50,7 +51,9 @@ export function appEngine(): RunEngine {
     // Credits (phase 13): every run holds its estimate and is charged at the end, unless WOVI_CREDITS=off.
     const billing = creditsEnabled() ? processCredits() : null;
     // Canary releases (WOVI_CANARY=on): runs that follow "latest stable" are routed by the releases in stats.json (docs/stats.md). Off, nothing is routed.
-    cache.engine = localEngine({ brandBrains: localBrandBrains(), references: sampleReferences(jsonFileBuilderStore(join(dataDirFromEnv(), "builder.json")).samples), billing, router: canaryEnabled() ? localRouter(dataDirFromEnv()) : null });
+    // Tuning level 2: the same samples are given to the model as few-shot examples; a bench run never sees its own sample.
+    const samples = jsonFileBuilderStore(join(dataDirFromEnv(), "builder.json")).samples;
+    cache.engine = localEngine({ brandBrains: localBrandBrains(), references: sampleReferences(samples), examples: sampleExamples(samples), billing, router: canaryEnabled() ? localRouter(dataDirFromEnv()) : null });
     billing?.useHistory(cache.engine);
     void cache.engine.recover().catch((err) => console.error("Could not recover runs:", err));
   }
@@ -64,8 +67,8 @@ export function appRuns(): GuardedRuns {
 
 export async function requestMeta() {
   const h = await headers();
-  // The first X-Forwarded-For hop is only trustworthy behind our own proxy; it is set there at deploy.
-  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "local";
+  // The hop the trusted proxy added (Railway's edge: the last one), never what the client wrote (src/lib/accounts/client-ip.ts).
+  const ip = clientIpFrom(h);
   return { ip, userAgent: h.get("user-agent"), origin: h.get("origin"), host: h.get("x-forwarded-host") ?? h.get("host") };
 }
 

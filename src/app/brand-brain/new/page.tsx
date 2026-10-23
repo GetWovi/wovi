@@ -30,7 +30,7 @@ export default async function NewBrainPage({ searchParams }: { searchParams: Pro
           <p className={shell.lead}>Paste 3 to 5 posts that did well. We propose the voice, topics, dos and don&apos;ts. You check every part before it is saved.</p>
         </div>
       </div>
-      <PastePosts csrf={csrf} start={{ brainId: existing?.brain.id, name: existing?.body.name ?? "", niche: existing?.body.niche ?? "", platforms: existing?.body.platforms ?? [] }} />
+      <PastePosts csrf={csrf} quote={await brands.readQuote(me, workspaceId)} start={{ brainId: existing?.brain.id, name: existing?.body.name ?? "", niche: existing?.body.niche ?? "", platforms: existing?.body.platforms ?? [] }} />
     </AppShell>
   );
 }

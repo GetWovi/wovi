@@ -15,7 +15,8 @@ export function goodSpec(overrides: Partial<CreateInput> = {}): CreateInput {
     ],
     output: { kind: "list", count: 3 },
     brandBrain: ["voice"],
-    tools: ["trend_lookup"],
+    // No tool: runs of the test agent are model calls only. Tool tests declare trend_lookup themselves.
+    tools: [],
     guardrails: ["no_misleading_claims"],
     routing: { model: "text-standard", fallback: "text-fast", maxCostUsd: 0.05 },
     instructions: "Write three lines about {{topic}} in this voice: {{brand.voice}}",

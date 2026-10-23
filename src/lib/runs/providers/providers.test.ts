@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defaultAnswer, fakeProvider } from "./fake";
 import { providersFromEnv } from "./index";
 import { openRouterProvider } from "./openrouter";
+import { MODEL_ROUTES } from "@/lib/agents/catalog";
 import { ProviderError, type CompletionRequest } from "./types";
 
 const req = (extra: Partial<CompletionRequest> = {}): CompletionRequest => ({
@@ -74,6 +75,13 @@ describe("OpenRouter adapter (stub fetch, no network)", () => {
     expect(JSON.parse(calls[0].init.body as string)).toMatchObject({ model: "anthropic/claude-sonnet-5.5", max_tokens: 100, temperature: 0.5 });
   });
 
+  it("reads what OpenRouter charged, for the run's cost", async () => {
+    const { f } = stubFetch(200, { choices: [{ message: { content: "{}" } }], usage: { prompt_tokens: 1000, completion_tokens: 100, cost: 0.0012345 } });
+    await expect(openRouterProvider({ apiKey: "k", fetch: f }).complete(req())).resolves.toEqual({ text: "{}", tokensIn: 1000, tokensOut: 100, costMicroUsd: 1235 });
+    const cut = stubFetch(200, { choices: [{ message: { content: "" }, finish_reason: "length" }], usage: { prompt_tokens: 900, completion_tokens: 800, cost: 0.0101 } });
+    await expect(openRouterProvider({ apiKey: "k", fetch: cut.f }).complete(req())).rejects.toMatchObject({ billed: { tokensIn: 900, tokensOut: 800, costMicroUsd: 10100 } });
+  });
+
   it("estimates tokens when usage is missing", async () => {
     const { f } = stubFetch(200, { choices: [{ message: { content: "abcdefgh" } }] });
     const r = await openRouterProvider({ apiKey: "k", fetch: f }).complete(req());
@@ -98,5 +106,17 @@ describe("OpenRouter adapter (stub fetch, no network)", () => {
     await expect(openRouterProvider({ apiKey: "k", fetch: inBody.f }).complete(req())).rejects.toMatchObject({ kind: "rate_limited" });
     const empty = stubFetch(200, { choices: [{ message: { content: "" } }] });
     await expect(openRouterProvider({ apiKey: "k", fetch: empty.f }).complete(req())).rejects.toMatchObject({ kind: "bad_response" });
+    const cut = stubFetch(200, { choices: [{ message: { content: null }, finish_reason: "length" }] });
+    await expect(openRouterProvider({ apiKey: "k", fetch: cut.f }).complete(req())).rejects.toMatchObject({ kind: "bad_response", message: expect.stringMatching(/whole output limit/) });
+  });
+
+  it("keeps reasoning to the route's effort and out of the answer, and every text route sets one", async () => {
+    const { f, calls } = stubFetch(200, { choices: [{ message: { content: "{}" } }] });
+    await openRouterProvider({ apiKey: "k", fetch: f }).complete(req({ reasoning: { effort: "low" } }));
+    expect(JSON.parse(calls[0].init.body as string).reasoning).toEqual({ effort: "low", exclude: true });
+    const plain = stubFetch(200, { choices: [{ message: { content: "{}" } }] });
+    await openRouterProvider({ apiKey: "k", fetch: plain.f }).complete(req());
+    expect(JSON.parse(plain.calls[0].init.body as string)).not.toHaveProperty("reasoning");
+    for (const r of MODEL_ROUTES.filter((x) => x.modality === "text")) expect([r.id, r.reasoning]).toEqual([r.id, { effort: "low" }]);
   });
 });

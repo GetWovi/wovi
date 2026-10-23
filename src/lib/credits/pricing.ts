@@ -6,6 +6,7 @@ import { findModelRoute } from "@/lib/agents/catalog";
 import type { AgentSpec } from "@/lib/agents/spec";
 import { DEFAULT_MAX_OUTPUT_TOKENS, estimateCallMicroUsd, toMicroUsd } from "@/lib/runs/prices";
 import { assemblePrompt, promptText } from "@/lib/runs/prompt";
+import { toolEstimateMicroUsd } from "@/lib/runs/tools";
 import { CREDITS } from "./config";
 
 export type PricingConfig = Pick<typeof CREDITS, "microUsdPerCredit" | "marginMultiplier" | "minCreditsPerRun" | "estimateHeadroom">;
@@ -41,7 +42,8 @@ export function staticRunMicroUsd(spec: AgentSpec): number {
   const model = findModelRoute(spec.routing.model)?.model;
   if (!model) return cap;
   const text = promptText(assemblePrompt(spec, {}, null));
-  return Math.min(cap, estimateCallMicroUsd(model, text, spec.routing.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS));
+  // A declared tool (the trend lookup) is part of the run's cost, so it is part of the estimate.
+  return Math.min(cap, estimateCallMicroUsd(model, text, spec.routing.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS) + toolEstimateMicroUsd(spec, null));
 }
 
 /**

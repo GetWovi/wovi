@@ -55,6 +55,8 @@ All `noindex`, none linked from the site. Wovi's poses carry the state: hello on
 
 The draft is not saved. "Open in the editor" calls `Builder.createAgent`, which saves it as a draft owned by `creator_wovi`.
 
+Drafting may call the strong model twice, so it is limited: 15 drafts an hour and 40 a day per builder (`DRAFT_LIMITS`), and each draft stops calling once its next call could pass $0.40.
+
 ## The editor
 
 The Spec tab is a form for every field of the body, with the validator (`validateAgentBody`, run in the browser on every change) and its messages mapped to the fields by path (`inputs[2].limits.maxLength: ...`): a card at the top counts the problems, the section list on the left shows a count per section, each field shows its own message, and inputs with a problem get a Blaze border.
@@ -77,6 +79,8 @@ Status actions open a confirmation: publish (live), back to draft, hide, unhide.
 `Sample`: `agentId`, the spec `version` it was written against, `label` (`gold` or `bad`), `title`, `inputs`, `idealOutput`, `note`, `links`, `files`, and, for a sample made from a clip, `clip` (the clip's id, name and first frame) and `updatedAt`. Both are optional: samples from before read unchanged. The inputs are checked with `validateRunInputs` against the agent's current form, so every sample can run; image inputs take uploaded images as file references. Text files (`.txt`, `.md`, `.csv`, `.json`, up to 2 MB) attach to a sample. Phase 6's test bench runs every new version against these.
 
 Limits (`BUILDER_LIMITS`): 50 samples per agent, 20,000 characters of output, a 500-character note, 10 links, 6 files.
+
+**Samples steer the writing** (the doc's tuning level 2). Every run of the agent is given up to three gold samples, closest to its request first, and at most one bad sample as an example to avoid, within a token budget, as data blocks the rules say never to copy from ([engine.md](engine.md#examples-tuning-level-2)). A bench run of a sample is never given that sample, and is not compared with it either, so the gold eval stays honest. Each bench result says which samples the run was given and that its own was kept out, and lists the sources a trend lookup found.
 
 ## Mood boards
 
