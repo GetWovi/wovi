@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LegalLinks } from "@/components/safety/LegalLinks";
 import { tokenConfigFromEnv } from "@/lib/token/config";
 import styles from "./Site.module.css";
+import { X_URL } from "@/lib/site";
 
 export type NavLink = { href: string; label: string };
 
@@ -37,7 +38,7 @@ export function SiteHeader({ active, links = [] }: { active?: "home" | "design" 
           <a href="#" className={styles.iconLink} aria-label="WOVI on GitHub">
             <BrandIcon name="github" />
           </a>
-          <a href="#" className={styles.iconLink} aria-label="WOVI on X">
+          <a href={X_URL} className={styles.iconLink} aria-label="WOVI on X" target="_blank" rel="noopener noreferrer">
             <BrandIcon name="x" size={20} />
           </a>
           <ThemeToggle className={styles.theme} />

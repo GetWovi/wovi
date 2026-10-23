@@ -18,6 +18,7 @@ import c from "@/components/credits/Credits.module.css";
 import styles from "./App.module.css";
 import { ClientSwitch } from "./ClientSwitch";
 import { WorkspaceSwitch } from "./WorkspaceSwitch";
+import { X_URL } from "@/lib/site";
 
 export type AppArea = "home" | "make" | "pipelines" | "review" | "history" | "brand" | "settings" | "notifications" | "credits";
 
@@ -112,7 +113,7 @@ export async function AppShell({ info, active, children }: { info: SessionInfo; 
               <a href="#" className={styles.iconLink} aria-label="WOVI on GitHub">
                 <BrandIcon name="github" />
               </a>
-              <a href="#" className={styles.iconLink} aria-label="WOVI on X">
+              <a href={X_URL} className={styles.iconLink} aria-label="WOVI on X" target="_blank" rel="noopener noreferrer">
                 <BrandIcon name="x" size={20} />
               </a>
             </span>

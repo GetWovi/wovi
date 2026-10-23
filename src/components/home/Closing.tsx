@@ -9,6 +9,7 @@ import { Icon } from "@/components/ui/Icon";
 import { reveal, useScrollScene } from "./scroll";
 import home from "./home.module.css";
 import styles from "./Closing.module.css";
+import { X_URL } from "@/lib/site";
 
 /** The final call on a Blaze panel, then the footer with the wordmark. */
 export function Closing() {
@@ -77,7 +78,7 @@ export function Closing() {
               <span className={styles.colTitle}>Company</span>
               <a href="mailto:hello@wovi.app">hello@wovi.app</a>
               <a href="#">GitHub</a>
-              <a href="#">X</a>
+              <a href={X_URL} target="_blank" rel="noopener noreferrer">X</a>
             </div>
           </div>
           <div className={styles.fine}>
