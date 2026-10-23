@@ -149,6 +149,9 @@ export const RunSchema = z
     createdAt: z.string(),
     finishedAt: z.string().nullable(),
     aiGenerated: z.literal(true).describe("Always true: an AI model wrote the output (EU AI Act Art. 50). Label it where a platform asks."),
+    sources: z
+      .array(z.object({ url: z.string(), title: z.string(), published: z.string().nullable(), searchedAt: z.string().nullable() }))
+      .describe("The web pages the agent's trend lookup found, with their dates and when the search ran. Empty for agents without a lookup."),
   })
   .describe("One run of one agent.");
 

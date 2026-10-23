@@ -178,6 +178,10 @@ Running it again changes nothing. On a data dir from before the tool layer (the 
 
 `npm run agents:try -- <id>` now falls back to the first golden launch sample when the old example inputs no longer fit the current version, and knows Idea Generator.
 
+## The first real run (2026-10-23)
+
+All 35 samples and four extra Trend Scout runs ran on the real models through OpenRouter, for $2.95 in all (OpenRouter's own counter, including a rerun). After the fixes it found (reasoning kept low on every route, billed failures counted, an empty trend search failing before the model, short niches in the specificity check), every agent parsed every sample and scored 83 to 97 on the quality gate. Trend Scout is the slowest (about a minute) and dearest (up to $0.20 on the strong model); web trend data for X is thin, so those runs now stop with "nothing current found" and cost nothing. Hook Writer often needs its repair call for the 12-word limit.
+
 ## One engine change
 
 The specificity check (`specificity_check`) used to compare every piece of text for repeats, so list items with fields (Hashtag Optimizer's `type: hashtag`, Idea Generator's `format`) failed on values that repeat by design. Items with fields are now compared as whole items. A test covers it.

@@ -98,7 +98,7 @@ A failed check is stored in `run.checks` and sets `run.needsReview`; the output 
 
 ### 7. Cost
 
-`prices.ts` holds USD per million tokens per model. Cost is counted in whole micro-dollars (rounded up per call), so totals add up exactly; `costUsd` is for reading. `costTotals(workspaceId)` gives the workspace total and a total per agent; failed and cancelled runs count, since their calls were paid for. Since phase 13 the engine bills through an optional `billing` hook: it holds a run's estimate in credits at submit and charges or gives it back at the end ([credits.md](credits.md)). Without the hook nothing is charged.
+`prices.ts` holds USD per million tokens per model. Cost is counted in whole micro-dollars (rounded up per call), so totals add up exactly; `costUsd` is for reading. When OpenRouter reports what it charged for a call (`usage.cost`), that is the call's cost (prompt caching can make it lower than the price table); the table is the fallback and is always used for estimates. A failed call the provider still billed (a model that spent its whole output limit reasoning and answered nothing, a lookup whose answer could not be read) is added to the run's cost too, so run totals match the bill. `costTotals(workspaceId)` gives the workspace total and a total per agent; failed and cancelled runs count, since their calls were paid for. Since phase 13 the engine bills through an optional `billing` hook: it holds a run's estimate in credits at submit and charges or gives it back at the end ([credits.md](credits.md)). Without the hook nothing is charged.
 
 ## Providers
 
@@ -119,6 +119,8 @@ Defaults, from OpenRouter's public list on 2026-10-21. Change them in `MODEL_ROU
 
 `text-fast` is on a different vendor than `text-standard`, so the common fallback still works when one vendor is down.
 
+**Reasoning.** All three models reason before they answer by default (Claude 5.5 must, at "high"; the OpenAI model at "medium"), and the reasoning counts against the output limit and is billed. At "high" it ate whole answers in the first real run: three of five Idea Generator runs came back cut off mid-JSON and several Sonnet calls came back empty. Each route therefore sets `reasoning: { effort: "low" }` (the lowest all three take), sent with `exclude: true` so the reasoning never reaches the answer. After the change all ten affected runs passed.
+
 The "Used by" column is the phase 2 seeds. The phase 8 launch versions route Hashtag Optimizer to fast; Hook Writer and Caption Writer to standard; Idea Generator, Script Writer, Platform Repurposer and Trend Scout to strong ([launch-agents.md](launch-agents.md#the-lineup)).
 
 ## Tools
@@ -128,7 +130,7 @@ The product doc: "Tools are declared. An agent can only call tools listed in its
 - **The engine runs the tools, never the model.** Before the first model call, `runDeclaredTools` calls each tool the spec declares, the catalog knows (`assertDeclaredTool`) and this code builds. The model request still carries only model, messages, temperature, max tokens and the signal; a test checks the keys. What a tool found reaches the model as a `tool` data block (`untrustedBlock`): material, never instructions. Text in it that reads like instructions is noted on the run as `prompt_injection`, as for inputs.
 - **Built today: `trend_lookup`.** Declared tools that are not built yet (`transcription`, `video_cut`, `image_generate`, `voice_synth`) are skipped as before. A built tool that is not set up makes the agent not runnable at submit, so Trend Scout never writes trends from memory.
 - **Limits.** Each call has a timeout (25 s), a cap per run (2 calls: the niche, then the platform as a whole only when the niche came back with fewer than five findings), and is skipped when its estimate would pass the run's spend cap. The estimate before a run (the `over_budget` check, the bench and the credit estimate) counts the tool calls.
-- **Cost.** Each call is a `run.calls` entry with `purpose: "tool"` and route `tool:<id>`, its cost added to `run.costMicroUsd`, so credits charge for it like any model call. A tool that fails fails the run with `tool_error` (retried like a provider error when the failure can pass); a failed run costs no credits.
+- **Cost.** Each call is a `run.calls` entry with `purpose: "tool"` and route `tool:<id>`, its cost added to `run.costMicroUsd`, so credits charge for it like any model call. A tool that fails fails the run with `tool_error` (retried like a provider error when the failure can pass); a failed run costs no credits. A trend search that found nothing current also fails the run with `tool_error` before the model is called, since the model could only invent trends or say there are none.
 - **Cache.** Answers are kept per tool and arguments (lower-cased) for 6 hours in `tool-cache.json`, made on its first write. A hit is recorded with `cached: true` and costs the run nothing.
 - **What the run keeps.** `run.tools`: each call's arguments, when the search ran, and its findings with their sources (address, title, date). `publicRunView` adds `sources`, which the app shows under the result and the bench shows to builders. Old runs have neither and read as before.
 

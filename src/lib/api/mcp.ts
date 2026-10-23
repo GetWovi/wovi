@@ -72,7 +72,8 @@ function runText(run: ApiRun): string {
   const charge = run.charge?.charged != null ? ` Charged ${run.charge.charged} credits.` : "";
   // Phase 18: say plainly that an AI wrote it (EU AI Act Art. 50).
   const ai = run.output ? " Written by AI: a draft for a person to check, and to label as AI where a platform asks." : "";
-  return `${head}${charge}${ai}\n\n${run.output ? copyAll(run.output as RunOutput) : ""}`.trim();
+  const sources = run.output && run.sources?.length ? `\n\nSources (live web search${run.sources[0].searchedAt ? `, ${run.sources[0].searchedAt.slice(0, 10)}` : ""}):\n${run.sources.map((x) => `- ${x.title}: ${x.url}${x.published ? ` (${x.published})` : ""}`).join("\n")}` : "";
+  return `${head}${charge}${ai}\n\n${run.output ? copyAll(run.output as RunOutput) : ""}${sources}`.trim();
 }
 
 function pipelineText(run: ApiPipelineRun): string {

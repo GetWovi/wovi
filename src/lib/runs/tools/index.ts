@@ -120,6 +120,10 @@ export async function runDeclaredTools(ctx: ToolRunContext): Promise<ToolRunResu
     }
     const ok = uses.filter((u) => u.ok);
     if (!ok.length) return { ok: false, code: "tool_error", message: `The ${id} tool did not answer.`, retryable: true };
+    // Nothing found: the model is not asked to write from nothing (it could only invent, or say there is nothing). The run fails and costs no credits.
+    if (!ok.some((u) => u.findings.length)) {
+      return { ok: false, code: "tool_error", message: "The trend search found nothing current for this niche on this platform. Nothing was charged. Try a wider niche, or another platform.", retryable: false };
+    }
     const text = renderTrendFindings(ok);
     material.push(untrustedBlock("tool", text, id));
     const signals = injectionSignals({ [id]: ok.flatMap((u) => u.findings.map((f) => `${f.trend}. ${f.detail}`)).join("\n") });
@@ -160,8 +164,14 @@ async function callOne(ctx: ToolRunContext, tool: AgentTool, args: Record<string
     if (ctx.signal.aborted) throw new ToolAborted("Run aborted.");
     const pe = timeout.aborted ? new ProviderError("timeout", `The ${tool.id} tool gave no answer within ${ctx.limits.timeoutMs} ms.`) : asProviderError(err);
     const ms = Date.now() - started;
-    run.calls.push(call(base, at, { ok: false, error: `${pe.kind}: ${pe.message}`, ms }));
-    run.tools?.push({ tool: tool.id, args, ok: false, error: pe.kind, cached: false, searchedAt: null, findings: [], costMicroUsd: 0, ms, at });
+    // A lookup that was paid for but could not be read still counts toward the run's cost.
+    const billed = pe.billed?.costMicroUsd ?? 0;
+    run.calls.push(call(base, at, { ok: false, error: `${pe.kind}: ${pe.message}`, ms, ...(billed ? { costMicroUsd: billed, tokensIn: pe.billed!.tokensIn, tokensOut: pe.billed!.tokensOut } : {}) }));
+    if (billed) {
+      run.costMicroUsd += billed;
+      run.costUsd = toUsd(run.costMicroUsd);
+    }
+    run.tools?.push({ tool: tool.id, args, ok: false, error: pe.kind, cached: false, searchedAt: null, findings: [], costMicroUsd: billed, ms, at });
     return { fail: { ok: false, code: "tool_error", message: `The ${tool.id} tool did not answer (${pe.kind}).`, retryable: pe.retryable } };
   }
 }

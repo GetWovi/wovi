@@ -232,8 +232,9 @@ async function callRouted(ctx: ExecContext, messages: ChatMessage[], purpose: Mo
     const signal = AbortSignal.any([ctx.signal, timeout]);
     const started = Date.now();
     try {
-      const r = await provider.complete({ model: route.model, messages, temperature: spec.routing.temperature, maxOutputTokens: maxOut, signal });
-      const cost = costMicroUsd(route.model, r.tokensIn, r.tokensOut);
+      const r = await provider.complete({ model: route.model, messages, temperature: spec.routing.temperature, maxOutputTokens: maxOut, ...(route.reasoning ? { reasoning: route.reasoning } : {}), signal });
+      // What the provider charged when it says so (prompt caching makes it lower); the price table otherwise.
+      const cost = r.costMicroUsd ?? costMicroUsd(route.model, r.tokensIn, r.tokensOut);
       run.calls.push(record(ctx, base, { ok: true, tokensIn: r.tokensIn, tokensOut: r.tokensOut, costMicroUsd: cost, ms: Date.now() - started }));
       run.tokensIn += r.tokensIn;
       run.tokensOut += r.tokensOut;
@@ -247,7 +248,15 @@ async function callRouted(ctx: ExecContext, messages: ChatMessage[], purpose: Mo
       if (ctx.signal.aborted) throw new RunAborted();
       const pe = timeout.aborted ? new ProviderError("timeout", `No answer within ${ctx.callTimeoutMs} ms.`) : asProviderError(err);
       errors.push(pe);
-      run.calls.push(record(ctx, base, { ok: false, error: `${pe.kind}: ${pe.message}`, ms: Date.now() - started }));
+      // A failed call the provider still billed counts toward the run's cost, so totals match the bill.
+      const billed = pe.billed ? (pe.billed.costMicroUsd ?? costMicroUsd(route.model, pe.billed.tokensIn, pe.billed.tokensOut)) : 0;
+      run.calls.push(record(ctx, base, { ok: false, error: `${pe.kind}: ${pe.message}`, ms: Date.now() - started, ...(pe.billed ? { tokensIn: pe.billed.tokensIn, tokensOut: pe.billed.tokensOut, costMicroUsd: billed } : {}) }));
+      if (billed) {
+        run.tokensIn += pe.billed!.tokensIn;
+        run.tokensOut += pe.billed!.tokensOut;
+        run.costMicroUsd += billed;
+        run.costUsd = toUsd(run.costMicroUsd);
+      }
     }
   }
 

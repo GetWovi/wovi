@@ -390,3 +390,15 @@ describe("run engine: JSON store and restart", () => {
     expect((await jsonFileRunStore(file).get(WS, queued.id))?.status).toBe("succeeded");
   });
 });
+
+describe("run engine: billed failures", () => {
+  it("counts a failed call the provider still billed (reasoning that used the whole limit) toward the run's cost", async () => {
+    const { engine } = await testEngine({
+      fake: { respond: (req, n) => (n === 1 ? new ProviderError("bad_response", "The model used its whole output limit before it answered.", { tokensIn: 1000, tokensOut: 800 }) : defaultAnswer(req)) },
+    });
+    const run = await engine.waitForRun(WS, (await engine.submitRun(goodRequest())).id);
+    expect(run.status).toBe("succeeded");
+    expect(run.calls[0]).toMatchObject({ ok: false, tokensIn: 1000, tokensOut: 800, costMicroUsd: 1000 * 2 + 800 * 10 });
+    expect(run.costMicroUsd).toBe(run.calls.reduce((t, c) => t + c.costMicroUsd, 0));
+  });
+});

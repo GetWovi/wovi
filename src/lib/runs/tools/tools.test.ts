@@ -56,7 +56,7 @@ describe("the tool layer: trend_lookup in a run", () => {
     expect(user).toContain('<data name="tool.trend_lookup">');
     expect(user).toContain("source: https://example.com/trends/tiktok/small-bakery-1");
     // The model never gets a tool: the request carries only these keys.
-    expect(Object.keys(fake.requests[0]).sort()).toEqual(["maxOutputTokens", "messages", "model", "signal", "temperature"]);
+    expect(Object.keys(fake.requests[0]).sort()).toEqual(["maxOutputTokens", "messages", "model", "reasoning", "signal", "temperature"]);
     // Every item cites a source the lookup found.
     expect(run.checks.find((c) => c.check === "tool_sources")).toMatchObject({ status: "pass" });
   });
@@ -126,6 +126,16 @@ describe("the tool layer: trend_lookup in a run", () => {
     expect(run.attempts).toBe(2);
     expect(fake.requests).toHaveLength(0);
     expect(run.calls.every((c) => c.purpose === "tool" && !c.ok)).toBe(true);
+  });
+
+  it("fails the run, costing nothing for the model, when the search found nothing current", async () => {
+    const empty = fakeTrendLookup({ respond: () => [] });
+    const { engine, fake } = await testEngine({ agents: [scout()], tools: { trend_lookup: empty } });
+    const run = await engine.waitForRun(WS, (await engine.submitRun(req())).id);
+    expect(run.status).toBe("failed");
+    expect(run.error).toMatchObject({ code: "tool_error", message: expect.stringMatching(/found nothing current/) });
+    expect(empty.calls).toHaveLength(2);
+    expect(fake.requests).toHaveLength(0);
   });
 
   it("refuses a run whose lookups alone would pass the spend cap", async () => {
@@ -200,6 +210,7 @@ describe("trend_lookup: arguments and answers", () => {
     expect(() => readFindings("no json here", citations, now)).toThrow(ProviderError);
     expect(normUrl("javascript:alert(1)")).toBeNull();
     expect(plainField("a".repeat(500), 20)).toHaveLength(20);
+    expect(plainField("Trending Sounds Today \u2014 Updated Daily", 80)).toBe("Trending Sounds Today, Updated Daily");
   });
 
   it("asks OpenRouter's web search (Parallel, fast) through the cheap model, and counts what OpenRouter charged", async () => {

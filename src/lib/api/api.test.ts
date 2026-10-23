@@ -157,6 +157,16 @@ describe("api: runs", () => {
     const after = (await t.call("GET", "/credits", { key: editor })).json;
     expect(after.available).toBe(1000 - asAdmin.charge!.charged!);
     expect(after.held).toBe(0);
+    expect(run.sources).toEqual([]);
+
+    // Trend Scout's run carries the pages its lookup found.
+    const scout = await t.call("POST", "/agents/trend-scout/runs", { key: editor, body: { inputs: { niche: "small bakery", platform: "tiktok" } } });
+    expect(scout.status).toBe(202);
+    await t.engine.waitForRun(t.ws, scout.json.id);
+    const scoutRun = RunSchema.parse((await t.call("GET", `/runs/${scout.json.id}`, { key: editor })).json);
+    expect(scoutRun.status).toBe("succeeded");
+    expect(scoutRun.sources.length).toBeGreaterThanOrEqual(5);
+    expect(scoutRun.sources[0]).toMatchObject({ url: expect.stringMatching(/^https:\/\//), searchedAt: expect.any(String) });
 
     const list = await t.call("GET", "/runs?limit=5&status=succeeded&agent=hook-writer", { key: editor });
     expect(listOf(RunSchema).parse(list.json).data.map((r) => r.id)).toEqual([run.id]);

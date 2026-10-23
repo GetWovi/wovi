@@ -641,7 +641,7 @@ export class SpecDrafter {
     const call = async (msgs: ChatMessage[]) => {
       if (usage.costMicroUsd + estimateCallMicroUsd(route.model!, msgs.map((m) => m.content).join("\n"), 6000) > cap) throw new Error("the call would pass the spend cap");
       const signal = AbortSignal.timeout(this.opts.callTimeoutMs ?? 45_000);
-      const r = await provider.complete({ model: route.model!, messages: msgs, temperature: 0.3, maxOutputTokens: 6000, signal });
+      const r = await provider.complete({ model: route.model!, messages: msgs, temperature: 0.3, maxOutputTokens: 6000, ...(route.reasoning ? { reasoning: route.reasoning } : {}), signal });
       usage.tokensIn += r.tokensIn;
       usage.tokensOut += r.tokensOut;
       usage.costMicroUsd += costMicroUsd(route.model!, r.tokensIn, r.tokensOut);

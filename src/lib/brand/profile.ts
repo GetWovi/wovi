@@ -377,7 +377,7 @@ export class ProfileProposer {
     const call = async (msgs: ChatMessage[]) => {
       const estimate = estimateCallMicroUsd(route.model!, msgs.map((m) => m.content).join("\n"), maxOut);
       if (usage.costMicroUsd + estimate > cap) throw new Error("the call would pass the spend cap");
-      const r = await provider.complete({ model: route.model!, messages: msgs, temperature: 0.2, maxOutputTokens: maxOut, signal: AbortSignal.timeout(this.opts.callTimeoutMs ?? 45_000) });
+      const r = await provider.complete({ model: route.model!, messages: msgs, temperature: 0.2, maxOutputTokens: maxOut, ...(route.reasoning ? { reasoning: route.reasoning } : {}), signal: AbortSignal.timeout(this.opts.callTimeoutMs ?? 45_000) });
       usage.tokensIn += r.tokensIn;
       usage.tokensOut += r.tokensOut;
       usage.costMicroUsd += costMicroUsd(route.model!, r.tokensIn, r.tokensOut);

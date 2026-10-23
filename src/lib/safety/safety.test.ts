@@ -210,7 +210,7 @@ describe("prompt injection", () => {
     const { engine, fake } = await testEngine();
     await engine.waitForRun(WS, (await engine.submitRun(goodRequest({ inputs: { topic: attack } }))).id);
     for (const req of fake.requests) {
-      expect(Object.keys(req).sort()).toEqual(["maxOutputTokens", "messages", "model", "signal", "temperature"]);
+      expect(Object.keys(req).sort()).toEqual(["maxOutputTokens", "messages", "model", "reasoning", "signal", "temperature"]);
     }
   });
 

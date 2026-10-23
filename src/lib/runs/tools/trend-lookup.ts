@@ -162,6 +162,7 @@ export function plainField(v: unknown, max: number): string {
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/https?:\/\/\S+/g, "")
     .replace(/[\u0000-\u001f<>`*_#]/g, " ")
+    .replace(/\s*[\u2013\u2014]\s*/g, ", ")
     .replace(/\s+/g, " ")
     .replace(/\s+([.,;:])/g, "$1")
     .trim();
@@ -249,6 +250,8 @@ export function openRouterTrendLookup(opts: OpenRouterTrendOptions): AgentTool {
             model: cfg.model,
             messages: lookupMessages(args, now),
             max_tokens: cfg.maxOutputTokens,
+            // It only lists what the pages say: little thinking needed, and reasoning is billed.
+            reasoning: { effort: "low", exclude: true },
             plugins: [{ id: "web", engine: cfg.engine, ...(cfg.mode && cfg.engine !== "native" ? { mode: cfg.mode } : {}), max_results: cfg.maxResults }],
           }),
           signal: ctx.signal,
@@ -262,14 +265,24 @@ export function openRouterTrendLookup(opts: OpenRouterTrendOptions): AgentTool {
       if (status >= 400 || !res.ok) throw new ProviderError(kindForStatus(status), `Trend lookup ${status}: ${body?.error?.message ?? res.statusText}`);
       const message = body?.choices?.[0]?.message;
       const text = message?.content;
-      if (typeof text !== "string" || !text.trim()) throw new ProviderError("bad_response", "The trend lookup returned no answer.");
+      if (typeof text !== "string" || !text.trim()) {
+        const r = body?.usage?.cost;
+        throw new ProviderError("bad_response", "The trend lookup returned no answer.", { tokensIn: body?.usage?.prompt_tokens ?? 0, tokensOut: body?.usage?.completion_tokens ?? 0, ...(typeof r === "number" ? { costMicroUsd: Math.ceil(r * 1_000_000) } : {}) });
+      }
       const citations = (message?.annotations ?? []).filter((a) => a?.type === "url_citation" && typeof a.url_citation?.url === "string").map((a) => ({ url: a.url_citation!.url!, title: a.url_citation!.title ?? "" }));
       const tokensIn = body?.usage?.prompt_tokens ?? 0;
       const tokensOut = body?.usage?.completion_tokens ?? 0;
       // OpenRouter reports what it charged, search included. Without it, count the tokens and the search fee, so a run is never under-counted.
       const reported = body?.usage?.cost;
       const cost = typeof reported === "number" && Number.isFinite(reported) && reported >= 0 ? Math.ceil(reported * 1_000_000) : cfg.searchFeeMicroUsd + costMicroUsd(cfg.model, tokensIn, tokensOut);
-      return { findings: readFindings(text, citations, now, { max: cfg.maxFindings, maxAgeDays: cfg.maxAgeDays }), searchedAt: now.toISOString(), costMicroUsd: cost, tokensIn, tokensOut };
+      let findings: ToolFinding[];
+      try {
+        findings = readFindings(text, citations, now, { max: cfg.maxFindings, maxAgeDays: cfg.maxAgeDays });
+      } catch (err) {
+        // The search was paid for even when its answer cannot be read.
+        throw new ProviderError("bad_response", (err as Error).message, { tokensIn, tokensOut, costMicroUsd: cost });
+      }
+      return { findings, searchedAt: now.toISOString(), costMicroUsd: cost, tokensIn, tokensOut };
     },
   };
 }

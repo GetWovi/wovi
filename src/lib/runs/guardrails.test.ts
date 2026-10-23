@@ -104,3 +104,18 @@ describe("guardrails", () => {
     expect(run({ rights: true, voiceConsent: true })).toEqual({ rights_confirmed: "pass", voice_consent: "pass" });
   });
 });
+
+describe("specificity on a short input", () => {
+  it("counts a three-letter word of a short input, like gym, as naming the input", async () => {
+    const { runAfterChecks } = await import("./guardrails");
+    const { validateAgentSpec } = await import("@/lib/agents/spec");
+    const { goodSpec } = await import("@/lib/agents/test-helpers");
+    const r = validateAgentSpec(goodSpec({ guardrails: ["specificity_check"] }));
+    if (!r.ok) throw new Error("bad spec");
+    const check = (topic: string, line: string) => runAfterChecks({ spec: r.value, inputs: { topic }, output: { kind: "list", items: [line, `${line} two`, `${line} three`] }, brain: null }).find((c) => c.check === "specific_to_input")!;
+    expect(check("beginner strength gym", "Film the gym door at six").status).toBe("pass");
+    expect(check("beginner strength gym", "Film a door at six").status).toBe("fail");
+    // "the" names nothing.
+    expect(check("the bakery", "Film the door at six").status).toBe("fail");
+  });
+});
