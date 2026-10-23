@@ -12,6 +12,7 @@ import { appBrands } from "@/lib/brand/server";
 import { appPipelines } from "@/lib/pipelines/server";
 import { jsonFileTeamStore } from "./store";
 import { Team } from "./team";
+import { recordDecision } from "@/lib/stats/server";
 
 const g = globalThis as { __woviTeam?: Team };
 
@@ -26,6 +27,8 @@ export function appTeam(): Team {
       brands: appBrands(),
       app: jsonFileAppStore(join(dir, "app.json")),
       store: jsonFileTeamStore(join(dir, "team.json")),
+      // Live stats: an approval counts as a use, a change request as a regenerate.
+      onDecided: recordDecision,
     });
   }
   return g.__woviTeam;

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Chip";
-import { Textarea } from "@/components/ui/Field";
+import { Select, Textarea } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
@@ -22,6 +22,7 @@ import { StatusPill } from "./BuilderShell";
 import { bodyOf, type Body } from "./editor-types";
 import { CATEGORY_LABELS, ago } from "./labels";
 import { SamplesPanel } from "./SamplesPanel";
+import { SHARE_CHOICES, savedWords } from "./release-choice";
 import { parseIssues } from "./spec-errors";
 import { SpecForm, type SaveOptions } from "./SpecForm";
 
@@ -42,6 +43,8 @@ export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, n
   const [acting, setActing] = useState(false);
   const [json, setJson] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
+  // A live agent's new version goes out as a canary (docs/stats.md).
+  const [share, setShare] = useState("10");
 
   const saved = useMemo(() => JSON.stringify(bodyOf(spec)), [spec]);
   const changed = JSON.stringify(body) !== saved;
@@ -53,9 +56,9 @@ export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, n
   async function save(opts: SaveOptions) {
     setSaving(true);
     try {
-      const r = await saveAgent(csrf, spec.id, body as unknown as UpdateInput, opts);
+      const r = await saveAgent(csrf, spec.id, body as unknown as UpdateInput, { ...opts, canaryShare: spec.status === "live" ? Number(share) : null });
       if (!r.ok) return toast({ tone: "warning", title: r.error, description: r.issues?.slice(0, 3).join(" ") });
-      toast({ tone: "success", title: `Saved as version ${r.value.version}`, description: "The new version is current." });
+      toast({ tone: "success", ...savedWords(r.value.version, r.value.canary) });
       router.refresh();
     } finally {
       setSaving(false);
@@ -127,11 +130,15 @@ export function AgentEditor({ csrf, spec, versions, updatedAt, samples, board, n
           <ButtonLink href={`/builder/agents/${spec.id}/quality`} variant="ghost" leading={<Icon name="check-circle" size={18} />}>
             Quality
           </ButtonLink>
+          <ButtonLink href={`/builder/agents/${spec.id}/stats`} variant="ghost" leading={<Icon name="chart" size={18} />}>
+            Stats
+          </ButtonLink>
           {statusActions.map((a) => (
             <Button key={a} variant={a === "publish" ? "secondary" : "ghost"} onClick={() => setConfirm(a)}>
               {actionLabel[a]}
             </Button>
           ))}
+          {status === "live" && <Select aria-label="How the new version goes out" value={share} onChange={(e) => setShare(e.target.value)} options={SHARE_CHOICES} />}
           <Button onClick={() => save({ bump: "patch", note: "" })} loading={saving} disabled={!changed || issues.length > 0}>
             Save
           </Button>

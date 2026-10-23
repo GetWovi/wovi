@@ -34,6 +34,8 @@ const NAMED: [string, z.ZodType][] = [
   ["StartRunBody", S.StartRunBody],
   ["StartPipelineBody", S.StartPipelineBody],
   ["PickBody", S.PickBody],
+  ["FeedbackBody", S.FeedbackBody],
+  ["Feedback", S.FeedbackSchema],
   ["CreateWebhookBody", S.CreateWebhookBody],
   ["Issue", S.IssueSchema],
   ["Error", S.ErrorSchema],

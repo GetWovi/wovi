@@ -50,6 +50,7 @@ All JSON, under `/api/v1`. Lists come back as `{ "data": [...] }`.
 | GET | `/runs` | Runs, newest first. `limit`, `status`, `agent`. Pipeline step runs stay inside their pipeline. |
 | GET | `/runs/{id}` | Status, the output in its typed shape, `ready`, quality (score, bar, verdict, reasons, each check), failed checks, the charge, a person's decision. |
 | POST | `/runs/{id}/cancel` | Stops it; everything held comes back. |
+| POST | `/runs/{id}/feedback` | `{ "action": "use" \| "edit" \| "regenerate" \| "rating", "text"?, "rating"?, "note"? }`: what the person did with a finished result, for the agent's live stats. One of each per run: a use or a regenerate counts once, an edit or a rating sent again replaces the first. Keys of every role may send a use or a rating; edit and regenerate need a key that may run agents. See [stats.md](stats.md). |
 | GET | `/pipelines` | The pipelines the workspace can start, with their form, chain and estimate. |
 | POST | `/pipelines/{id}/runs` | Starts a pipeline run. `202`. |
 | GET | `/pipeline-runs` | Pipeline runs, newest first. `limit`, `pipeline`. |

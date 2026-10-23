@@ -12,6 +12,7 @@ import { creditsEnabled, processCredits } from "@/lib/credits/local";
 import { jsonFileBuilderStore } from "@/lib/builder/store";
 import { sampleReferences } from "@/lib/quality/service";
 import { localEngine, type RunEngine } from "@/lib/runs/engine";
+import { localRouter } from "@/lib/stats/local";
 import type { Accounts } from "./accounts";
 import { CSRF_FIELD, checkCsrfToken, csrfTokenFor, sameOrigin } from "./csrf";
 import { AccountError } from "./errors";
@@ -47,7 +48,8 @@ export function appEngine(): RunEngine {
     // The quality gate compares each draft with the agent's golden and bad samples from the builder (phase 12).
     // Credits (phase 13): every run holds its estimate and is charged at the end, unless WOVI_CREDITS=off.
     const billing = creditsEnabled() ? processCredits() : null;
-    cache.engine = localEngine({ brandBrains: localBrandBrains(), references: sampleReferences(jsonFileBuilderStore(join(dataDirFromEnv(), "builder.json")).samples), billing });
+    // Canary releases: runs that follow "latest stable" are routed by the releases in stats.json (docs/stats.md).
+    cache.engine = localEngine({ brandBrains: localBrandBrains(), references: sampleReferences(jsonFileBuilderStore(join(dataDirFromEnv(), "builder.json")).samples), billing, router: localRouter(dataDirFromEnv()) });
     billing?.useHistory(cache.engine);
     void cache.engine.recover().catch((err) => console.error("Could not recover runs:", err));
   }

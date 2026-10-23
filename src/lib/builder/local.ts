@@ -17,6 +17,7 @@ import { localEngine, type RunEngine } from "@/lib/runs/engine";
 import { providersFromEnv } from "@/lib/runs/providers";
 import { boardBrandBrains } from "./board-brain";
 import { Builder } from "./builder";
+import type { Releases } from "@/lib/stats/releases";
 import { SpecDrafter } from "./drafter";
 import { localFileStorage } from "./storage";
 import { jsonFileBuilderStore } from "./store";
@@ -27,8 +28,9 @@ export function localDrafter(): SpecDrafter {
   return new SpecDrafter({ providers: fake ? { fake: providers.fake } : providers, providerOverride: fake ? "fake" : undefined });
 }
 
-export function localBuilder(accounts: Accounts, dataDir = dataDirFromEnv(), engine?: RunEngine): Builder {
+export function localBuilder(accounts: Accounts, dataDir = dataDirFromEnv(), engine?: RunEngine, releases?: Releases | null): Builder {
   return new Builder({
+    releases: releases ?? null,
     accounts,
     agents: new GuardedAgents(localRegistry(dataDir), accounts),
     store: jsonFileBuilderStore(join(dataDir, "builder.json")),

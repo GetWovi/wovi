@@ -10,11 +10,13 @@ import type { SessionInfo } from "@/lib/accounts/sessions";
 import type { User } from "@/lib/accounts/types";
 import type { Builder } from "./builder";
 import { localBuilder } from "./local";
+import { appReleases } from "@/lib/stats/server";
 
 const g = globalThis as { __woviBuilder?: Builder };
 
 export function appBuilder(): Builder {
-  return (g.__woviBuilder ??= localBuilder(accounts(), undefined, appEngine()));
+  // Canary releases and the audit log (docs/stats.md) come with the builder of the app.
+  return (g.__woviBuilder ??= localBuilder(accounts(), undefined, appEngine(), appReleases()));
 }
 
 export type BuilderContext = { info: SessionInfo; user: User; me: Principal; csrf: string; builder: Builder };

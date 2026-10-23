@@ -5,7 +5,8 @@ import { appCall, type Result } from "@/app/app/actions";
 import type { PublicRun } from "@/lib/accounts/guard";
 import { dataDirFromEnv } from "@/lib/accounts/local";
 import { accounts } from "@/lib/accounts/server";
-import { AppError, type RunView, type StartRunInput } from "@/lib/app/api";
+import { AppError, type FeedbackRequest, type RunView, type StartRunInput } from "@/lib/app/api";
+import type { RunFeedback } from "@/lib/stats/feedback";
 import type { ReviewDecision, ReviewRow } from "@/lib/app/types";
 import { appBrands } from "@/lib/brand/server";
 import { checkFile, localFileStorage } from "@/lib/builder/storage";
@@ -78,4 +79,14 @@ export async function clearReview(csrf: string, runId: string): Promise<Result<n
 /** Phase 18: notes (or clears) that the AI label will be applied where each platform requires it, stored with the output. */
 export async function noteAiLabel(csrf: string, runId: string, on: boolean): Promise<Result<RunView | null>> {
   return appCall(csrf, ({ api, me, workspaceId }) => api.noteAiLabel(me, workspaceId, runId, on));
+}
+
+/** Live stats: Use, Edit, Regenerate or a rating on a result. One of each per run. */
+export async function giveFeedback(csrf: string, runId: string, req: FeedbackRequest): Promise<Result<RunFeedback>> {
+  return appCall(csrf, ({ api, me, workspaceId }) => api.giveFeedback(me, workspaceId, runId, req, "app"));
+}
+
+/** "Try again": the same job with the same inputs; the result it replaces counts a regenerate. */
+export async function regenerateRun(csrf: string, runId: string): Promise<Result<PublicRun>> {
+  return appCall(csrf, ({ api, me, workspaceId }) => api.regenerate(me, workspaceId, runId));
 }

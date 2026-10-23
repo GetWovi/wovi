@@ -26,7 +26,7 @@ async function connect(t: Awaited<ReturnType<typeof testApi>>, key: string) {
 const text = (r: ToolResult) => r.content.map((c) => c.text).join("\n");
 
 describe("mcp: tools", () => {
-  it("lists exactly the eight tools, with each agent's inputs from its spec and nothing hidden", async () => {
+  it("lists exactly the nine tools, with each agent's inputs from its spec and nothing hidden", async () => {
     const t = await testApi();
     const { client } = await connect(t, await t.key("editor"));
     expect(client.getServerVersion()?.name).toBe("wovi");

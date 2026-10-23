@@ -106,11 +106,20 @@ export type Run = {
    * The output stays in the store for disputes; no view shows it.
    */
   withheld?: { at: string; reportId: string; reason: string } | null;
+  /**
+   * Canary releases: set when the run followed "latest stable" while a canary
+   * of its agent was running, with the side it went to. Missing on runs from
+   * before, on pinned runs and on runs with no canary. Never shown to users.
+   */
+  release?: RunRelease | null;
 
   timings: { queuedAt: string; startedAt: string | null; finishedAt: string | null; queueMs: number | null; runMs: number | null };
   createdAt: string;
   updatedAt: string;
 };
+
+/** The release a run took part in, and its side: the stable version or the canary. */
+export type RunRelease = { id: string; arm: "stable" | "canary" };
 
 /** Who noted the AI label, when, and for which platforms. */
 export type AiLabelNote = { at: string; by: string; platforms: string[] };

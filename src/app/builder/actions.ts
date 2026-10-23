@@ -13,6 +13,9 @@ import { builderAction } from "@/lib/builder/server";
 import type { FileKind, StoredFile } from "@/lib/builder/storage";
 import type { BoardItem, BoardKind, RatingValue, Sample, SampleLabel } from "@/lib/builder/types";
 import type { VersionCompare } from "@/lib/builder/versions";
+import type { SaveRelease } from "@/lib/builder/builder";
+import { ReleaseError } from "@/lib/stats/releases";
+import type { CanaryThresholds } from "@/lib/stats/types";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string; code?: string; issues?: string[] };
 
@@ -29,6 +32,7 @@ async function run<T>(csrf: string, agentId: string | null, fn: (ctx: Awaited<Re
   } catch (err) {
     if (err instanceof AccountError) return { ok: false, error: err.message, code: err.code };
     if (err instanceof RegistryError) return { ok: false, error: err.message.split("\n")[0], code: err.code, issues: err.issues };
+    if (err instanceof ReleaseError) return { ok: false, error: err.message, code: err.code, issues: err.issues };
     throw err;
   }
 }
@@ -48,13 +52,20 @@ export async function createAgent(csrf: string, spec: CreateInput): Promise<Resu
 
 /* ---------- The editor ---------- */
 
-export async function saveAgent(csrf: string, id: string, changes: UpdateInput, opts: { bump?: Bump; note?: string }): Promise<Result<{ version: string }>> {
+export async function saveAgent(csrf: string, id: string, changes: UpdateInput, opts: { bump?: Bump; note?: string; canaryShare?: number | null }): Promise<Result<{ version: string; canary: number | null }>> {
   return run(csrf, id, async ({ builder, me }) => {
     const bump = opts.bump && ["patch", "minor", "major"].includes(opts.bump) ? opts.bump : "patch";
     const note = typeof opts.note === "string" && opts.note.trim() ? opts.note.trim().slice(0, 200) : undefined;
-    const saved = await builder.saveAgent(me, id, changes, { bump, note });
-    return { version: saved.version };
+    const release = releaseOf(opts.canaryShare);
+    const saved = await builder.saveAgent(me, id, changes, { bump, note, ...(release ? { release } : {}) });
+    return { version: saved.version, canary: release?.share ?? null };
   });
+}
+
+/** A live agent's save goes out as a canary on this share of live runs (0 keeps it to the bench). */
+function releaseOf(share: unknown): Extract<SaveRelease, { mode: "canary" }> | null {
+  if (typeof share !== "number" || !Number.isInteger(share)) return null;
+  return { mode: "canary", share };
 }
 
 export type StatusAction = "publish" | "unpublish" | "hide" | "unhide";
@@ -147,13 +158,51 @@ export async function rateRun(csrf: string, agentId: string, runId: string, inpu
 }
 
 /** The tuning panel's save: a new version, and the same samples run against it when asked. */
-export async function tuneAgent(csrf: string, agentId: string, changes: UpdateInput, opts: { bump?: Bump; note?: string; rerun: string[] | null }): Promise<Result<{ version: string; bench: BenchView | null }>> {
+export async function tuneAgent(csrf: string, agentId: string, changes: UpdateInput, opts: { bump?: Bump; note?: string; rerun: string[] | null; canaryShare?: number | null }): Promise<Result<{ version: string; bench: BenchView | null; canary: number | null }>> {
   return run(csrf, agentId, async ({ builder, me }) => {
     const bump = opts.bump && ["patch", "minor", "major"].includes(opts.bump) ? opts.bump : "patch";
     const note = typeof opts.note === "string" && opts.note.trim() ? opts.note.trim().slice(0, 200) : undefined;
-    const r = await builder.bench.tune(me, agentId, changes, { bump, note, rerun: opts.rerun ? { sampleIds: opts.rerun } : null });
-    return { version: r.spec.version, bench: r.bench };
+    const release = releaseOf(opts.canaryShare);
+    const r = await builder.bench.tune(me, agentId, changes, { bump, note, rerun: opts.rerun ? { sampleIds: opts.rerun } : null, ...(release ? { release } : {}) });
+    return { version: r.spec.version, bench: r.bench, canary: release?.share ?? null };
   });
+}
+
+/* ---------- Releases (canary, publish to everyone, roll back) ---------- */
+
+const cleanPatch = (patch: { share?: unknown; thresholds?: unknown }): { share?: number; thresholds?: Partial<CanaryThresholds> } => {
+  const out: { share?: number; thresholds?: Partial<CanaryThresholds> } = {};
+  if (typeof patch.share === "number") out.share = patch.share;
+  if (patch.thresholds && typeof patch.thresholds === "object") {
+    const t = patch.thresholds as Record<string, unknown>;
+    out.thresholds = Object.fromEntries(["minRuns", "acceptanceDrop", "editRise", "regenerateRise", "qualityDrop"].filter((k) => typeof t[k] === "number").map((k) => [k, t[k] as number]));
+  }
+  return out;
+};
+
+/** Starts a canary of a saved version beside the current one. */
+export async function startCanary(csrf: string, agentId: string, version: string, share: number): Promise<Result<{ id: string }>> {
+  return run(csrf, agentId, async ({ builder, me }) => ({ id: (await builder.release.start(me, agentId, { version: String(version), share })).id }));
+}
+
+/** Changes the running canary's share or its stop rules. */
+export async function updateCanary(csrf: string, agentId: string, patch: { share?: number; thresholds?: Partial<CanaryThresholds> }): Promise<Result<{ share: number }>> {
+  return run(csrf, agentId, async ({ builder, me }) => ({ share: (await builder.release.update(me, agentId, cleanPatch(patch))).share }));
+}
+
+/** Publishes the canary to everyone, through the regression gate. */
+export async function promoteCanary(csrf: string, agentId: string): Promise<Result<{ version: string }>> {
+  return run(csrf, agentId, async ({ builder, me }) => ({ version: (await builder.release.promote(me, agentId)).spec.version }));
+}
+
+/** Rolls the canary back: the stable version serves everyone. */
+export async function rollBackCanary(csrf: string, agentId: string): Promise<Result<{ version: string }>> {
+  return run(csrf, agentId, async ({ builder, me }) => ({ version: (await builder.release.rollBack(me, agentId)).stable }));
+}
+
+/** Runs the gold samples on the bench for the canary and the stable version, where a gold score is missing. */
+export async function runGoldSet(csrf: string, agentId: string, again = false): Promise<Result<{ benches: { id: string; version: string }[] }>> {
+  return run(csrf, agentId, async ({ builder, me }) => ({ benches: (await builder.release.runGoldSet(me, agentId, { again })).map((b) => ({ id: b.id, version: b.version })) }));
 }
 
 /* ---------- Versions ---------- */

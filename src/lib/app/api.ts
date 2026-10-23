@@ -32,6 +32,8 @@ import { canReadPosts, cleanPatch, emptyOnboarding, filledPosts, reachableStep, 
 import { applyQuickEdit } from "./quick-edits";
 import { runSearchText, runState, type RunState } from "./results";
 import { REVIEW_DECISIONS, type AppStore, type OnboardingRow, type ReviewDecision, type ReviewRow } from "./store";
+import { FeedbackError, type Feedback, type RunFeedback } from "@/lib/stats/feedback";
+import type { FeedbackAction, FeedbackHow, FeedbackRow, FeedbackSource, ThumbRating } from "@/lib/stats/types";
 
 export type AppErrorCode = "invalid_request" | "not_found" | "forbidden" | "not_ready" | "not_enough_credits" | "over_limit" | "blocked";
 
@@ -81,6 +83,18 @@ export type RunView = {
   state: RunState;
   /** The note a quick edit ran with, when this run came from one. */
   note: string | null;
+  /** What this workspace already did with the result: used, edited, regenerated, rated. Only on a single run's view. */
+  feedback?: RunFeedback | null;
+};
+
+/** One feedback action from a screen, the API or MCP. */
+export type FeedbackRequest = {
+  action: FeedbackAction;
+  how?: FeedbackHow | null;
+  /** Edit: the whole text the person kept. */
+  text?: string;
+  rating?: ThumbRating;
+  note?: string | null;
 };
 
 export type RunsFilter = { q?: string; state?: RunState | "all" | "open"; agentId?: string; limit?: number };
@@ -100,6 +114,8 @@ export type AppApiOptions = {
   team?: Team;
   /** Credits (phase 13). Left out, nothing shows a price. */
   credits?: GuardedCredits;
+  /** Live stats: Use, Edit, Regenerate and the rating on results. Left out, nothing is recorded. */
+  feedback?: Feedback;
   now?: () => Date;
 };
 
@@ -317,13 +333,70 @@ export class AppApi {
     if (!full) throw new AppError("not_found", "That agent is not available any more.");
     const edited = applyQuickEdit(full, view.run.inputs, editId);
     if (!edited) throw new AppError("invalid_request", "That quick edit does not fit this agent.");
-    return this.startRun(caller, workspaceId, {
+    const next = await this.startRun(caller, workspaceId, {
       agentId: view.run.agent.id,
       agentWorkspaceId: home,
       inputs: edited.inputs,
       brandBrainId: view.run.brandBrain?.id ?? null,
       confirmations: confirmationsOf(view.run, full),
     });
+    // Asking for another try is a regenerate on the result it replaces.
+    await this.quietFeedback(caller, workspaceId, runId, "regenerate", "app", "quick_edit");
+    return next;
+  }
+
+  /** "Try again": the same job with the same inputs, and a regenerate on the result it replaces. */
+  async regenerate(caller: Principal, workspaceId: string, runId: string): Promise<PublicRun> {
+    const view = await this.run(caller, workspaceId, runId);
+    if (!view) throw new AppError("not_found", "No such run.");
+    if (view.run.status !== "succeeded") throw new AppError("not_ready", "Only a finished result can be run again this way.");
+    const platform = await this.o.agents.get(caller, PLATFORM_WORKSPACE_ID, view.run.agent.id);
+    const home = platform ? PLATFORM_WORKSPACE_ID : workspaceId;
+    const full = platform ?? (await this.o.agents.get(caller, workspaceId, view.run.agent.id));
+    if (!full) throw new AppError("not_found", "That agent is not available any more.");
+    const next = await this.startRun(caller, workspaceId, {
+      agentId: view.run.agent.id,
+      agentWorkspaceId: home,
+      inputs: view.run.inputs,
+      brandBrainId: view.run.brandBrain?.id ?? null,
+      confirmations: confirmationsOf(view.run, full),
+    });
+    await this.quietFeedback(caller, workspaceId, runId, "regenerate", "app", "regenerate");
+    return next;
+  }
+
+  /* ---------- Feedback (live stats) ---------- */
+
+  /**
+   * Records Use, Edit, Regenerate or a rating on a finished result. Copying
+   * and rating need to see the workspace; editing and regenerating need to
+   * run its agents. One event per action per run.
+   */
+  async giveFeedback(caller: Principal, workspaceId: string, runId: string, req: FeedbackRequest, source: FeedbackSource = "app"): Promise<RunFeedback> {
+    const fb = this.o.feedback;
+    if (!fb) throw new AppError("not_found", "Feedback is not set up here.");
+    const action = req?.action;
+    await this.o.accounts.authorize(caller, workspaceId, action === "edit" || action === "regenerate" ? "run_agents" : "view");
+    // The run must be this workspace's, read through the guard.
+    if (!(await this.o.runs.getRun(caller, workspaceId, runId))) throw new AppError("not_found", "No such run.");
+    try {
+      await fb.record({ workspaceId, runId, action, by: savedBy(caller), source, how: req.how ?? null, kept: req.text, rating: req.rating, note: req.note ?? null });
+    } catch (err) {
+      if (err instanceof FeedbackError) throw new AppError(err.code, err.message, [], err);
+      throw err;
+    }
+    return fb.stateOf(workspaceId, runId);
+  }
+
+  /** Feedback that rides along another action (an approval, a quick edit): it never makes that action fail. */
+  private async quietFeedback(caller: Principal, workspaceId: string, runId: string, action: FeedbackAction, source: FeedbackSource, how: FeedbackHow): Promise<FeedbackRow | null> {
+    if (!this.o.feedback) return null;
+    try {
+      return await this.o.feedback.record({ workspaceId, runId, action, by: savedBy(caller), source, how });
+    } catch (err) {
+      if (!(err instanceof FeedbackError)) console.error("Feedback was not recorded:", err);
+      return null;
+    }
   }
 
   async run(caller: Principal, workspaceId: string, runId: string): Promise<RunView | null> {
@@ -331,7 +404,8 @@ export class AppApi {
     if (!run) return null;
     const review = await this.reviewOf(workspaceId, runId);
     const names = await this.agentNames(caller, workspaceId);
-    return this.view(run, review, names);
+    const feedback = this.o.feedback ? await this.o.feedback.stateOf(workspaceId, runId) : null;
+    return { ...this.view(run, review, names), feedback };
   }
 
   /** Phase 18: notes (or clears) that the AI label will be applied where each platform requires it. */
@@ -489,11 +563,27 @@ export class AppApi {
   }
 
   async pickInPipeline(caller: Principal, workspaceId: string, id: string, stepId: string, index: number): Promise<PublicPipelineRun> {
+    let run: PublicPipelineRun;
     try {
-      return await this.pl.pick(caller, workspaceId, id, stepId, index);
+      run = await this.pl.pick(caller, workspaceId, id, stepId, index);
     } catch (err) {
       throw pipelineAppError(err);
     }
+    // Picking one of the step's items is using that step's result.
+    const step = run.steps.find((s) => s.id === stepId);
+    if (step?.runId) await this.quietFeedback(caller, workspaceId, step.runId, "use", "pipeline", "pick");
+    return run;
+  }
+
+  /** Copying one part of a pipeline's package uses the step run it came from. */
+  async pipelinePartUsed(caller: Principal, workspaceId: string, id: string, stepId: string): Promise<RunFeedback | null> {
+    await this.o.accounts.authorize(caller, workspaceId, "view");
+    const run = await this.pl.getRun(caller, workspaceId, id);
+    if (!run) throw new AppError("not_found", "No such pipeline run.");
+    const step = run.steps.find((s) => s.id === stepId);
+    if (!step?.runId || !this.o.feedback) return null;
+    await this.quietFeedback(caller, workspaceId, step.runId, "use", "pipeline", "copy");
+    return this.o.feedback.stateOf(workspaceId, step.runId);
   }
 
   async cancelPipeline(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {
@@ -522,11 +612,14 @@ export class AppApi {
       return (await this.pl.getRun(caller, workspaceId, id))!;
     }
     if (!REVIEW_DECISIONS.includes(decision)) throw new AppError("invalid_request", "Approve or reject.");
+    let run: PublicPipelineRun;
     try {
-      return await this.pl.decide(caller, workspaceId, id, decision, note);
+      run = await this.pl.decide(caller, workspaceId, id, decision, note);
     } catch (err) {
       throw pipelineAppError(err);
     }
+    if (decision === "approved" && this.o.feedback) await this.o.feedback.forPipeline({ workspaceId, pipelineRunId: id, action: "use", by: savedBy(caller), source: "pipeline", how: "approve" }).catch(() => []);
+    return run;
   }
 
   async clearPipelineDecision(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {
@@ -585,6 +678,8 @@ export class AppApi {
     const row: ReviewRow = { id: runId, workspaceId, runId, decision, note: String(note ?? "").trim().slice(0, 500), by: savedBy(caller), at: this.iso() };
     if (await this.reviewOf(workspaceId, runId)) await this.o.store.reviews.update(row);
     else await this.o.store.reviews.insert(row);
+    // With teams the decision listener records this; without, an approval is a use here.
+    if (decision === "approved") await this.quietFeedback(caller, workspaceId, runId, "use", "review", "approve");
     return row;
   }
 

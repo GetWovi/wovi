@@ -18,6 +18,7 @@ import { jsonFileRunStore } from "@/lib/runs/store";
 import { jsonFileTeamStore } from "@/lib/team/store";
 import { jsonFileTokenStore } from "@/lib/token/store";
 import { jsonFileWebhookStore } from "@/lib/webhooks/store";
+import { jsonFileStatsStore } from "@/lib/stats/store";
 import { Reports } from "./reports";
 import { jsonFileSafetyStore, type SafetyStore } from "./store";
 
@@ -38,6 +39,7 @@ export function localPrivacy(accounts: Accounts, dataDir: string, opts: { credit
     token: jsonFileTokenStore(join(dataDir, "token.json")),
     webhooks: jsonFileWebhookStore(join(dataDir, "webhooks.json")),
     safety: opts.safety ?? localSafetyStore(dataDir),
+    stats: jsonFileStatsStore(join(dataDir, "stats.json")),
     filesDir: join(dataDir, "files"),
     mailDir: join(dataDir, "mail"),
     email: opts.email ?? accounts.email,

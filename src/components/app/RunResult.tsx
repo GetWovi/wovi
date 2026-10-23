@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { rerun } from "@/app/app/make/actions";
+import { giveFeedback, rerun } from "@/app/app/make/actions";
+import { ResultFeedback } from "@/components/stats/ResultFeedback";
 import { Mascot } from "@/components/brand/Mascot";
 import { ago } from "@/components/builder/labels";
 import { GateNote, QualityBreakdown, QualityScore } from "@/components/quality/QualityParts";
@@ -64,6 +65,9 @@ export function RunResult({
   const fails = flags.filter((f) => f.tone === "fail");
   const rv = output ? resultView(output) : null;
   const idle = run.status === "failed" || run.status === "cancelled";
+
+  // Live stats: copying any part of a result is a use of it.
+  const used = (how: "copy" | "copy_all") => void giveFeedback(csrf, run.id, { action: "use", how });
 
   async function edit(id: string) {
     setBusy(id);
@@ -172,10 +176,12 @@ export function RunResult({
 
       <div className={styles.resultTools}>
         <span className={[styles.muted, styles.small].join(" ")}>{fails.length ? "A draft to fix before you use it." : "A draft, ready to paste. Nothing is posted by WOVI."}</span>
-        <CopyButton text={copyAll(output)} label="Copy everything" />
+        <CopyButton text={copyAll(output)} label="Copy everything" onCopy={() => used("copy_all")} />
       </div>
 
-      <ResultBody view={rv} />
+      <ResultBody view={rv} onCopy={() => used("copy")} />
+
+      <ResultFeedback csrf={csrf} runId={run.id} agentId={agent.id} text={copyAll(output)} initial={view.feedback} editor={editor} onRegenerated={onRerun} />
 
       {run.quality && <QualityBreakdown q={run.quality} />}
 
@@ -235,7 +241,7 @@ export function Asked({ run, agent }: { run: RunView["run"]; agent: AgentForResu
 }
 
 /** The typed output in its shape: lines, cards, beats or platforms. */
-export function ResultBody({ view }: { view: ResultView }) {
+export function ResultBody({ view, onCopy }: { view: ResultView; onCopy?: () => void }) {
   switch (view.layout) {
     case "lines":
       return (
@@ -244,7 +250,7 @@ export function ResultBody({ view }: { view: ResultView }) {
             <li key={it.label} className={styles.line}>
               <span className={styles.lineNo}>{view.count > 1 ? it.label : <Icon name="pen" size={16} />}</span>
               <span className={styles.lineText}>{it.text}</span>
-              <CopyButton text={it.text} small />
+              <CopyButton text={it.text} small onCopy={onCopy} />
             </li>
           ))}
         </ol>
@@ -253,7 +259,7 @@ export function ResultBody({ view }: { view: ResultView }) {
       return (
         <div className={styles.cards}>
           {view.blocks[0].items.map((it) => (
-            <Card key={it.label} item={it} />
+            <Card key={it.label} item={it} onCopy={onCopy} />
           ))}
         </div>
       );
@@ -273,7 +279,7 @@ export function ResultBody({ view }: { view: ResultView }) {
                   {it.fields.find((f) => f.label === "On screen")?.value}
                 </p>
               </div>
-              <CopyButton text={it.fields.map((f) => `${f.label}: ${f.value}`).join("\n")} small />
+              <CopyButton text={it.fields.map((f) => `${f.label}: ${f.value}`).join("\n")} small onCopy={onCopy} />
             </div>
           ))}
         </div>
@@ -309,7 +315,7 @@ export function ResultBody({ view }: { view: ResultView }) {
                         {it.label}
                         {it.fields.length ? "" : ` · ${it.text.length} characters`}
                       </span>
-                      <CopyButton text={it.text} />
+                      <CopyButton text={it.text} onCopy={onCopy} />
                     </div>
                   </div>
                 ))}
@@ -321,13 +327,13 @@ export function ResultBody({ view }: { view: ResultView }) {
   }
 }
 
-function Card({ item }: { item: ResultItem }) {
+function Card({ item, onCopy }: { item: ResultItem; onCopy?: () => void }) {
   const rest = item.fields.filter((f) => f.value !== item.text);
   return (
     <div className={styles.card}>
       <div className={styles.cardTop}>
         <span className={styles.chip}>{item.meta ? item.meta : item.label}</span>
-        <CopyButton text={item.fields.map((f) => `${f.label}: ${f.value}`).join("\n")} small />
+        <CopyButton text={item.fields.map((f) => `${f.label}: ${f.value}`).join("\n")} small onCopy={onCopy} />
       </div>
       <p className={styles.cardLead}>{item.text}</p>
       {rest.length > 0 && (

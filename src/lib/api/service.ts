@@ -22,7 +22,7 @@ import { RUN_STATUSES, type RunStatus } from "@/lib/runs/run";
 import type { Webhooks } from "@/lib/webhooks/webhooks";
 import { ApiError } from "./errors";
 import { DEFAULT_API_LIMITS, type ApiLimits } from "./limits";
-import { CreateWebhookBody, PickBody, StartPipelineBody, StartRunBody, type ApiAgent, type ApiBrandBrain, type ApiCredits, type ApiDelivery, type ApiMe, type ApiPipeline, type ApiPipelineRun, type ApiRun, type ApiWebhook } from "./schemas";
+import { CreateWebhookBody, FeedbackBody, FeedbackSchema, PickBody, StartPipelineBody, StartRunBody, type ApiAgent, type ApiBrandBrain, type ApiCredits, type ApiDelivery, type ApiMe, type ApiPipeline, type ApiPipelineRun, type ApiRun, type ApiWebhook } from "./schemas";
 import { apiAgent, apiBrain, apiDelivery, apiPipeline, apiPipelineRun, apiRun, apiWebhook } from "./views";
 import type { z } from "zod";
 
@@ -163,6 +163,15 @@ export class PublicApi {
     await this.getRun(caller, id);
     await this.app.cancelRun(caller, caller.workspaceId, id);
     return this.getRun(caller, id);
+  }
+
+  /** Use, Edit, Regenerate or a rating on a finished run, for the agent's live stats. Same rule as the app: one of each per run. */
+  async feedback(caller: KeyCaller, id: string, rawBody: unknown, source: "api" | "mcp" = "api"): Promise<z.infer<typeof FeedbackSchema>> {
+    const body = parseBody(FeedbackBody, rawBody);
+    if (body.action === "edit" && !body.text) throw new ApiError("invalid_input", "Some fields need a look.", [{ path: "text", message: "Send the whole text the person kept." }]);
+    if (body.action === "rating" && !body.rating) throw new ApiError("invalid_input", "Some fields need a look.", [{ path: "rating", message: "Required for a rating: up or down." }]);
+    await this.getRun(caller, id);
+    return this.app.giveFeedback(caller, caller.workspaceId, id, { action: body.action, how: body.action === "use" ? "api" : null, ...(body.text ? { text: body.text } : {}), ...(body.rating ? { rating: body.rating } : {}), ...(body.note ? { note: body.note } : {}) }, source);
   }
 
   /** Keys never approve or reject: the phase 11 guard answers forbidden. Kept so the API says so plainly. */

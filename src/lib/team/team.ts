@@ -86,6 +86,22 @@ export type TeamOptions = {
   app: AppStore;
   store: TeamStore;
   now?: () => Date;
+  /**
+   * Live stats: told about every decision, after it is saved, so an approval
+   * counts as a use and a change request as a regenerate. A listener that
+   * throws never breaks a decision.
+   */
+  onDecided?: (e: TeamDecisionEvent) => void | Promise<void>;
+};
+
+/** One decision on an item, for listeners. `by` is a user id, `key:<id>` or `link:<id>`. */
+export type TeamDecisionEvent = {
+  workspaceId: string;
+  kind: "run" | "pipeline";
+  id: string;
+  outcome: "approval_added" | "approved" | "changes_requested" | "rejected";
+  by: string;
+  via: "member" | "client";
 };
 
 type Ref = { id: string; name: string };
@@ -639,6 +655,13 @@ export class Team {
 
     let reRun: string | null = null;
     if (outcome.kind === "changes_requested") reRun = await this.reRun(src, next, note, who);
+    if (this.o.onDecided) {
+      try {
+        await this.o.onDecided({ workspaceId, kind: src.kind, id, outcome: outcome.kind, by: who.by, via: who.via });
+      } catch (err) {
+        console.error("A decision listener failed:", err);
+      }
+    }
 
     const people = [next.makerId, next.assigneeId, next.sentBy].filter((u): u is string => Boolean(u) && u!.startsWith("usr_") && u !== who.by);
     if (outcome.kind === "approved") await this.notify(workspaceId, people, "approved", id, src.title, who.by, note);

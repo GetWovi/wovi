@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { cancelPipeline, clearPipelineDecision, decidePipeline, pickInPipeline, pipelineView, retryPipeline } from "@/app/app/pipelines/actions";
+import { cancelPipeline, clearPipelineDecision, decidePipeline, pickInPipeline, pipelinePartUsed, pipelineView, retryPipeline } from "@/app/app/pipelines/actions";
 import { Mascot } from "@/components/brand/Mascot";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -86,7 +86,7 @@ export function PipelineFollow({ csrf, initial, editor, decidedBy, now }: { csrf
       )}
 
       {run.package && (state === "ready" || state === "needs_review" || state === "approved" || state === "rejected") && (
-        <PackagePanel run={run} editor={editor} decidedBy={decidedBy} busy={busy} onDecide={(d, note) => call(d, () => decidePipeline(csrf, run.id, d, note), (next) => (d === "rejected" ? "Rejected. Start it again with a new idea." : next.status === "approved" ? "Approved. Post it when you are ready." : "Your yes is in. This workspace needs one more."))} onClear={() => call("clear", () => clearPipelineDecision(csrf, run.id))} />
+        <PackagePanel run={run} onCopyPart={(step) => void pipelinePartUsed(csrf, run.id, step)} editor={editor} decidedBy={decidedBy} busy={busy} onDecide={(d, note) => call(d, () => decidePipeline(csrf, run.id, d, note), (next) => (d === "rejected" ? "Rejected. Start it again with a new idea." : next.status === "approved" ? "Approved. Post it when you are ready." : "Your yes is in. This workspace needs one more."))} onClear={() => call("clear", () => clearPipelineDecision(csrf, run.id))} />
       )}
 
       <section className={styles.section}>
@@ -244,7 +244,7 @@ function OptionText({ c }: { c: Candidate }) {
 
 /* ---------- The package and the approve step ---------- */
 
-function PackagePanel({ run, editor, decidedBy, busy, onDecide, onClear }: { run: PublicPipelineRun; editor: boolean; decidedBy: string | null; busy: string | null; onDecide: (d: "approved" | "rejected", note: string) => void; onClear: () => void }) {
+function PackagePanel({ run, editor, decidedBy, busy, onDecide, onClear, onCopyPart }: { run: PublicPipelineRun; editor: boolean; decidedBy: string | null; busy: string | null; onDecide: (d: "approved" | "rejected", note: string) => void; onClear: () => void; onCopyPart?: (step: string) => void }) {
   const [note, setNote] = useState("");
   const parts = run.package ?? [];
   return (
@@ -257,12 +257,12 @@ function PackagePanel({ run, editor, decidedBy, busy, onDecide, onClear }: { run
             Each part is copyable, with its brand fit. A draft until you approve it. <Link href={`/app/review/${run.id}`}>Comments and the team&apos;s say</Link>
           </span>
         </div>
-        <CopyButton text={packageText(run)} label="Copy everything" />
+        <CopyButton text={packageText(run)} label="Copy everything" onCopy={() => parts.forEach((part) => onCopyPart?.(part.step))} />
       </div>
 
       <div className={p.parts}>
         {parts.map((part) => (
-          <Part key={part.step} part={part} />
+          <Part key={part.step} part={part} onCopy={onCopyPart ? () => onCopyPart(part.step) : undefined} />
         ))}
       </div>
 
@@ -304,7 +304,7 @@ function PackagePanel({ run, editor, decidedBy, busy, onDecide, onClear }: { run
 }
 
 /** One part of a package, copyable, with its brand fit and flags. `plain` drops the fit and the flags (the client view). */
-export function Part({ part, plain = false }: { part: PackageItem; plain?: boolean }) {
+export function Part({ part, plain = false, onCopy }: { part: PackageItem; plain?: boolean; onCopy?: () => void }) {
   const text = partText(part);
   return (
     <div className={p.part}>
@@ -315,7 +315,7 @@ export function Part({ part, plain = false }: { part: PackageItem; plain?: boole
           {!plain && part.brandFit !== null && <span className={styles.fine}>{fitWords(part.brandFit)}</span>}
         </span>
         <span className={p.partTools}>
-          <CopyButton text={text} />
+          <CopyButton text={text} onCopy={onCopy} />
         </span>
       </div>
       {!plain && part.flags.length > 0 && (

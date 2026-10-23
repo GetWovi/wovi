@@ -14,11 +14,12 @@ import { wireWebhookEvents } from "./events";
 import { DEFAULT_API_LIMITS, type ApiLimits } from "./limits";
 import { RestApi } from "./rest";
 import { PublicApi } from "./service";
+import type { StatsStore } from "@/lib/stats/store";
 
 export const SERVER_SECRET = "test-server-secret-that-is-long-enough-0123456789";
 
-export async function testApi(opts: { limits?: Partial<ApiLimits>; respond?: (req: WebhookRequest, n: number) => number | null | Error; credits?: boolean; fake?: FakeOptions } = {}) {
-  const t = await testApp({ credits: opts.credits ?? true, ...(opts.fake ? { fake: opts.fake } : {}) });
+export async function testApi(opts: { limits?: Partial<ApiLimits>; respond?: (req: WebhookRequest, n: number) => number | null | Error; credits?: boolean; fake?: FakeOptions; stats?: StatsStore } = {}) {
+  const t = await testApp({ credits: opts.credits ?? true, ...(opts.fake ? { fake: opts.fake } : {}), ...(opts.stats ? { stats: opts.stats } : {}) });
   await t.seedTeamBrains();
   const ws = t.team.id;
   const ada = as(t.ada.id);

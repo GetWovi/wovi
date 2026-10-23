@@ -63,8 +63,15 @@ export class AgentVersions {
 
   /** Serves an earlier version again, and writes that version's scorecard into the spec. */
   async rollback(caller: Principal, agentId: string, version: string): Promise<AgentSpec> {
-    await this.b.requireBuilder(caller);
+    const user = await this.b.requireBuilder(caller);
+    const before = await this.b.requireAgent(caller, agentId);
     await this.b.deps.agents.rollback(caller, this.b.workspaceId, agentId, version);
+    // Canary releases: serving another version for everyone ends a running canary, and the audit log keeps it.
+    const rel = this.b.deps.releases;
+    if (rel) {
+      const ended = await rel.replace(this.b.workspaceId, agentId, user.id, `Replaced by a rollback to v${version}.`);
+      await rel.log(this.b.workspaceId, agentId, "version_rollback", user.id, `v${version} serves everyone again in place of v${before.version}.${ended ? ` The canary of v${ended.canary} ended.` : ""}`, version, before.version);
+    }
     return this.b.bench.refreshQuality(caller, agentId);
   }
 }

@@ -4,6 +4,7 @@ import { appCall, type Result } from "@/app/app/actions";
 import type { PipelineView, StartPipelineInput } from "@/lib/app/api";
 import type { ReviewDecision } from "@/lib/app/types";
 import type { PublicPipelineRun } from "@/lib/pipelines/run";
+import type { RunFeedback } from "@/lib/stats/feedback";
 
 /** Starts a pipeline run in the session's workspace. Field problems come back as issues, "key: message". */
 export async function startPipeline(csrf: string, input: StartPipelineInput): Promise<Result<PublicPipelineRun>> {
@@ -34,4 +35,9 @@ export async function decidePipeline(csrf: string, id: string, decision: ReviewD
 
 export async function clearPipelineDecision(csrf: string, id: string): Promise<Result<PublicPipelineRun>> {
   return appCall(csrf, ({ api, me, workspaceId }) => api.clearPipelineDecision(me, workspaceId, id), { refresh: "/app" });
+}
+
+/** Live stats: copying one part of a package uses the step run it came from. */
+export async function pipelinePartUsed(csrf: string, id: string, stepId: string): Promise<Result<RunFeedback | null>> {
+  return appCall(csrf, ({ api, me, workspaceId }) => api.pipelinePartUsed(me, workspaceId, id, stepId));
 }

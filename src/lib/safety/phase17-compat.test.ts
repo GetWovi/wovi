@@ -117,6 +117,8 @@ describe("a phase 17 data dir", () => {
     // Reading changed nothing on disk, and the phase 18 file only appears on the first write.
     expect(hashes(dir)).toEqual(before);
     expect(existsSync(join(dir, "safety.json"))).toBe(false);
+    // Live stats (stats.json) also only appear on the first feedback event or release: see src/lib/stats/phase17-stats.test.ts.
+    expect(existsSync(join(dir, "stats.json"))).toBe(false);
   });
 
   it("works: a new billed run, a rights confirmation, the AI label note, and a report, without touching earlier records", async () => {

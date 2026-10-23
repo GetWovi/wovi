@@ -6,6 +6,7 @@ import { PipelineCard } from "@/components/app/PipelineParts";
 import { groupLineup } from "@/lib/app/lineup";
 import { appPage } from "@/lib/app/server";
 import { appQuality } from "@/lib/quality/server";
+import { appStats } from "@/lib/stats/server";
 import { PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
 
 export const metadata: Metadata = { title: "Make something", robots: { index: false, follow: false } };
@@ -16,6 +17,7 @@ export default async function MakePage() {
   const [lineup, pipelines] = await Promise.all([api.lineup(me, workspaceId), api.pipelines(me, workspaceId)]);
   const groups = groupLineup(lineup);
   const scores = await appQuality().scorecards(PLATFORM_WORKSPACE_ID, lineup.filter((a) => a.status === "live").map((a) => a.id));
+  const live = await appStats().agentsStats(PLATFORM_WORKSPACE_ID, lineup.filter((a) => a.status === "live").map((a) => a.id));
 
   return (
     <AppShell info={info} active="make">
@@ -36,7 +38,7 @@ export default async function MakePage() {
           </div>
           <div className={styles.grid3}>
             {g.agents.map((a, i) => (
-              <AgentCard key={a.id} agent={a} alt={i % 2 === 1} score={scores[a.id] ?? null} />
+              <AgentCard key={a.id} agent={a} alt={i % 2 === 1} score={scores[a.id] ?? null} stats={live[a.id] ?? null} />
             ))}
           </div>
         </section>

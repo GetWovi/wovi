@@ -27,6 +27,7 @@ const TOOL_WORDS: Record<(typeof MCP_TOOLS)[number], string> = {
   list_agents: "what each agent does and takes",
   run_agent: "runs one, waits, returns the result",
   get_run: "reads a run by its id",
+  give_feedback: "says if a result was used, edited, run again or rated",
   list_brand_brains: "your brands and clients",
   start_pipeline: "starts a chain of agents",
   pick_option: "answers a step that asks you to pick",

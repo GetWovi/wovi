@@ -30,7 +30,7 @@ import { DEFAULT_MAX_OUTPUT_TOKENS, estimateCallMicroUsd, priceOf, toMicroUsd, t
 import { assemblePrompt, promptText } from "./prompt";
 import { providersFromEnv, type ModelProvider } from "./providers";
 import { InProcessQueue, type ConcurrencyLimits, type QueueJob, type RunQueue } from "./queue";
-import { FINISHED, type BrandPick, type Run } from "./run";
+import { FINISHED, type BrandPick, type Run, type RunRelease } from "./run";
 import { jsonFileRunStore, type RunFilter, type RunStore } from "./store";
 import { injectionSignals } from "@/lib/safety/injection";
 import { refusalLines, screen } from "@/lib/safety/screen";
@@ -64,6 +64,12 @@ export type SubmitRequest = {
    * pipeline's hold, or a free bench run. Not part of the idempotency hash.
    */
   billing?: RunBillingRequest;
+  /**
+   * Canary releases: the release a pinned version was picked for, by a
+   * pipeline that routed its "current" step. Recorded on the run, never part
+   * of the idempotency hash.
+   */
+  release?: RunRelease;
 };
 
 export type RunErrorCode =
@@ -129,7 +135,18 @@ export type EngineOptions = {
    * back at the end. Left out, runs cost no credits, as before.
    */
   billing?: RunBilling | null;
+  /**
+   * Canary releases: picks the version for a run that follows "latest
+   * stable" (no `version` given) while a canary runs. Pinned runs are never
+   * routed. Left out, every such run gets the current version, as before.
+   */
+  router?: VersionRouter | null;
 };
+
+/** Which version a run that follows "latest stable" gets, and the release it is part of. Null: the current version. */
+export interface VersionRouter {
+  route(input: { agentWorkspaceId: string; agentId: string; workspaceId: string }): Promise<{ version: string; release: RunRelease } | null>;
+}
 
 /** Where the quality gate finds an agent's golden and bad samples. */
 export interface ReferenceSource {
@@ -359,10 +376,21 @@ export class RunEngine {
   }
 
   private async submitNew(req: SubmitRequest, idempotencyKey: string | null): Promise<Run> {
-    const spec = await this.loadAgent(req);
+    const loaded = await this.loadRouted(req);
+    let spec = loaded.spec;
+    let release = loaded.release;
     this.checkRunnable(spec);
 
-    const checked = validateRunInputs(spec, req.inputs);
+    let checked = validateRunInputs(spec, req.inputs);
+    if (!checked.ok && release?.arm === "canary" && loaded.stable) {
+      // A canary is only started when its form fits the stable one; if a form still does not fit, the run takes the stable version.
+      const back = validateRunInputs(loaded.stable, req.inputs);
+      if (back.ok) {
+        spec = loaded.stable;
+        release = { ...release, arm: "stable" };
+        checked = back;
+      }
+    }
     if (!checked.ok) throw new RunError("invalid_input", "Some inputs are not valid.", checked.errors);
     const inputs = checked.value;
 
@@ -445,6 +473,7 @@ export class RunEngine {
       costMicroUsd: 0,
       costUsd: 0,
       ...(credits ? { credits } : {}),
+      ...(release ? { release } : {}),
       timings: { queuedAt: now, startedAt: null, finishedAt: null, queueMs: null, runMs: null },
       createdAt: now,
       updatedAt: now,
@@ -479,6 +508,36 @@ export class RunEngine {
       // Left as held; recover() settles it after a restart.
       console.error(`Credits for run ${run.id} could not be settled:`, err);
     }
+  }
+
+  /** The router this engine picks canary versions with, for pipelines that resolve "current" themselves. */
+  get router(): VersionRouter | null {
+    return this.opts.router ?? null;
+  }
+
+  /**
+   * The agent for a request. A pinned version is exact. A run that follows
+   * "latest stable" asks the router, which sends a share of workspaces to a
+   * running canary; the stable spec comes along so a form that does not fit
+   * the canary can fall back to it.
+   */
+  private async loadRouted(req: SubmitRequest): Promise<{ spec: AgentSpec; release: RunRelease | null; stable: AgentSpec | null }> {
+    const spec = await this.loadAgent(req);
+    if (req.version !== undefined) return { spec, release: req.release ?? null, stable: null };
+    const router = this.opts.router;
+    if (!router) return { spec, release: null, stable: null };
+    let routed: Awaited<ReturnType<VersionRouter["route"]>> = null;
+    try {
+      routed = await router.route({ agentWorkspaceId: req.agentWorkspaceId ?? req.workspaceId, agentId: spec.id, workspaceId: req.workspaceId });
+    } catch (err) {
+      // Routing never stops a run: it falls back to the current version.
+      console.error("The canary router failed:", err);
+      return { spec, release: null, stable: null };
+    }
+    if (!routed) return { spec, release: null, stable: null };
+    if (routed.version === spec.version) return { spec, release: routed.release, stable: spec };
+    const other = await this.loadAgent({ ...req, version: routed.version }).catch(() => null);
+    return other ? { spec: other, release: routed.release, stable: spec } : { spec, release: { ...routed.release, arm: "stable" }, stable: spec };
   }
 
   private async loadAgent(req: SubmitRequest): Promise<AgentSpec> {
@@ -688,7 +747,7 @@ export function requestTexts(spec: Pick<AgentSpec, "inputs">, inputs: RunInputs,
  * is given. Uses the fake provider
  * unless OPENROUTER_API_KEY is set, and always when `fake` is true.
  */
-export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource; references?: ReferenceSource; billing?: RunBilling | null } = {}): RunEngine {
+export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource; references?: ReferenceSource; billing?: RunBilling | null; router?: VersionRouter | null } = {}): RunEngine {
   const dataDir = opts.dataDir ?? process.env.WOVI_DATA_DIR ?? join(process.cwd(), ".data");
   const providers = providersFromEnv();
   const fake = opts.fake ?? !providers.openrouter;
@@ -700,5 +759,6 @@ export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrain
     providerOverride: fake ? "fake" : undefined,
     references: opts.references,
     billing: opts.billing ?? null,
+    router: opts.router ?? null,
   });
 }

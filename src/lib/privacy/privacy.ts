@@ -38,6 +38,7 @@ import type { ConsentRow, SafetyStore } from "@/lib/safety/store";
 import type { TeamStore } from "@/lib/team/store";
 import type { TokenStore } from "@/lib/token/store";
 import type { WebhookStore } from "@/lib/webhooks/store";
+import type { StatsStore } from "@/lib/stats/store";
 
 export class PrivacyError extends Error {
   constructor(
@@ -63,6 +64,13 @@ export type PrivacyOptions = {
   token: TokenStore;
   webhooks: WebhookStore;
   safety: SafetyStore;
+  /**
+   * Live stats: feedback events (use, edit, regenerate, rating) and the
+   * builders' audit log. In the copy, removed with a deleted workspace, and
+   * anonymised (the kept text and notes dropped) when the person leaves.
+   * Left out, nothing of it is touched.
+   */
+  stats?: Pick<StatsStore, "feedback" | "audit">;
   /** Where uploaded files live (<data dir>/files), one folder per workspace. */
   filesDir?: string | null;
   /** Where the dev mailer writes mail, for the retention sweep. */
@@ -182,6 +190,7 @@ export class Privacy {
       onboarding: await this.o.app.onboarding.find({ userId }),
       notifications: await this.o.team.notifications.find({ userId }),
       uploadsConfirmed: await this.o.safety.rights.find({ userId }),
+      feedbackGiven: this.o.stats ? (await this.o.stats.feedback.find({ by: userId })).map((f) => ({ runId: f.runId, agent: f.agentId, version: f.version, action: f.action, rating: f.rating ?? null, note: f.note ?? null, editedShare: f.distance ?? null, keptText: f.kept ?? null, at: f.at, updatedAt: f.updatedAt })) : [],
       reportsMade: (await this.o.safety.reports.find({ reporterUserId: userId })).map((r) => ({ ref: r.ref, reason: r.reason, details: r.details, target: r.target.given, status: r.status, createdAt: r.createdAt, decision: r.decision ? { outcome: r.decision.outcome, ground: r.decision.ground, at: r.decision.at } : null })),
     };
   }
@@ -310,6 +319,7 @@ export class Privacy {
     for (const p of await this.o.token.payments.find({ userId })) await this.o.token.payments.update({ ...p, userId: anon });
     for (const o of await this.o.app.onboarding.find({ userId })) await this.o.app.onboarding.delete(o.id);
     for (const n of await this.o.team.notifications.find({ userId })) await this.o.team.notifications.delete(n.id);
+    await this.anonymiseStats(userId, anon);
     await this.o.safety.consents.delete(userId);
     for (const r of await this.o.safety.rights.find({ userId })) await this.o.safety.rights.delete(r.id);
     for (const r of await this.o.safety.reports.find({ reporterUserId: userId })) await this.o.safety.reports.update({ ...r, reporterUserId: null, reporterName: null, reporterEmail: null });
@@ -358,6 +368,7 @@ export class Privacy {
     await drop(this.o.webhooks.deliveries);
     await drop(this.o.credits.limits);
     await drop(this.o.safety.rights);
+    if (this.o.stats) await drop(this.o.stats.feedback);
     await drop(s.members);
     await drop(s.invites);
     await drop(s.apiKeys);
@@ -396,7 +407,15 @@ export class Privacy {
       }
     }
     for (const o of await this.o.app.onboarding.find({ workspaceId, userId })) await this.o.app.onboarding.delete(o.id);
+    await this.anonymiseStats(userId, anon, workspaceId);
     return this.anonymiseCredits(workspaceId, userId, anon);
+  }
+
+  /** Feedback stays counted with the person's id swapped out and their words dropped; audit lines keep what happened, not who. */
+  private async anonymiseStats(userId: string, anon: string, workspaceId?: string) {
+    if (!this.o.stats) return;
+    for (const f of await this.o.stats.feedback.find(workspaceId ? { workspaceId, by: userId } : { by: userId })) await this.o.stats.feedback.update({ ...f, by: anon, kept: null, note: null });
+    if (!workspaceId) for (const a of await this.o.stats.audit.find({ by: userId })) await this.o.stats.audit.update({ ...a, by: anon });
   }
 
   /** Swaps the person's id for the anonymous one on ledger entries and top-ups. Returns how many entries were looked at and kept. */

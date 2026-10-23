@@ -100,6 +100,10 @@ The agent cards on `/` now show the phase 8 lineup: Idea Generator, Hook Writer,
 - The server actions themselves are thin (origin, session, CSRF, one API call) and are exercised by the screenshot script against the built site, not by vitest.
 - Pipelines are phase 10 ([pipelines.md](pipelines.md)): the nav, history and run pages gained them there. Full review flows and comments (phase 11), quality gates (phase 12), credits (phase 13, [credits.md](credits.md)) and MCP and REST (phase 14) are not here. The run page already carries everything they need: the typed output, the checks, the decision.
 
+## Live stats
+
+Under every result: Use it (copies the whole result), Edit (change it and keep your version, which is copied), Try again (the same job again) and the thumbs with an optional note. Copying any item, approving and asking for changes count too. Agent cards in the gallery and on the home show "Used as is", "Edited" and "Thumbs up" from real runs, and the agent page has a Live stats section with every number and what it was counted from; below 20 runs a number says New. See [stats.md](stats.md).
+
 ## Safety (phase 18)
 
 The agent form shows each of the agent's platforms' rules beside it, asks for the rights box before a file can be picked, and shows "WOVI cannot make this" with the reasons when the content rules refuse a request. Every result has the AI-label reminder with its box (stored on the run) and a Report link. Legal links are in every footer. See [safety.md](safety.md).

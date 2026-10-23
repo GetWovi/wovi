@@ -137,7 +137,7 @@ Two phase 6 and phase 10 tests script a bad first answer; their fake responders 
 - The model judge (the slot is there), with a weekly human sample so it does not drift, as the product doc says.
 - More languages for the phrase lists once runs carry a language.
 - Engagement after posting (the doc's third layer) when analytics are connected.
-- The regression gate: a new version cannot publish if it scores below the current one on the golden set. The bench and the roll-up already have the numbers.
+- The regression gate is built: a new version cannot go to everyone if it scores below the current one on the gold set, or is clearly worse on live runs as a canary. See [stats.md](stats.md#the-regression-gate).
 
 ## Phase 18
 

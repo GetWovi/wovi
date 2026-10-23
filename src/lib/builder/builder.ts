@@ -29,6 +29,9 @@ import { checkFile, type FileKind, type FileStorage, type StoredFile } from "./s
 import type { BuilderStore } from "./store";
 import { BOARD_KINDS, BUILDER_LIMITS, SAMPLE_LABELS, type BoardItem, type BoardKind, type Sample, type SampleLabel } from "./types";
 import { AgentVersions } from "./versions";
+import { formFits, type Releases } from "@/lib/stats/releases";
+import { AgentReleases } from "./releases";
+import { SHARE_LIMITS, type CanaryThresholds } from "@/lib/stats/types";
 
 /** One row of the builder home. */
 export type BuilderAgentRow = {
@@ -76,8 +79,16 @@ export type BuilderOptions = {
   drafter: SpecDrafter;
   /** The run engine itself, not the guarded view: builders see the model, tokens and cost of a bench run. */
   engine: RunEngine;
+  /**
+   * Canary releases and the audit log (docs/stats.md). Left out, a save makes
+   * the new version current at once, as before.
+   */
+  releases?: Releases | null;
   now?: () => Date;
 };
+
+/** How a saved version goes out: to everyone at once (drafts), or as a canary on a share of live runs. */
+export type SaveRelease = { mode: "everyone" } | { mode: "canary"; share: number; thresholds?: Partial<CanaryThresholds> };
 
 const NOT_FOUND = "Not found.";
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -104,12 +115,15 @@ export class Builder implements BoardSource {
   readonly bench: AgentBench;
   /** Version history, compare and rollback (phase 6). */
   readonly versions: AgentVersions;
+  /** Canary releases, the regression gate, live stats per version and the audit log. */
+  readonly release: AgentReleases;
   private readonly now: () => Date;
 
   constructor(private readonly opts: BuilderOptions) {
     this.now = opts.now ?? (() => new Date());
     this.bench = new AgentBench(this);
     this.versions = new AgentVersions(this);
+    this.release = new AgentReleases(this);
   }
 
   /** The stores and services, for the bench and version tools. */
@@ -175,7 +189,10 @@ export class Builder implements BoardSource {
     const versions = await this.opts.agents.versions(caller, this.workspaceId, id);
     const samples = (await this.opts.store.samples.find({ workspaceId: this.workspaceId, agentId: id })).length;
     const board = (await this.opts.store.boardItems.find({ workspaceId: this.workspaceId, agentId: id })).length;
-    return { spec, row, versions, samples, board };
+    // While a canary runs the builder works on it: the editor, the bench and tuning start from the canary version.
+    const head = await this.headVersion(id);
+    const shown = head && head !== spec.version ? ((await this.opts.agents.getForEdit(caller, this.workspaceId, id, head)) ?? spec) : spec;
+    return { spec: shown, row, versions, samples, board };
   }
 
   /** A full spec drafted from a plain description. Nothing is saved. */
@@ -194,31 +211,90 @@ export class Builder implements BoardSource {
     return this.opts.agents.create(caller, this.workspaceId, spec, { note });
   }
 
-  /** Saves changes as a new version, which is then current and starts unscored. Refuses a save that changes nothing. */
-  async saveAgent(caller: Principal, id: string, changes: UpdateInput, opts: { bump?: Bump; note?: string } = {}): Promise<AgentSpec> {
-    await this.requireBuilder(caller);
-    await this.opts.agents.update(caller, this.workspaceId, id, changes, opts);
-    return this.bench.refreshQuality(caller, id);
+  /**
+   * Saves changes as a new version and refuses a save that changes nothing.
+   *
+   * Without canary releases (or for an agent that is not live) the new
+   * version is current at once and starts unscored, as it always was. With
+   * releases, a live agent's new version goes out as a canary: it is written
+   * beside the current version, which keeps serving everyone, and serves
+   * `share` percent of live runs (0 keeps it to the bench). Publishing it to
+   * everyone goes through the regression gate (`releases`).
+   */
+  async saveAgent(caller: Principal, id: string, changes: UpdateInput, opts: { bump?: Bump; note?: string; release?: SaveRelease } = {}): Promise<AgentSpec> {
+    const user = await this.requireBuilder(caller);
+    const rel = this.opts.releases;
+    if (!rel) {
+      await this.opts.agents.update(caller, this.workspaceId, id, changes, opts);
+      return this.bench.refreshQuality(caller, id);
+    }
+    const row = (await this.opts.agents.rows(caller, this.workspaceId)).find((r) => r.id === id);
+    if (!row) throw new AccountError("not_found", NOT_FOUND);
+    const active = await rel.active(this.workspaceId, id);
+    const live = row.status === "live";
+    const mode = opts.release?.mode ?? (active && live ? "canary" : "everyone");
+    if (mode === "everyone" || !live) {
+      if (live && opts.release?.mode === "everyone") {
+        throw new AccountError("invalid_request", "A live agent's new version goes out as a canary first. Publish it to everyone from Stats once the gold set passes.");
+      }
+      const saved = await this.opts.agents.update(caller, this.workspaceId, id, changes, { bump: opts.bump, note: opts.note });
+      if (active) await rel.replace(this.workspaceId, id, user.id, `Replaced by v${saved.version}, saved for everyone.`);
+      await rel.log(this.workspaceId, id, "saved", user.id, live ? `Saved v${saved.version}; it serves everyone.` : `Saved v${saved.version}.`, saved.version, row.currentVersion);
+      return this.bench.refreshQuality(caller, id);
+    }
+    const share = opts.release?.mode === "canary" ? opts.release.share : (active?.share ?? SHARE_LIMITS.default);
+    if (!Number.isInteger(share) || share < SHARE_LIMITS.min || share > SHARE_LIMITS.max) throw new AccountError("invalid_request", `The canary share is a whole percent from ${SHARE_LIMITS.min} to ${SHARE_LIMITS.max}.`);
+    const base = active?.canary ?? row.currentVersion;
+    if (share > 0) {
+      const [stable, head] = await Promise.all([this.requireAgent(caller, id, row.currentVersion), this.requireAgent(caller, id, base)]);
+      const problems = formFits(stable, { inputs: changes.inputs ?? head.inputs, output: changes.output ?? head.output } as Pick<AgentSpec, "inputs" | "output">);
+      if (problems.length) throw new AccountError("invalid_request", `This version changes the form or the output, so it cannot run beside v${stable.version}. Save it at 0% (bench only) and publish it to everyone once the gold set passes. ${problems.join(" ")}`);
+    }
+    const saved = await this.opts.agents.update(caller, this.workspaceId, id, changes, { bump: opts.bump, note: opts.note, base, keepCurrent: true });
+    await rel.log(this.workspaceId, id, "saved", user.id, `Saved v${saved.version} on top of v${base}.`, saved.version, base);
+    await rel.start({ workspaceId: this.workspaceId, agentId: id, stable: row.currentVersion, canary: saved.version, share, thresholds: opts.release?.mode === "canary" ? opts.release.thresholds ?? active?.thresholds : active?.thresholds, by: user.id });
+    return saved;
+  }
+
+  /** The version the builder works on: the running canary, or the current version. */
+  async headVersion(id: string): Promise<string | undefined> {
+    return (await this.opts.releases?.head(this.workspaceId, id)) ?? undefined;
   }
 
   async publish(caller: Principal, id: string): Promise<AgentSpec> {
-    await this.requireBuilder(caller);
-    return this.opts.agents.setStatus(caller, this.workspaceId, id, "live");
+    const user = await this.requireBuilder(caller);
+    const spec = await this.opts.agents.setStatus(caller, this.workspaceId, id, "live");
+    await this.opts.releases?.log(this.workspaceId, id, "published", user.id, `Published: v${spec.version} is live for everyone.`, spec.version);
+    return spec;
   }
 
   async unpublish(caller: Principal, id: string): Promise<AgentSpec> {
-    await this.requireBuilder(caller);
-    return this.opts.agents.setStatus(caller, this.workspaceId, id, "draft");
+    const user = await this.requireBuilder(caller);
+    const spec = await this.opts.agents.setStatus(caller, this.workspaceId, id, "draft");
+    await this.endReleaseFor(user.id, id, "The agent went back to draft.");
+    await this.opts.releases?.log(this.workspaceId, id, "unpublished", user.id, "Back to draft: nobody outside the builder can run it.", spec.version);
+    return spec;
   }
 
   async hide(caller: Principal, id: string): Promise<AgentSpec> {
-    await this.requireBuilder(caller);
-    return this.opts.agents.hide(caller, this.workspaceId, id);
+    const user = await this.requireBuilder(caller);
+    const spec = await this.opts.agents.hide(caller, this.workspaceId, id);
+    await this.endReleaseFor(user.id, id, "The agent was hidden.");
+    await this.opts.releases?.log(this.workspaceId, id, "hidden", user.id, "Hidden from every list people see.", spec.version);
+    return spec;
   }
 
   async unhide(caller: Principal, id: string): Promise<AgentSpec> {
-    await this.requireBuilder(caller);
-    return this.opts.agents.unhide(caller, this.workspaceId, id);
+    const user = await this.requireBuilder(caller);
+    const spec = await this.opts.agents.unhide(caller, this.workspaceId, id);
+    await this.opts.releases?.log(this.workspaceId, id, "unhidden", user.id, `Shown again as ${spec.status}.`, spec.version);
+    return spec;
+  }
+
+  /** A canary has no live traffic once its agent is off the gallery, so it ends. */
+  private async endReleaseFor(by: string, id: string, reason: string) {
+    const r = await this.opts.releases?.replace(this.workspaceId, id, by, reason);
+    if (r) await this.opts.releases?.log(this.workspaceId, id, "rolled_back", by, `Canary of v${r.canary} ended: ${reason} v${r.stable} stays current.`, r.canary, r.stable);
   }
 
   /* ---------- Files ---------- */

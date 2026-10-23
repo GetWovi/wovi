@@ -58,6 +58,18 @@ export type VersionInfo = { version: string; note: string | null; by: string | n
 /** Options on a save: the change note and who saved it. */
 export type SaveOptions = { note?: string; by?: string | null };
 
+/**
+ * Canary releases (docs/stats.md): a save may build on a version that is not
+ * current (the canary under test) and leave the current version serving
+ * everyone else. Both are optional; without them a save works as it always did.
+ */
+export type ReleaseSaveOptions = {
+  /** The version the changes apply to. The current version when left out. */
+  base?: string;
+  /** Write the new version without making it current. */
+  keepCurrent?: boolean;
+};
+
 const WORKSPACE_ID = /^[a-z0-9][a-z0-9_-]{1,63}$/;
 
 export function isWorkspaceId(id: unknown): id is string {
@@ -114,13 +126,13 @@ export class AgentRegistry {
     workspaceId: string,
     id: string,
     changes: UpdateInput,
-    opts: SaveOptions & { bump?: Bump } = {},
+    opts: SaveOptions & ReleaseSaveOptions & { bump?: Bump } = {},
   ): Promise<AgentSpec> {
     const row = await this.requireAgent(workspaceId, id);
     if ("id" in changes && (changes as { id?: unknown }).id !== id) {
       throw new RegistryError("invalid_spec", "An agent's id cannot change. Create a new agent instead.");
     }
-    const current = await this.requireVersion(workspaceId, id, row.currentVersion);
+    const current = await this.requireVersion(workspaceId, id, opts.base ?? row.currentVersion);
     const highest = highestSemver((await this.store.listVersions(workspaceId, id)).map((v) => v.version))!;
 
     const version = changes.version ?? bumpSemver(highest, opts.bump ?? "patch");
@@ -137,7 +149,8 @@ export class AgentRegistry {
     }
 
     const at = this.now();
-    const next: AgentRow = { ...row, currentVersion: version, updatedAt: at };
+    // A canary keeps serving the stable version to everyone else: the new version is written, the current one stays.
+    const next: AgentRow = opts.keepCurrent ? { ...row, updatedAt: at } : { ...row, currentVersion: version, updatedAt: at };
     await this.store.save(next, this.versionRow(workspaceId, checked.value, opts, at));
     return this.compose(next, checked.value);
   }

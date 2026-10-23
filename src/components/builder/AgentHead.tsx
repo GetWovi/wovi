@@ -9,7 +9,7 @@ import { StatusPill } from "./BuilderShell";
 import { CATEGORY_LABELS, ago } from "./labels";
 
 /** The head of the bench, versions and quality pages: the agent, its state and score, and the way to the other screens. */
-export function AgentHead({ spec, versions, title, active, updatedAt, now }: { spec: AgentSpec; versions: number; title: string; active: "bench" | "versions" | "quality"; updatedAt: string; now: number }) {
+export function AgentHead({ spec, versions, title, active, updatedAt, now }: { spec: AgentSpec; versions: number; title: string; active: "bench" | "versions" | "quality" | "stats"; updatedAt: string; now: number }) {
   const base = `/builder/agents/${spec.id}`;
   return (
     <div className={styles.head}>
@@ -50,6 +50,11 @@ export function AgentHead({ spec, versions, title, active, updatedAt, now }: { s
         {active !== "quality" && (
           <ButtonLink href={`${base}/quality`} variant="ghost" leading={<Icon name="check-circle" size={18} />}>
             Quality
+          </ButtonLink>
+        )}
+        {active !== "stats" && (
+          <ButtonLink href={`${base}/stats`} variant="ghost" leading={<Icon name="chart" size={18} />}>
+            Stats
           </ButtonLink>
         )}
       </div>

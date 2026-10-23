@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import styles from "./App.module.css";
 
-/** Copies a piece of text and says so for a moment. */
-export function CopyButton({ text, label = "Copy", small = false }: { text: string; label?: string; small?: boolean }) {
+/** Copies a piece of text and says so for a moment. `onCopy` hears about it (live stats count a copy as a use). */
+export function CopyButton({ text, label = "Copy", small = false, onCopy }: { text: string; label?: string; small?: boolean; onCopy?: () => void }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (!copied) return;
@@ -17,6 +17,7 @@ export function CopyButton({ text, label = "Copy", small = false }: { text: stri
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+      onCopy?.();
     } catch {
       /* Some browsers block the clipboard without a user gesture; the text stays on screen to select. */
     }

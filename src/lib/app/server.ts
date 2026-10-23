@@ -14,13 +14,14 @@ import { appTeam } from "@/lib/team/server";
 import { appCredits } from "@/lib/credits/server";
 import { appWebhooks } from "@/lib/api/server";
 import { AppApi } from "./api";
+import { appFeedback } from "@/lib/stats/server";
 import { jsonFileAppStore } from "./store";
 
 const g = globalThis as { __woviApp?: AppApi };
 
 export function appApi(): AppApi {
   if (!g.__woviApp) {
-    g.__woviApp = new AppApi({ accounts: accounts(), agents: appAgents(), runs: appRuns(), brands: appBrands(), store: jsonFileAppStore(join(dataDirFromEnv(), "app.json")), pipelines: appPipelines(), team: appTeam(), credits: appCredits() });
+    g.__woviApp = new AppApi({ accounts: accounts(), agents: appAgents(), runs: appRuns(), brands: appBrands(), store: jsonFileAppStore(join(dataDirFromEnv(), "app.json")), pipelines: appPipelines(), team: appTeam(), credits: appCredits(), feedback: appFeedback() });
     // Webhooks (phase 14) listen to the engines from the app's first use, so runs started on these screens send run.finished too.
     appWebhooks();
   }

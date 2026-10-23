@@ -76,7 +76,7 @@ export class GuardedAgents {
     return this.registry.create(workspaceId, input, { ...opts, by: savedBy(caller) });
   }
 
-  async update(caller: Principal, workspaceId: string, id: string, changes: UpdateInput, opts: { bump?: Bump; note?: string } = {}): Promise<AgentSpec> {
+  async update(caller: Principal, workspaceId: string, id: string, changes: UpdateInput, opts: { bump?: Bump; note?: string; base?: string; keepCurrent?: boolean } = {}): Promise<AgentSpec> {
     await this.accounts.authorize(caller, workspaceId, "edit_agents");
     return this.registry.update(workspaceId, id, changes, { ...opts, by: savedBy(caller) });
   }

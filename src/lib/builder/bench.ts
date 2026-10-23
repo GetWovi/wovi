@@ -26,7 +26,7 @@ import type { RunOutput } from "@/lib/runs/output";
 import { DEFAULT_MAX_OUTPUT_TOKENS, estimateCallMicroUsd, toMicroUsd, toUsd } from "@/lib/runs/prices";
 import { assemblePrompt, promptText } from "@/lib/runs/prompt";
 import type { Run, RunStatus } from "@/lib/runs/run";
-import type { Builder } from "./builder";
+import type { Builder, SaveRelease } from "./builder";
 import { autoScore, parsedHow, scorecard, type Scorecard } from "./scoring";
 import { BENCH_LIMITS, RATINGS, type Batch, type Bench, type BenchItem, type Rating, type RatingValue, type Sample } from "./types";
 
@@ -177,7 +177,8 @@ export class AgentBench {
 
   async estimate(caller: Principal, agentId: string, req: Pick<BenchRequest, "version" | "sampleIds"> = {}): Promise<BenchEstimate> {
     await this.b.requireBuilder(caller);
-    const spec = await this.b.requireAgent(caller, agentId, req.version);
+    // While a canary runs, the bench works on it unless a version is named.
+    const spec = await this.b.requireAgent(caller, agentId, req.version ?? (await this.b.headVersion(agentId)));
     const samples = await this.pickSamples(caller, agentId, req.sampleIds);
     return this.estimateFor(spec, samples);
   }
@@ -212,7 +213,7 @@ export class AgentBench {
   /** Starts a bench: one engine run per sample, or one ad-hoc run. Returns at once; poll `get` for results. */
   async run(caller: Principal, agentId: string, req: BenchRequest = {}): Promise<BenchView> {
     const user = await this.b.requireBuilder(caller);
-    const spec = await this.b.requireAgent(caller, agentId, req.version);
+    const spec = await this.b.requireAgent(caller, agentId, req.version ?? (await this.b.headVersion(agentId)));
     let items: Omit<BenchItem, "runId" | "error">[];
     let kind: Bench["kind"];
     if (req.adhoc) {
@@ -434,9 +435,9 @@ export class AgentBench {
   /* ---------- Tuning ---------- */
 
   /** Saves the changes as a new version, then runs the given samples against it in one go. */
-  async tune(caller: Principal, agentId: string, changes: UpdateInput, opts: { bump?: Bump; note?: string; rerun?: { sampleIds?: string[] } | null } = {}): Promise<{ spec: AgentSpec; bench: BenchView | null }> {
+  async tune(caller: Principal, agentId: string, changes: UpdateInput, opts: { bump?: Bump; note?: string; rerun?: { sampleIds?: string[] } | null; release?: SaveRelease } = {}): Promise<{ spec: AgentSpec; bench: BenchView | null }> {
     await this.b.requireBuilder(caller);
-    const spec = await this.b.saveAgent(caller, agentId, changes, { bump: opts.bump, note: opts.note });
+    const spec = await this.b.saveAgent(caller, agentId, changes, { bump: opts.bump, note: opts.note, ...(opts.release ? { release: opts.release } : {}) });
     const bench = opts.rerun ? await this.run(caller, agentId, { version: spec.version, sampleIds: opts.rerun.sampleIds }) : null;
     return { spec, bench };
   }

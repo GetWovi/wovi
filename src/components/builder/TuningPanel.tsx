@@ -16,6 +16,7 @@ import type { BenchView } from "@/lib/builder/bench";
 import styles from "./Builder.module.css";
 import { bodyOf, num, str } from "./editor-types";
 import { ROUTE_LABELS } from "./labels";
+import { SHARE_CHOICES, savedWords } from "./release-choice";
 import { errorAt, parseIssues } from "./spec-errors";
 
 type GateFields = { minScore?: number; maxRewrites?: number };
@@ -36,6 +37,8 @@ export function TuningPanel({ csrf, spec, sampleIds, onTuned }: { csrf: string; 
   const defaults = gateDefaults(spec.category);
   const [note, setNote] = useState("");
   const [bump, setBump] = useState<Bump>("patch");
+  // A live agent's new version goes out as a canary (docs/stats.md).
+  const [share, setShare] = useState("10");
   const [saving, setSaving] = useState<"rerun" | "save" | null>(null);
   const textRoutes = MODEL_ROUTES.filter((r) => r.modality === "text");
 
@@ -57,9 +60,10 @@ export function TuningPanel({ csrf, spec, sampleIds, onTuned }: { csrf: string; 
   async function save(rerun: boolean) {
     setSaving(rerun ? "rerun" : "save");
     try {
-      const r = await tuneAgent(csrf, spec.id, changes, { bump, note, rerun: rerun ? sampleIds : null });
+      const r = await tuneAgent(csrf, spec.id, changes, { bump, note, rerun: rerun ? sampleIds : null, canaryShare: spec.status === "live" ? Number(share) : null });
       if (!r.ok) return toast({ tone: "warning", title: r.error, description: r.issues?.slice(0, 3).join(" ") });
-      toast({ tone: "success", title: `Saved as version ${r.value.version}`, description: rerun ? "Running the same samples against it." : "The new version is current." });
+      const words = savedWords(r.value.version, r.value.canary);
+      toast({ tone: "success", title: words.title, description: rerun ? `Running the same samples against it. ${r.value.canary === null ? "" : words.description}`.trim() : words.description });
       setNote("");
       onTuned(r.value.version, r.value.bench);
     } finally {
@@ -107,6 +111,7 @@ export function TuningPanel({ csrf, spec, sampleIds, onTuned }: { csrf: string; 
         <Input label="Change note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="What changed, in a few words" maxLength={200} />
         <Select label="Bump" value={bump} onChange={(e) => setBump(e.target.value as Bump)} options={[{ value: "patch", label: "Patch" }, { value: "minor", label: "Minor" }, { value: "major", label: "Major" }]} />
       </div>
+      {spec.status === "live" && <Select label="How it goes out" value={share} onChange={(e) => setShare(e.target.value)} options={SHARE_CHOICES} hint="The current version keeps serving everyone else. Publish to everyone on Stats once the gold set passes." />}
       <div className={styles.actions}>
         <Button onClick={() => save(true)} loading={saving === "rerun"} disabled={!canRerun || saving !== null}>
           Save and re-run

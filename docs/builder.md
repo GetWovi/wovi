@@ -133,6 +133,12 @@ The tuning panel beside the bench edits the instruction template, the model rout
 
 `/builder/agents/[id]/quality` rolls up, per version, what the quality gate and people said: which checks fail most, drafts that failed, the most common change requests, decisions and bench ratings. The quality bar and rewrites are set in Tuning on the bench. See [quality.md](quality.md).
 
+## Live stats, canary releases and the audit log
+
+`/builder/agents/[id]/stats`, beside Quality, shows the agent's live numbers per version from people's runs (used as is, edited and how much, run again, thumbs up, fits the format, quality, time, cost per run), the edits and notes people allowed builders to read, the release panel and the agent's audit log. `/builder/audit` is every agent's audit log.
+
+A **live** agent's save from the editor or from Tuning no longer reaches everyone at once: the Save has a choice beside it, "Canary to 10% of live runs" by default (5, 25, 50, or bench only). The new version is written beside the current one, which keeps serving everyone else; the editor and the bench work on the canary from then on. On Stats it is compared with the current version side by side, its share and stop rules change, and it is published to everyone through the regression gate or rolled back in one click. A version rollback on the Versions page ends a running canary. Drafts save as before. See [stats.md](stats.md).
+
 ## Clip samples
 
 Short clips (TikTok, Reels, Shorts) that worked become samples for the text agents. The agents read text, so a clip is useful as its words: the hook, what is said, the text on screen and what happens. A clip is uploaded, read in the background, and kept as a text sample the builder checks, marks gold or bad, and gives to agents. The code is in `src/lib/clips/`; the screens in `src/components/builder/ClipLibrary.tsx` and `ClipDetail.tsx`.

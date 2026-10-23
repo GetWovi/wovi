@@ -17,6 +17,7 @@ WOVI is an MCP server at `/mcp`, built with the official MCP TypeScript SDK (`@m
 | `list_agents` | The agents with their job, inputs, about what a run costs and confirmations. | none |
 | `run_agent` | Runs one agent and waits up to `wait_seconds` (default 25, at most 50); returns the result as text and as structured content, or the run id to come back for. | `agent`, `inputs`, `brand_brain_id?`, `idea?`, `confirm_rights?`, `confirm_voice_consent?`, `wait_seconds?`, `idempotency_key?` |
 | `get_run` | Reads a run: status, typed result, quality score and reasons, charge. Can wait. | `run_id`, `wait_seconds?` |
+| `give_feedback` | Says what the person did with a finished result, for the agent's live stats: used it, edited it (the whole kept text), asked for another try, or rated it. One of each per run. See [stats.md](stats.md). | `run_id`, `action`, `text?`, `rating?`, `note?` |
 | `list_brand_brains` | The workspace's Brand Brains, the default marked. Read only. | none |
 | `start_pipeline` | Starts a pipeline and waits for its first stop: a pick, ready, or failed. | `pipeline`, `inputs`, `brand_brain_id?`, `confirm_rights?`, `wait_seconds?`, `idempotency_key?` |
 | `pick_option` | Answers a step that waits, with the option's index (from 0), then waits for the next stop. | `pipeline_run_id`, `index`, `step?`, `wait_seconds?` |

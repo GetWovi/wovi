@@ -14,10 +14,13 @@ import { Builder } from "./builder";
 import { SpecDrafter } from "./drafter";
 import { memoryFileStorage } from "./storage";
 import { memoryBuilderStore } from "./store";
+import { Releases, storeRouter } from "@/lib/stats/releases";
+import { StatsService } from "@/lib/stats/service";
+import type { StatsStore } from "@/lib/stats/store";
 
 export const as = (userId: string): Principal => ({ kind: "user", userId });
 
-export async function testBuilder(opts: { seeds?: boolean; fake?: FakeOptions; engine?: Partial<EngineOptions> } = {}) {
+export async function testBuilder(opts: { seeds?: boolean; fake?: FakeOptions; engine?: Partial<EngineOptions>; stats?: StatsStore } = {}) {
   const t = testAccounts();
   let tick = 0;
   const now = () => new Date(t.clock.t + tick++);
@@ -36,8 +39,19 @@ export async function testBuilder(opts: { seeds?: boolean; fake?: FakeOptions; e
     providerOverride: "fake",
     backoff: { baseMs: 5, maxMs: 20 },
     now,
+    // Canary releases only when a test asks for them, so the tests before them run as they always did.
+    ...(opts.stats ? { router: storeRouter(opts.stats) } : {}),
     ...opts.engine,
   });
+  const stats = opts.stats
+    ? new StatsService({
+        store: opts.stats,
+        runs: engine,
+        builders: async () => new Set((await t.accounts.store.users.find({})).filter((u) => t.accounts.isBuilder(u)).map((u) => u.id)),
+        requireBuilder: (caller) => late.builder!.requireBuilder(caller),
+      })
+    : null;
+  const releases = opts.stats && stats ? new Releases({ store: opts.stats, registry, stats, benches: store.benches, samples: store.samples, now }) : null;
   const builder = (late.builder = new Builder({
     accounts: t.accounts,
     agents: new GuardedAgents(registry, t.accounts),
@@ -45,6 +59,7 @@ export async function testBuilder(opts: { seeds?: boolean; fake?: FakeOptions; e
     files,
     drafter: new SpecDrafter({ providers: { fake }, providerOverride: "fake" }),
     engine,
+    releases,
     now,
   }));
 
@@ -57,7 +72,7 @@ export async function testBuilder(opts: { seeds?: boolean; fake?: FakeOptions; e
     return { user: result.user, me: as(result.user.id) };
   };
 
-  return { ...t, registry, fake, store, files, builder, engine, joinBuilder };
+  return { ...t, registry, fake, store, files, builder, engine, joinBuilder, stats, releases };
 }
 
 /** Waits until a bench has ended, polling the builder the way the screen does. */

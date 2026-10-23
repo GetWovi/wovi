@@ -14,6 +14,9 @@ import { LAUNCH_SAMPLES } from "@/lib/launch/samples";
 import { AgentScorecard } from "@/components/quality/QualityParts";
 import { gateFor } from "@/lib/quality/data";
 import { appQuality } from "@/lib/quality/server";
+import { AgentLiveStats } from "@/components/stats/LiveStats";
+import { appStats } from "@/lib/stats/server";
+import { pctOf } from "@/lib/stats/words";
 import { brainChoices } from "@/lib/team/brand-pick";
 
 export const metadata: Metadata = { title: "Make", robots: { index: false, follow: false } };
@@ -34,6 +37,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const reviewer = shown?.review ? ((await accounts().getUser(shown.review.by))?.name ?? (await accounts().getUser(shown.review.by))?.email ?? null) : null;
   const examples = (LAUNCH_SAMPLES[spec.id] ?? []).filter((s) => s.label === "gold").map((s) => ({ brain: s.brain, inputs: s.inputs }));
   const card = await appQuality().scorecard(found.agentWorkspaceId, spec.id);
+  const live = await appStats().agentStats(found.agentWorkspaceId, spec.id);
   const price = await api.agentPrice(me, workspaceId, spec.id, found.agentWorkspaceId);
   const gate = gateFor(spec);
 
@@ -60,9 +64,15 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           <a href="#scorecard" className={[styles.chip, styles.chipCobalt].join(" ")}>
             {card.scored ? `${Math.round((card.passRate ?? 0) * 100)}% pass the quality bar` : "New: no scores yet"}
           </a>
+          <a href="#live-stats" className={[styles.chip, styles.chipBlaze].join(" ")}>
+            {live.isNew ? "Live stats: New" : `${pctOf(live.acceptance)} used as is`}
+          </a>
         </div>
       </div>
       <AgentRun key={shown?.run.id ?? "form"} csrf={csrf} agent={spec} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={examples} initialRun={shown} reviewer={reviewer} now={currentTime()} price={price} />
+      <section className={[styles.panel, styles.section].join(" ")} id="live-stats" aria-label="Live stats from real runs">
+        <AgentLiveStats stats={live} />
+      </section>
       <section className={[styles.panel, styles.section].join(" ")} id="scorecard" aria-label="How this agent scores">
         <AgentScorecard card={card} bar={gate.minScore} rewrites={gate.maxRewrites} />
       </section>

@@ -8,7 +8,7 @@
  * - Stateless: every POST builds a server for the key that sent it, so the
  *   tool descriptions list exactly the agents and pipelines that key can run,
  *   each with its inputs described from its spec.
- * - Tools: list_agents, run_agent, get_run, list_brand_brains,
+ * - Tools: list_agents, run_agent, get_run, give_feedback, list_brand_brains,
  *   start_pipeline, pick_option, get_pipeline, credits_balance. Never a
  *   model, an instruction, another workspace or a builder tool.
  */
@@ -23,7 +23,7 @@ import type { RestApi } from "./rest";
 import type { ApiAgent, ApiPipeline, ApiPipelineRun, ApiRun } from "./schemas";
 import type { KeyCaller, PublicApi } from "./service";
 
-export const MCP_TOOLS = ["list_agents", "run_agent", "get_run", "list_brand_brains", "start_pipeline", "pick_option", "get_pipeline", "credits_balance"] as const;
+export const MCP_TOOLS = ["list_agents", "run_agent", "get_run", "give_feedback", "list_brand_brains", "start_pipeline", "pick_option", "get_pipeline", "credits_balance"] as const;
 
 const SERVER_INFO = { name: "wovi", title: "WOVI", version: "1.0.0" };
 const INSTRUCTIONS =
@@ -193,6 +193,27 @@ export async function buildMcpServer(o: McpOptions): Promise<McpServer> {
       tool(async () => {
         const run = await api.waitForRun(caller, args.run_id, waitMs(args.wait_seconds ?? 0));
         return ok(runText(run), { run });
+      }),
+  );
+
+  server.registerTool(
+    "give_feedback",
+    {
+      title: "Say what happened to a result",
+      description: "Tells WOVI what the person did with a finished run's result, for the agent's live stats: use (used as it is), edit (changed it: send the whole text they kept), regenerate (asked for another try) or rating (thumbs up or down, with an optional note). Only send what the person actually did.",
+      inputSchema: {
+        run_id: z.string().min(1).max(100),
+        action: z.enum(["use", "edit", "regenerate", "rating"]),
+        text: z.string().min(1).max(20_000).optional().describe("For edit: the whole text the person kept."),
+        rating: z.enum(["up", "down"]).optional().describe("For rating."),
+        note: z.string().max(300).optional().describe("For rating: a short note in the person's words."),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    (args) =>
+      tool(async () => {
+        const state = await api.feedback(caller, args.run_id, { action: args.action, ...(args.text ? { text: args.text } : {}), ...(args.rating ? { rating: args.rating } : {}), ...(args.note ? { note: args.note } : {}) }, "mcp");
+        return ok(`Recorded. Used: ${state.used ? "yes" : "no"}. Edited: ${state.edited ? `${Math.round(state.edited.distance * 100)}% changed` : "no"}. Run again: ${state.regenerated ? "yes" : "no"}. Rating: ${state.rating ?? "none"}.`, { feedback: state });
       }),
   );
 

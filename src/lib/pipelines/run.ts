@@ -8,6 +8,7 @@
 import type { CheckResult, Confirmations } from "@/lib/runs/guardrails";
 import type { RunInputs } from "@/lib/runs/inputs";
 import type { RunOutput } from "@/lib/runs/output";
+import type { RunRelease } from "@/lib/runs/run";
 import { chargeView, type PipelineCredits } from "@/lib/credits/types";
 import type { PipelineBody } from "./spec";
 import type { Item } from "./values";
@@ -42,6 +43,8 @@ export type StepRun = {
   label: string;
   /** The agent and the exact version this step ran. */
   agent: { workspaceId: string; id: string; version: string; name: string };
+  /** Canary releases: set when the step followed "current" while its agent had a canary, with the side it went to. Missing otherwise. */
+  release?: RunRelease | null;
   status: StepStatus;
   /** Every engine run this step made, in order: the first, a retry, a rewrite. */
   runIds: string[];
@@ -124,8 +127,9 @@ export function publicPipelineRun(run: PipelineRun) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { capMicroUsd, costMicroUsd, costUsd, requestHash, steps, credits, ...rest } = run;
   // The credits it held and was charged. The guarded view blanks it for people who may not see costs.
+  // Which side of a canary a step went to stays inside: people never see release routing.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return { ...rest, charge: chargeView(credits), steps: steps.map(({ costMicroUsd: _c, ...s }) => s) };
+  return { ...rest, charge: chargeView(credits), steps: steps.map(({ costMicroUsd: _c, release: _r, ...s }) => s) };
 }
 export type PublicPipelineRun = ReturnType<typeof publicPipelineRun>;
 export type PublicStepRun = PublicPipelineRun["steps"][number];

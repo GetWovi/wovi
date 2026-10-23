@@ -39,11 +39,11 @@ import { RunEngine, RunError, requestTexts } from "@/lib/runs/engine";
 import { runBeforeChecks, type CheckResult, type Confirmations } from "@/lib/runs/guardrails";
 import { validateRunInputs, type RunInputs } from "@/lib/runs/inputs";
 import { toMicroUsd, toUsd } from "@/lib/runs/prices";
-import type { Run } from "@/lib/runs/run";
+import type { Run, RunRelease } from "@/lib/runs/run";
 import { PipelineError } from "./errors";
 import type { PipelineRegistry, ResolvedAgent } from "./registry";
 import { ENDED, SETTLED, type Candidate, type PackageItem, type PipelineFailure, type PipelineRun, type StepRun } from "./run";
-import type { PipelineStep } from "./spec";
+import type { PipelineSpec, PipelineStep } from "./spec";
 import type { PipelineStore } from "./store";
 import { checkPipeline, type AgentShape } from "./validate";
 import { outputItems, resolveStepInputs, withNote, type ResolveContext } from "./values";
@@ -196,6 +196,8 @@ export class PipelineEngine {
       else agents.push(r);
     }
     if (missing.length) throw new PipelineError("invalid_pipeline", "This pipeline cannot run: an agent it uses is missing.", missing);
+    // Canary releases: a step that follows "current" goes where a single run would; pinned steps stay exact.
+    const releases = await this.routeSteps(ws, spec, agents);
     const byRef = new Map(spec.steps.map((s, n) => [`${s.agent.id}@${s.agent.version}`, agents[n].spec as AgentShape]));
     const broken = checkPipeline(spec, (id, v) => byRef.get(`${id}@${v}`) ?? null);
     if (broken.length) throw new PipelineError("invalid_pipeline", "This pipeline no longer fits its agents. A builder needs to fix it.", broken);
@@ -247,6 +249,7 @@ export class PipelineEngine {
         id: s.id,
         label: s.label,
         agent: { workspaceId: agents[n].workspaceId, id: s.agent.id, version: agents[n].spec.version, name: agents[n].spec.name },
+        ...(releases[n] ? { release: releases[n] } : {}),
         status: "todo",
         runIds: [],
         runId: null,
@@ -590,7 +593,42 @@ export class PipelineEngine {
       maxCostUsd: capUsd,
       parent: { pipelineRunId: pr.id, step: i },
       ...(pr.credits ? { billing: { userId: pr.credits.userId, pipeline: { holdId: pr.credits.holdId } } } : {}),
+      ...(step.release ? { release: step.release } : {}),
     });
+  }
+
+  /**
+   * Canary releases: each step that follows "current" asks the run engine's
+   * router, like a single run would, and its agent is swapped for the routed
+   * version in place. If the chain does not fit the routed versions, every
+   * routed step goes back to the stable one. Returns the release per step
+   * (null for pinned steps and agents with no canary).
+   */
+  private async routeSteps(ws: string, spec: PipelineSpec, agents: ResolvedAgent[]): Promise<(RunRelease | null)[]> {
+    const router = this.o.runs.router;
+    const out: (RunRelease | null)[] = spec.steps.map(() => null);
+    if (!router) return out;
+    const stable = [...agents];
+    for (const [n, s] of spec.steps.entries()) {
+      if (s.agent.version !== "current") continue;
+      const routed = await router.route({ agentWorkspaceId: agents[n].workspaceId, agentId: s.agent.id, workspaceId: ws }).catch(() => null);
+      if (!routed) continue;
+      out[n] = routed.release;
+      if (routed.version === agents[n].spec.version) continue;
+      const other = await this.o.registry.agents.get(agents[n].workspaceId, s.agent.id, routed.version).catch(() => null);
+      if (other) agents[n] = { workspaceId: agents[n].workspaceId, spec: other };
+      else out[n] = { ...routed.release, arm: "stable" };
+    }
+    const byRef = new Map(spec.steps.map((s, n) => [`${s.agent.id}@${s.agent.version}`, agents[n].spec as AgentShape]));
+    if (checkPipeline(spec, (id, v) => byRef.get(`${id}@${v}`) ?? null).length) {
+      for (const n of spec.steps.keys()) {
+        if (agents[n] === stable[n]) continue;
+        agents[n] = stable[n];
+        const r = out[n];
+        out[n] = r ? { ...r, arm: "stable" } : null;
+      }
+    }
+    return out;
   }
 
   private async startStep(pr: PipelineRun, i: number): Promise<void> {

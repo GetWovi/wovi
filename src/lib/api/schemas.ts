@@ -262,6 +262,27 @@ export const WebhookPayloadSchema = z
 
 export const listOf = <T extends z.ZodType>(item: T) => z.object({ data: z.array(item) });
 
+/* ---------- Feedback (live stats) ---------- */
+
+export const FeedbackBody = z
+  .strictObject({
+    action: z.enum(["use", "edit", "regenerate", "rating"]).describe("use: the result was used as it is. edit: the person changed it (send the whole kept text). regenerate: they asked for another try. rating: thumbs up or down."),
+    text: z.string().min(1).max(20_000).optional().describe("For edit: the whole text the person kept. Only the size of the change is counted unless the person allowed WOVI to learn from their edits."),
+    rating: z.enum(["up", "down"]).optional().describe("For rating."),
+    note: z.string().max(300).optional().describe("For rating: a short note."),
+  })
+  .describe("What a person did with a result. One of each per run: a use or a regenerate is counted once, an edit or a rating sent again replaces the first.");
+
+export const FeedbackSchema = z
+  .object({
+    used: z.boolean(),
+    edited: z.object({ distance: z.number().min(0).max(1), at: z.string() }).nullable().describe("The share of the result that was changed, 0 to 1."),
+    regenerated: z.boolean(),
+    rating: z.enum(["up", "down"]).nullable(),
+    note: z.string().nullable(),
+  })
+  .describe("What has been recorded for this run.");
+
 export type ApiAgent = z.infer<typeof AgentSchema>;
 export type ApiRun = z.infer<typeof RunSchema>;
 export type ApiPipeline = z.infer<typeof PipelineSchema>;
