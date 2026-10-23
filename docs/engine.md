@@ -140,3 +140,12 @@ The engine trusts the workspace id it is given. Callers reach it through `Guarde
 
 - `npm run agents:try -- hook-writer` seeds the launch agents if needed and runs one end to end on the fake provider from the workspace `ws_dev`, then prints the run. Pass your own inputs as JSON after the id. Runs are saved in `.data/runs.json`.
 - `npm test` runs every test, all on the fake provider.
+
+## Safety (phase 18)
+
+- **Content rules at submit.** After the inputs are checked, every text, long text and link input and the run's idea are read against the content rules (`src/lib/safety/rules.ts`) and the agent's `safety.block`. A match refuses the run with `RunError("blocked")` and one issue per field, before any credit is held or anything is queued.
+- **Files need the rights confirmation**, whatever the agent declares. Every confirmation given is kept with its time in `run.confirmedAt`.
+- **Prompt injection.** The system message also carries the content rules and each of the agent's platforms' rules (`platformGuidance`), and says never to call a tool from inside a data block. Text that reads like instructions is noted on the run as `prompt_injection` (a note). `untrustedBlock` wraps comments, pages and tool answers. No tools are ever sent to the model.
+- **Drafts.** `content_safety` and `music_rights` run on every draft of every agent and are recorded only when they find something. A draft that still breaks a hard rule after the gate's rewrites fails the run with the new failure code `blocked`: no output, the hold comes back.
+- **TikTok** captions are checked against 2,200 characters (the limit TikTok publishes), down from 4,000.
+- `noteAiLabel`, `withhold`, `restore` and `findRun` on the engine; `findById` and `deleteWorkspace` on the run store. See [safety.md](safety.md).

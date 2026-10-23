@@ -1,5 +1,7 @@
 "use server";
 
+import { RIGHTS_REFUSAL, recordRights, rightsGiven } from "@/lib/safety/rights";
+import { appSafetyStore } from "@/lib/safety/server";
 import { revalidatePath } from "next/cache";
 import { AccountError } from "@/lib/accounts/errors";
 import { accounts } from "@/lib/accounts/server";
@@ -56,7 +58,11 @@ export async function uploadImage(csrf: string, formData: FormData): Promise<Res
     async ({ brands, me, workspaceId }) => {
       const file = formData.get("file");
       if (!(file instanceof File)) throw new BrandError("invalid_request", "Pick an image first.");
-      return brands.putImage(me, workspaceId, { name: file.name, mimeType: file.type || "application/octet-stream", bytes: new Uint8Array(await file.arrayBuffer()) });
+      // Phase 18: no image is stored without the person's rights confirmation.
+      if (!rightsGiven(formData)) throw new BrandError("invalid_request", RIGHTS_REFUSAL);
+      const stored = await brands.putImage(me, workspaceId, { name: file.name, mimeType: file.type || "application/octet-stream", bytes: new Uint8Array(await file.arrayBuffer()) });
+      await recordRights(appSafetyStore(), { workspaceId, userId: me.userId, subject: "mood_board", fileId: stored.id, fileName: stored.name });
+      return stored;
     },
     { quiet: true },
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CopyButton } from "@/components/app/CopyButton";
 import { currentTime } from "@/components/builder/labels";
@@ -98,6 +99,9 @@ export default async function TokenPage() {
                 {live ? "See the burns" : "How it works"}
               </ButtonLink>
             </div>
+            <p className={t.riskLine}>
+              $WOVI can lose all its value and is not an investment. <Link href="/own-risk">Read the own-risk notice</Link> first.
+            </p>
           </div>
 
           {live && p.burned ? (
@@ -360,6 +364,9 @@ export default async function TokenPage() {
             <div>
               <b>Your own risk</b>
               <p>Crypto is volatile and $WOVI can lose all its value. Nothing here is financial advice. $WOVI gives no ownership of WOVI, no share of its profits and no other rights. Credits are for running agents and nothing else. Use at your own risk.</p>
+              <p>
+                <Link href="/own-risk">Read the full own-risk notice</Link> before you buy or use $WOVI.
+              </p>
             </div>
           </div>
         </section>

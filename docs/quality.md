@@ -138,3 +138,7 @@ Two phase 6 and phase 10 tests script a bad first answer; their fake responders 
 - More languages for the phrase lists once runs carry a language.
 - Engagement after posting (the doc's third layer) when analytics are connected.
 - The regression gate: a new version cannot publish if it scores below the current one on the golden set. The bench and the roll-up already have the numbers.
+
+## Phase 18
+
+The TikTok caption limit is 2,200 characters. The builder roll-up shows a draft's text and a change request's words only from the bench and from people who turned on "Use my edits to improve agents"; counts and scores still include everyone. See [safety.md](safety.md).

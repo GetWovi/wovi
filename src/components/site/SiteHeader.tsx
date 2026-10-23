@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { BrandIcon } from "@/components/ui/Icon";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { LegalLinks } from "@/components/safety/LegalLinks";
 import { tokenConfigFromEnv } from "@/lib/token/config";
 import styles from "./Site.module.css";
 
@@ -53,6 +54,7 @@ export function SiteFooter() {
         <Logo height={22} />
         <p className={styles.footerText}>AI agents for content. One agent, one job.</p>
         <p className={styles.footerFine}>WOVI is in development. Use at your own risk. Nothing here is financial, legal or professional advice.</p>
+        <LegalLinks />
       </div>
     </footer>
   );

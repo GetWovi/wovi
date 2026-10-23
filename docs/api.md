@@ -197,3 +197,9 @@ It signs in through the email flow, skips onboarding, runs `scripts/seed-credits
 - The depth limit for agents calling agents (the doc's swarm section). Per-call payment without a key is x402 (phase 15, [x402.md](x402.md)).
 - DNS checks at send time against rebinding; the URL checks cover literal addresses and names.
 - Shared rate-limit counters (Redis) when there is more than one server.
+
+## Phase 18
+
+- `content_blocked` (422): the request asks for something WOVI does not write. Nothing was started or charged; each issue names the field.
+- Every run carries `aiGenerated: true`. MCP results say the output was written by AI.
+- Keys still never approve or reject; the pipeline guard now refuses too, not only the REST layer. See [safety.md](safety.md).

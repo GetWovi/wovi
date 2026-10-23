@@ -178,6 +178,16 @@ export class GuardedRuns {
     return this.view(caller, role, await this.engine.cancelRun(workspaceId, runId));
   }
 
+  /**
+   * Phase 18: the note that the person will apply each platform's AI label
+   * where it is required, stored with the output. People only, like a decision.
+   */
+  async noteAiLabel(caller: Principal, workspaceId: string, runId: string, platforms: string[] | null): Promise<PublicRun> {
+    const role = await this.accounts.authorize(caller, workspaceId, "decide");
+    const note = platforms ? { at: this.accounts.iso(), by: caller.userId, platforms: platforms.slice(0, 8) } : null;
+    return this.view(caller, role, await this.engine.noteAiLabel(workspaceId, runId, note));
+  }
+
   async costTotals(caller: Principal, workspaceId: string) {
     await this.accounts.authorize(caller, workspaceId, "see_costs");
     return this.engine.costTotals(workspaceId);

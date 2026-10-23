@@ -14,6 +14,8 @@ import type { BrandBrain } from "./brand-brain";
 import { LOW_SIMILARITY, brandFit, describeFlag } from "./brand-fit";
 import type { RunInputs } from "./inputs";
 import { outputTexts, type RunOutput } from "./output";
+import { CATEGORY_INFO } from "@/lib/safety/rules";
+import { labelFor, screen } from "@/lib/safety/screen";
 
 /* ---------- Data ---------- */
 
@@ -99,7 +101,8 @@ export const PHRASE_LISTS = {
 /** Caption length limits per platform, in characters. */
 export const PLATFORM_LIMITS: Record<Platform, { maxChars: number }> = {
   x: { maxChars: 280 },
-  tiktok: { maxChars: 4000 },
+  // The limit for posts made through TikTok's API, the one TikTok publishes (phase 18). The app itself may allow more.
+  tiktok: { maxChars: 2200 },
   shorts: { maxChars: 5000 },
   reels: { maxChars: 2200 },
 };
@@ -133,9 +136,13 @@ export type AfterContext = { spec: AgentBody; inputs: RunInputs; output: RunOutp
 
 type Outcome = { status: CheckStatus; message: string; findings?: string[]; score?: number };
 
+/**
+ * `always` (phase 18): the check runs on every agent, declared or not. The
+ * platform's content rules are not something an agent can leave out.
+ */
 export type GuardrailCheck =
-  | { id: string; guardrail: string; stage: "before"; run: (ctx: BeforeContext) => Outcome }
-  | { id: string; guardrail: string; stage: "after"; run: (ctx: AfterContext) => Outcome };
+  | { id: string; guardrail: string; stage: "before"; always?: boolean; run: (ctx: BeforeContext) => Outcome }
+  | { id: string; guardrail: string; stage: "after"; always?: boolean; run: (ctx: AfterContext) => Outcome };
 
 const normalize = (s: string) =>
   s.toLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ");
@@ -263,6 +270,32 @@ export const GUARDRAIL_CHECKS: GuardrailCheck[] = [
     run: () => ({ status: "note", message: "Label this as AI-generated where the platform asks for it." }),
   },
   {
+    // Phase 18: hate, harassment, sexual content and unsafe advice, plus the agent's own blocked phrases, on every draft.
+    id: "content_safety",
+    guardrail: "safe_content",
+    stage: "after",
+    always: true,
+    run: ({ texts, spec }) => {
+      const found = screen({ output: texts.join("\n") }, { where: "output", extra: spec.safety?.block }).findings.filter((f) => f.category === "custom" || CATEGORY_INFO[f.category].hard);
+      return found.length
+        ? { status: "fail", message: "Breaks WOVI's content rules.", findings: found.map((f) => `${labelFor(f.category)}: "${f.match}"`) }
+        : { status: "pass", message: "Keeps WOVI's content rules." };
+    },
+  },
+  {
+    // Phase 18: music comes from the platforms' own libraries. A draft that names a copyrighted song goes to a person.
+    id: "music_rights",
+    guardrail: "platform_policy",
+    stage: "after",
+    always: true,
+    run: ({ texts }) => {
+      const found = screen({ output: texts.join("\n") }, { where: "output" }).findings.filter((f) => f.category === "copyrighted_music");
+      return found.length
+        ? { status: "fail", message: "Names a copyrighted song. Pick a sound from the platform's own library instead.", findings: found.map((f) => f.match) }
+        : { status: "pass", message: "No copyrighted song named." };
+    },
+  },
+  {
     id: "rights_confirmation",
     guardrail: "rights_confirmed",
     stage: "before",
@@ -292,12 +325,15 @@ function results(checks: GuardrailCheck[], run: (c: GuardrailCheck) => Outcome):
 }
 
 export function runBeforeChecks(ctx: BeforeContext): CheckResult[] {
-  const checks = GUARDRAIL_CHECKS.filter((c) => c.stage === "before" && ctx.spec.guardrails.includes(c.guardrail));
+  const checks = GUARDRAIL_CHECKS.filter((c) => c.stage === "before" && (c.always || ctx.spec.guardrails.includes(c.guardrail)));
   return results(checks, (c) => (c as Extract<GuardrailCheck, { stage: "before" }>).run(ctx));
 }
 
 export function runAfterChecks(ctx: Omit<AfterContext, "texts">): CheckResult[] {
   const full: AfterContext = { ...ctx, texts: outputTexts(ctx.output) };
-  const checks = GUARDRAIL_CHECKS.filter((c) => c.stage === "after" && ctx.spec.guardrails.includes(c.guardrail));
-  return results(checks, (c) => (c as Extract<GuardrailCheck, { stage: "after" }>).run(full));
+  const declared = GUARDRAIL_CHECKS.filter((c) => c.stage === "after" && !c.always && ctx.spec.guardrails.includes(c.guardrail));
+  // The platform's own checks (phase 18) run on every agent and are recorded when they find something.
+  const always = GUARDRAIL_CHECKS.filter((c) => c.stage === "after" && c.always);
+  const run = (c: GuardrailCheck) => (c as Extract<GuardrailCheck, { stage: "after" }>).run(full);
+  return [...results(declared, run), ...results(always, run).filter((r) => r.status !== "pass")];
 }

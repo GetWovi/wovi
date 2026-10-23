@@ -1,0 +1,59 @@
+{
+  "onboarding": [],
+  "reviews": [
+    {
+      "id": "run_399dfaa60b194f158644",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "runId": "run_399dfaa60b194f158644",
+      "decision": "rejected",
+      "note": "Too broad. We want tags people at desks search for.",
+      "by": "usr_664e03c0256f63dcb66c",
+      "at": "2026-10-23T07:50:44.003Z"
+    },
+    {
+      "id": "run_adf35b51f714493d9d10",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "runId": "run_adf35b51f714493d9d10",
+      "decision": "approved",
+      "note": "Shoot it Thursday.",
+      "by": "usr_664e03c0256f63dcb66c",
+      "at": "2026-10-23T07:50:44.070Z"
+    },
+    {
+      "id": "run_fefde3a7ce944ec088bb",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "runId": "run_fefde3a7ce944ec088bb",
+      "decision": "rejected",
+      "note": "Changes asked: Fewer how-tos, more of the people in the shop.",
+      "by": "usr_664e03c0256f63dcb66c",
+      "at": "2026-10-23T07:50:44.094Z"
+    },
+    {
+      "id": "run_f20d797b42274f4690e4",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "runId": "run_f20d797b42274f4690e4",
+      "decision": "approved",
+      "note": "Lovely.",
+      "by": "usr_1b9ca13a1f40ae6e8d20",
+      "at": "2026-10-23T07:50:44.140Z"
+    },
+    {
+      "id": "run_0761238ea86e4977a395",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "runId": "run_0761238ea86e4977a395",
+      "decision": "rejected",
+      "note": "Changes asked: Open on the 2 a.m. crowd, not the beans.",
+      "by": "usr_664e03c0256f63dcb66c",
+      "at": "2026-10-23T07:50:44.166Z"
+    },
+    {
+      "id": "run_93ae15c7b115445abcec",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "runId": "run_93ae15c7b115445abcec",
+      "decision": "approved",
+      "note": "Good",
+      "by": "usr_2f1d552405dab2a06ff8",
+      "at": "2026-10-23T07:50:46.844Z"
+    }
+  ]
+}

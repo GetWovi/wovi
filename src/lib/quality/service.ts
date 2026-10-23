@@ -35,6 +35,13 @@ export type QualityServiceOptions = {
   requireBuilder: (caller: Principal) => Promise<unknown>;
   /** The builder's own workspace, whose runs are bench runs. */
   benchWorkspaceId?: string;
+  /**
+   * Phase 18 (GDPR Art. 7): whether a person said their edits may be used to
+   * improve agents. The builder roll-up shows a draft's text and a change
+   * request's words only from people who did, and from the bench. Counts and
+   * scores are not affected. Left out, everything shows (tests and tools).
+   */
+  mayLearnFrom?: (userId: string) => Promise<boolean>;
 };
 
 const CHANGES = /^Changes asked:\s*/i;
@@ -47,22 +54,28 @@ export class QualityService {
   }
 
   /** The latest decision on each of these runs, with every change request on it. */
-  async decisions(runIds: Set<string>): Promise<RunDecision[]> {
+  async decisions(runIds: Set<string>, noteBy: (userId: string) => Promise<boolean> = async () => true): Promise<RunDecision[]> {
     if (!runIds.size) return [];
     const out = new Map<string, RunDecision>();
     const items = this.o.items ? (await this.o.items.find({ kind: "run" })).filter((i) => runIds.has(i.id)) : [];
-    const asked = this.o.activity ? (await this.o.activity.find({ kind: "changes_requested" })).filter((a) => runIds.has(a.itemId)) : [];
+    const asked: ActivityRow[] = [];
+    for (const a of this.o.activity ? (await this.o.activity.find({ kind: "changes_requested" })).filter((a) => runIds.has(a.itemId)) : []) {
+      // Without consent the request still counts; its words are left out.
+      asked.push((await noteBy(a.by)) ? a : { ...a, note: "" });
+    }
     for (const it of items) {
-      const notes = asked.filter((a) => a.itemId === it.id).sort((a, b) => a.at.localeCompare(b.at)).map((a) => a.note);
+      const all = asked.filter((a) => a.itemId === it.id).sort((a, b) => a.at.localeCompare(b.at));
+      const notes = all.map((a) => a.note).filter(Boolean);
       if (it.status === "approved" || it.status === "rejected" || it.status === "changes_requested") {
-        out.set(it.id, { runId: it.id, outcome: it.status, changesAsked: notes.length || (it.status === "changes_requested" ? 1 : 0), changeNotes: notes, at: it.last?.at ?? it.updatedAt });
+        out.set(it.id, { runId: it.id, outcome: it.status, changesAsked: all.length || (it.status === "changes_requested" ? 1 : 0), changeNotes: notes, at: it.last?.at ?? it.updatedAt });
       }
     }
     // Phase 9 decisions on runs the team never touched. A change request shows there as a rejection with its note.
     for (const r of await this.o.reviews.find({})) {
       if (!runIds.has(r.runId) || out.has(r.runId)) continue;
       const changes = r.decision === "rejected" && CHANGES.test(r.note);
-      out.set(r.runId, { runId: r.runId, outcome: changes ? "changes_requested" : r.decision, changesAsked: changes ? 1 : 0, changeNotes: changes ? [r.note.replace(CHANGES, "")] : [], at: r.at });
+      const words = changes && (await noteBy(r.by)) ? [r.note.replace(CHANGES, "")] : [];
+      out.set(r.runId, { runId: r.runId, outcome: changes ? "changes_requested" : r.decision, changesAsked: changes ? 1 : 0, changeNotes: words, at: r.at });
     }
     return [...out.values()];
   }
@@ -84,7 +97,19 @@ export class QualityService {
     await this.o.requireBuilder(caller);
     const runs = await this.o.runs.runsOfAgent(agentWorkspaceId, agentId);
     const ratings = await this.o.ratings.find({ agentId });
-    return builderRollup(runs, await this.decisions(new Set(runs.map((r) => r.id))), ratings, this.bench);
+    const may = this.o.mayLearnFrom;
+    if (!may) return builderRollup(runs, await this.decisions(new Set(runs.map((r) => r.id))), ratings, this.bench);
+    const asked = new Map<string, boolean>();
+    const allowed = async (userId: string | null | undefined) => {
+      if (!userId || !userId.startsWith("usr_")) return false;
+      if (!asked.has(userId)) asked.set(userId, await may(userId).catch(() => false));
+      return asked.get(userId)!;
+    };
+    const makers = new Map((this.o.items ? await this.o.items.find({ kind: "run" }) : []).map((i) => [i.id, i.makerId]));
+    const ok = new Set<string>();
+    for (const r of runs) if (r.workspaceId === this.bench || (await allowed(r.credits?.userId ?? makers.get(r.id) ?? null))) ok.add(r.id);
+    const decisions = await this.decisions(new Set(runs.map((r) => r.id)), allowed);
+    return builderRollup(runs, decisions, ratings, this.bench, 6, (r) => ok.has(r.id));
   }
 }
 

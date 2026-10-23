@@ -1006,7 +1006,8 @@ export class Team {
     const item = await this.view(src, await this.row(link.workspaceId, id), settings, await this.clientsOf(link.workspaceId), new Map(), comments.length);
     return {
       item: clientView(item),
-      output: src.run?.output ?? null,
+      // Phase 18: an output taken down after a report is hidden here too.
+      output: src.run && !src.run.withheld ? src.run.output : null,
       package: src.pipeline?.package ?? null,
       threads: threads(comments),
       activity: (await this.s.activity.find({ workspaceId: link.workspaceId, itemId: id })).filter((a) => CLIENT_ACTIVITY.includes(a.kind)).sort((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id)),

@@ -148,6 +148,7 @@ export const RunSchema = z
     decision: DecisionSchema.nullable().describe("A person's decision on it. Keys cannot decide."),
     createdAt: z.string(),
     finishedAt: z.string().nullable(),
+    aiGenerated: z.literal(true).describe("Always true: an AI model wrote the output (EU AI Act Art. 50). Label it where a platform asks."),
   })
   .describe("One run of one agent.");
 

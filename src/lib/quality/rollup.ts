@@ -73,7 +73,7 @@ function normalizeNote(note: string): string {
  * Per version, newest first. `benchWorkspaceId` names the builder's own
  * workspace, whose runs are bench runs.
  */
-export function builderRollup(runs: Run[], decisions: RunDecision[], ratings: Rating[], benchWorkspaceId: string, maxExamples = 6): VersionRollup[] {
+export function builderRollup(runs: Run[], decisions: RunDecision[], ratings: Rating[], benchWorkspaceId: string, maxExamples = 6, learnable: (run: Run) => boolean = () => true): VersionRollup[] {
   const versions = [...new Set([...runs.map((r) => r.agent.version), ...ratings.map((r) => r.version)])].sort((a, b) => compareSemver(b, a));
   const byRun = new Map(decisions.map((d) => [d.runId, d]));
   return versions.map((version) => {
@@ -105,7 +105,8 @@ export function builderRollup(runs: Run[], decisions: RunDecision[], ratings: Ra
         }
       }
       // One example per run: the result that still went to review, or the first draft the gate sent back.
-      if (examples.length >= maxExamples) continue;
+      // Phase 18: a draft's text is shown only from the bench or from people who said their edits may improve agents.
+      if (examples.length >= maxExamples || !learnable(r)) continue;
       const first = q.attempts.find((a) => a.n === 0 && a.n !== q.used && !a.ready && a.output);
       if (q.verdict !== "ready") {
         examples.push({ runId: r.id, at: r.createdAt, score: q.score, kind: "result", reasons: q.reasons.slice(0, 3), text: draftText(r.output), rewrittenTo: null });

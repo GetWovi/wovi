@@ -30,7 +30,7 @@ export default async function SettingsPage() {
     { href: "/app/notifications", icon: "bell", title: "Notifications", text: "Assigned to you, mentioned, changes asked and approved. In the app, and by email when the workspace wants it.", foot: "Open the list" },
     { href: "/account", icon: "user", title: "Workspace and members", text: `${current?.name ?? "This workspace"}, you are ${current?.role ?? "a member"}. Rename it, invite people, set roles, or make a new workspace for a client.`, foot: "Open account" },
     { href: "/app/settings/api", icon: "link", title: "API and assistants", text: "Use these agents from Claude, ChatGPT, Cursor or your own software. Keys, the MCP setup, the API reference and webhooks.", foot: "Connect" },
-    { href: "/account", icon: "check-circle", title: "Sign-in and wallet", text: info.user.email ? `A link and a code to ${info.user.email}. Add a passkey or link a wallet.` : "Passkey account. Add another passkey or link a wallet.", foot: "Open account" },
+    { href: "/account#your-data", icon: "check-circle", title: "Sign-in and your data", text: `${info.user.email ? `A link and a code to ${info.user.email}.` : "Passkey account."} Passkeys, wallets, a copy of your data, or deleting your account.`, foot: "Open account" },
     { href: "/app/welcome?restart=1", icon: "refresh", title: "Onboarding again", text: "Walk through the welcome once more: niche, platforms and 3 to 5 posts make a new Brand Brain.", foot: "Start over" },
   ];
 
@@ -51,6 +51,11 @@ export default async function SettingsPage() {
           {platformOwner && (
             <ButtonLink href="/app/settings/token" variant="secondary" size="sm" leading={<Icon name="flame" size={16} />}>
               $WOVI keeper
+            </ButtonLink>
+          )}
+          {platformOwner && (
+            <ButtonLink href="/app/settings/safety" variant="secondary" size="sm" leading={<Icon name="inbox" size={16} />}>
+              Reports and refunds
             </ButtonLink>
           )}
           {builder && (

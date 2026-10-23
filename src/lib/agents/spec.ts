@@ -220,6 +220,18 @@ const bodyShape = {
     })
     .partial()
     .optional(),
+  /**
+   * Content rules this agent adds to the platform's own (phase 18): plain
+   * phrases it refuses in a request and keeps out of a draft, like a
+   * competitor's name or a topic a builder never wants it to touch. The
+   * platform rules in src/lib/safety/rules.ts always apply. Optional, so
+   * every spec saved before phase 18 reads unchanged.
+   */
+  safety: z
+    .strictObject({
+      block: z.array(z.string().trim().min(2, "A blocked phrase needs at least 2 characters.").max(60, "A blocked phrase is at most 60 characters.")).max(30, "At most 30 blocked phrases."),
+    })
+    .optional(),
 };
 
 export const OWNER_KINDS = ["platform", "creator"] as const;
@@ -361,8 +373,8 @@ export function validateAgentBody(input: unknown): Validation<AgentBody> {
 }
 
 /** What users, the gallery, MCP and the API may see: no routing, no instructions. */
-export function publicView(spec: AgentSpec): Omit<AgentSpec, "routing" | "instructions"> {
+export function publicView(spec: AgentSpec): Omit<AgentSpec, "routing" | "instructions" | "safety"> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { routing, instructions, ...rest } = spec;
+  const { routing, instructions, safety, ...rest } = spec;
   return rest;
 }

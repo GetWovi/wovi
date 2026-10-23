@@ -1,0 +1,1203 @@
+{
+  "pipelines": [
+    {
+      "id": "ws_wovi:idea-to-post",
+      "workspaceId": "ws_wovi",
+      "pipelineId": "idea-to-post",
+      "owner": {
+        "kind": "platform",
+        "creatorId": "creator_wovi"
+      },
+      "status": "live",
+      "visibility": "public",
+      "currentVersion": "1.0.0",
+      "statusBeforeHide": null,
+      "createdAt": "2026-10-23T07:50:39.195Z",
+      "updatedAt": "2026-10-23T07:50:39.195Z"
+    },
+    {
+      "id": "ws_wovi:repurpose-post",
+      "workspaceId": "ws_wovi",
+      "pipelineId": "repurpose-post",
+      "owner": {
+        "kind": "platform",
+        "creatorId": "creator_wovi"
+      },
+      "status": "live",
+      "visibility": "public",
+      "currentVersion": "1.0.0",
+      "statusBeforeHide": null,
+      "createdAt": "2026-10-23T07:50:39.200Z",
+      "updatedAt": "2026-10-23T07:50:39.200Z"
+    },
+    {
+      "id": "ws_wovi:caption-and-tags",
+      "workspaceId": "ws_wovi",
+      "pipelineId": "caption-and-tags",
+      "owner": {
+        "kind": "platform",
+        "creatorId": "creator_wovi"
+      },
+      "status": "live",
+      "visibility": "public",
+      "currentVersion": "1.0.0",
+      "statusBeforeHide": null,
+      "createdAt": "2026-10-23T07:50:39.205Z",
+      "updatedAt": "2026-10-23T07:50:39.205Z"
+    }
+  ],
+  "pipelineVersions": [
+    {
+      "id": "ws_wovi:idea-to-post@1.0.0",
+      "workspaceId": "ws_wovi",
+      "pipelineId": "idea-to-post",
+      "version": "1.0.0",
+      "body": {
+        "id": "idea-to-post",
+        "version": "1.0.0",
+        "name": "Idea to ready post",
+        "job": "Takes one idea to a hook, a script, a caption and tags for a short video, in your voice, ready for your yes.",
+        "inputs": [
+          {
+            "key": "start",
+            "label": "Where to start",
+            "required": true,
+            "help": "With ideas first, Idea Generator gives you seven and you pick one.",
+            "type": "choice",
+            "options": [
+              {
+                "value": "my_idea",
+                "label": "I have an idea"
+              },
+              {
+                "value": "ideas",
+                "label": "Give me ideas first"
+              }
+            ],
+            "multiple": false,
+            "default": "my_idea"
+          },
+          {
+            "key": "platform",
+            "label": "Platform",
+            "required": true,
+            "help": "Where the video goes.",
+            "type": "choice",
+            "options": [
+              {
+                "value": "tiktok",
+                "label": "TikTok"
+              },
+              {
+                "value": "shorts",
+                "label": "YouTube Shorts"
+              },
+              {
+                "value": "reels",
+                "label": "Instagram Reels"
+              }
+            ],
+            "multiple": false,
+            "default": "tiktok"
+          },
+          {
+            "key": "idea",
+            "label": "Your idea",
+            "required": true,
+            "help": "One or two sentences with the real details: names, numbers, what happens. With ideas first, say what to post about.",
+            "type": "long_text",
+            "limits": {
+              "minLength": 10,
+              "maxLength": 300
+            }
+          },
+          {
+            "key": "length",
+            "label": "Length",
+            "required": true,
+            "type": "choice",
+            "options": [
+              {
+                "value": "s15",
+                "label": "15 seconds"
+              },
+              {
+                "value": "s30",
+                "label": "30 seconds"
+              },
+              {
+                "value": "s60",
+                "label": "60 seconds"
+              }
+            ],
+            "multiple": false,
+            "default": "s30"
+          },
+          {
+            "key": "details",
+            "label": "Facts to include",
+            "required": false,
+            "help": "Anything the caption must get exactly right, like a date, a price or a name.",
+            "type": "text",
+            "limits": {
+              "maxLength": 300
+            }
+          },
+          {
+            "key": "footage",
+            "label": "What you can film",
+            "required": false,
+            "help": "Places, things and people you can actually film, like: the counter, the oven, my hands.",
+            "type": "long_text",
+            "limits": {
+              "maxLength": 400
+            }
+          },
+          {
+            "key": "brand",
+            "label": "Brand Brain",
+            "required": false,
+            "help": "Which brand or client this is for. Uses your default Brand Brain when left empty.",
+            "type": "profile"
+          }
+        ],
+        "brand": {
+          "input": "brand"
+        },
+        "steps": [
+          {
+            "id": "ideas",
+            "label": "Find the idea",
+            "agent": {
+              "id": "idea-generator",
+              "version": "current"
+            },
+            "inputs": {
+              "topic": {
+                "from": "input",
+                "key": "idea"
+              },
+              "platform": {
+                "from": "input",
+                "key": "platform"
+              }
+            },
+            "choose": {
+              "kind": "ask",
+              "label": "Pick the idea to make"
+            },
+            "onFail": {
+              "when": "brand",
+              "rewrite": true,
+              "then": "review"
+            },
+            "runIf": {
+              "input": "start",
+              "equals": "ideas"
+            }
+          },
+          {
+            "id": "hooks",
+            "label": "Write the hooks",
+            "agent": {
+              "id": "hook-writer",
+              "version": "current"
+            },
+            "inputs": {
+              "idea": {
+                "from": "template",
+                "text": "{{steps.ideas.picked.idea|inputs.idea}}"
+              },
+              "platform": {
+                "from": "input",
+                "key": "platform"
+              }
+            },
+            "choose": {
+              "kind": "ask",
+              "label": "Pick the hook you like best"
+            },
+            "onFail": {
+              "when": "brand",
+              "rewrite": true,
+              "then": "review"
+            }
+          },
+          {
+            "id": "script",
+            "label": "Write the script",
+            "agent": {
+              "id": "script-writer",
+              "version": "current"
+            },
+            "inputs": {
+              "idea": {
+                "from": "template",
+                "text": "Open with this hook: {{steps.hooks.picked}}\n\nThe idea: {{steps.ideas.picked.idea|inputs.idea}}"
+              },
+              "length": {
+                "from": "input",
+                "key": "length"
+              },
+              "footage": {
+                "from": "input",
+                "key": "footage"
+              }
+            },
+            "onFail": {
+              "when": "brand",
+              "rewrite": true,
+              "then": "review"
+            }
+          },
+          {
+            "id": "caption",
+            "label": "Write the caption",
+            "agent": {
+              "id": "caption-writer",
+              "version": "current"
+            },
+            "inputs": {
+              "post": {
+                "from": "step",
+                "step": "script",
+                "take": "all"
+              },
+              "platforms": {
+                "from": "input",
+                "key": "platform"
+              },
+              "details": {
+                "from": "input",
+                "key": "details"
+              }
+            },
+            "choose": {
+              "kind": "best_brand_fit"
+            },
+            "onFail": {
+              "when": "brand",
+              "rewrite": true,
+              "then": "review"
+            }
+          },
+          {
+            "id": "tags",
+            "label": "Pick the tags",
+            "agent": {
+              "id": "hashtag-picker",
+              "version": "current"
+            },
+            "inputs": {
+              "caption": {
+                "from": "step",
+                "step": "caption",
+                "take": "picked"
+              },
+              "platform": {
+                "from": "input",
+                "key": "platform"
+              }
+            }
+          }
+        ],
+        "package": [
+          {
+            "step": "ideas",
+            "label": "Idea",
+            "take": "picked"
+          },
+          {
+            "step": "hooks",
+            "label": "Hook",
+            "take": "picked"
+          },
+          {
+            "step": "script",
+            "label": "Script",
+            "take": "all"
+          },
+          {
+            "step": "caption",
+            "label": "Caption",
+            "take": "picked"
+          },
+          {
+            "step": "tags",
+            "label": "Tags and search words",
+            "take": "all"
+          }
+        ],
+        "approve": {
+          "label": "Happy with it? Approve it and it is ready to post."
+        },
+        "maxCostUsd": 1
+      },
+      "note": "Pipeline template",
+      "by": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.195Z"
+    },
+    {
+      "id": "ws_wovi:repurpose-post@1.0.0",
+      "workspaceId": "ws_wovi",
+      "pipelineId": "repurpose-post",
+      "version": "1.0.0",
+      "body": {
+        "id": "repurpose-post",
+        "version": "1.0.0",
+        "name": "Repurpose a post that worked",
+        "job": "Turns one post that worked into a native version for another platform, with the tags to go with it.",
+        "inputs": [
+          {
+            "key": "post",
+            "label": "The post that worked",
+            "required": true,
+            "help": "Paste the post, caption or script as it ran. Only use work you own or have the rights to.",
+            "type": "long_text",
+            "limits": {
+              "minLength": 20,
+              "maxLength": 5000
+            }
+          },
+          {
+            "key": "posted_on",
+            "label": "Where it was posted",
+            "required": true,
+            "type": "choice",
+            "options": [
+              {
+                "value": "x",
+                "label": "X"
+              },
+              {
+                "value": "tiktok",
+                "label": "TikTok"
+              },
+              {
+                "value": "shorts",
+                "label": "YouTube Shorts"
+              },
+              {
+                "value": "reels",
+                "label": "Instagram Reels"
+              },
+              {
+                "value": "other",
+                "label": "Somewhere else, like a blog or newsletter"
+              }
+            ],
+            "multiple": false
+          },
+          {
+            "key": "to",
+            "label": "Make a version for",
+            "required": true,
+            "help": "The platform you want the new version for.",
+            "type": "choice",
+            "options": [
+              {
+                "value": "x",
+                "label": "X"
+              },
+              {
+                "value": "tiktok",
+                "label": "TikTok"
+              },
+              {
+                "value": "shorts",
+                "label": "YouTube Shorts"
+              },
+              {
+                "value": "reels",
+                "label": "Instagram Reels"
+              }
+            ],
+            "multiple": false
+          },
+          {
+            "key": "keep",
+            "label": "Must stay the same",
+            "required": false,
+            "help": "Lines, names or facts to keep word for word. Leave empty if none.",
+            "type": "long_text",
+            "limits": {
+              "maxLength": 300
+            }
+          },
+          {
+            "key": "brand",
+            "label": "Brand Brain",
+            "required": false,
+            "help": "Which brand or client this is for. Uses your default Brand Brain when left empty.",
+            "type": "profile"
+          }
+        ],
+        "brand": {
+          "input": "brand"
+        },
+        "steps": [
+          {
+            "id": "version",
+            "label": "Make the new version",
+            "agent": {
+              "id": "repurposer",
+              "version": "current"
+            },
+            "inputs": {
+              "post": {
+                "from": "input",
+                "key": "post"
+              },
+              "posted_on": {
+                "from": "input",
+                "key": "posted_on"
+              },
+              "to": {
+                "from": "input",
+                "key": "to"
+              },
+              "keep": {
+                "from": "input",
+                "key": "keep"
+              }
+            },
+            "choose": {
+              "kind": "item",
+              "index": 0
+            },
+            "onFail": {
+              "when": "brand",
+              "rewrite": true,
+              "then": "review"
+            }
+          },
+          {
+            "id": "tags",
+            "label": "Pick the tags",
+            "agent": {
+              "id": "hashtag-picker",
+              "version": "current"
+            },
+            "inputs": {
+              "caption": {
+                "from": "step",
+                "step": "version",
+                "take": "picked"
+              },
+              "platform": {
+                "from": "input",
+                "key": "to"
+              }
+            }
+          }
+        ],
+        "package": [
+          {
+            "step": "version",
+            "label": "New version",
+            "take": "picked"
+          },
+          {
+            "step": "tags",
+            "label": "Tags and search words",
+            "take": "all"
+          }
+        ],
+        "approve": {
+          "label": "Happy with it? Approve it and it is ready to post."
+        },
+        "maxCostUsd": 0.5
+      },
+      "note": "Pipeline template",
+      "by": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.200Z"
+    },
+    {
+      "id": "ws_wovi:caption-and-tags@1.0.0",
+      "workspaceId": "ws_wovi",
+      "pipelineId": "caption-and-tags",
+      "version": "1.0.0",
+      "body": {
+        "id": "caption-and-tags",
+        "version": "1.0.0",
+        "name": "Caption and tags for a clip",
+        "job": "Writes captions for a clip you already have, lets you pick one, then adds the tags and search words.",
+        "inputs": [
+          {
+            "key": "post",
+            "label": "What the clip shows",
+            "required": true,
+            "help": "Describe the clip or photo, or paste the script.",
+            "type": "long_text",
+            "limits": {
+              "minLength": 10,
+              "maxLength": 2000
+            }
+          },
+          {
+            "key": "platform",
+            "label": "Platform",
+            "required": true,
+            "type": "choice",
+            "options": [
+              {
+                "value": "x",
+                "label": "X"
+              },
+              {
+                "value": "tiktok",
+                "label": "TikTok"
+              },
+              {
+                "value": "shorts",
+                "label": "YouTube Shorts"
+              },
+              {
+                "value": "reels",
+                "label": "Instagram Reels"
+              }
+            ],
+            "multiple": false,
+            "default": "tiktok"
+          },
+          {
+            "key": "location",
+            "label": "Where you are",
+            "required": false,
+            "help": "Town or area, if your customers are local.",
+            "type": "text",
+            "limits": {
+              "maxLength": 80
+            }
+          },
+          {
+            "key": "details",
+            "label": "Facts to include",
+            "required": false,
+            "help": "Anything the caption must get exactly right, like a date, a price or a name.",
+            "type": "long_text",
+            "limits": {
+              "maxLength": 300
+            }
+          },
+          {
+            "key": "brand",
+            "label": "Brand Brain",
+            "required": false,
+            "help": "Which brand or client this is for. Uses your default Brand Brain when left empty.",
+            "type": "profile"
+          }
+        ],
+        "brand": {
+          "input": "brand"
+        },
+        "steps": [
+          {
+            "id": "caption",
+            "label": "Write the captions",
+            "agent": {
+              "id": "caption-writer",
+              "version": "current"
+            },
+            "inputs": {
+              "post": {
+                "from": "input",
+                "key": "post"
+              },
+              "platforms": {
+                "from": "input",
+                "key": "platform"
+              },
+              "details": {
+                "from": "input",
+                "key": "details"
+              }
+            },
+            "choose": {
+              "kind": "ask",
+              "label": "Pick the caption you like best"
+            },
+            "onFail": {
+              "when": "brand",
+              "rewrite": true,
+              "then": "review"
+            }
+          },
+          {
+            "id": "tags",
+            "label": "Pick the tags",
+            "agent": {
+              "id": "hashtag-picker",
+              "version": "current"
+            },
+            "inputs": {
+              "caption": {
+                "from": "step",
+                "step": "caption",
+                "take": "picked"
+              },
+              "platform": {
+                "from": "input",
+                "key": "platform"
+              },
+              "location": {
+                "from": "input",
+                "key": "location"
+              }
+            }
+          }
+        ],
+        "package": [
+          {
+            "step": "caption",
+            "label": "Caption",
+            "take": "picked"
+          },
+          {
+            "step": "tags",
+            "label": "Tags and search words",
+            "take": "all"
+          }
+        ],
+        "approve": {
+          "label": "Happy with it? Approve it and it is ready to post."
+        },
+        "maxCostUsd": 0.3
+      },
+      "note": "Pipeline template",
+      "by": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.205Z"
+    }
+  ],
+  "pipelineRuns": [
+    {
+      "id": "pip_9a40230bd0de4b14a2a8",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "pipeline": {
+        "workspaceId": "ws_wovi",
+        "id": "repurpose-post",
+        "version": "1.0.0",
+        "name": "Repurpose a post that worked"
+      },
+      "spec": {
+        "id": "repurpose-post",
+        "version": "1.0.0",
+        "name": "Repurpose a post that worked",
+        "job": "Turns one post that worked into a native version for another platform, with the tags to go with it.",
+        "inputs": [
+          {
+            "key": "post",
+            "label": "The post that worked",
+            "required": true,
+            "help": "Paste the post, caption or script as it ran. Only use work you own or have the rights to.",
+            "type": "long_text",
+            "limits": {
+              "minLength": 20,
+              "maxLength": 5000
+            }
+          },
+          {
+            "key": "posted_on",
+            "label": "Where it was posted",
+            "required": true,
+            "type": "choice",
+            "options": [
+              {
+                "value": "x",
+                "label": "X"
+              },
+              {
+                "value": "tiktok",
+                "label": "TikTok"
+              },
+              {
+                "value": "shorts",
+                "label": "YouTube Shorts"
+              },
+              {
+                "value": "reels",
+                "label": "Instagram Reels"
+              },
+              {
+                "value": "other",
+                "label": "Somewhere else, like a blog or newsletter"
+              }
+            ],
+            "multiple": false
+          },
+          {
+            "key": "to",
+            "label": "Make a version for",
+            "required": true,
+            "help": "The platform you want the new version for.",
+            "type": "choice",
+            "options": [
+              {
+                "value": "x",
+                "label": "X"
+              },
+              {
+                "value": "tiktok",
+                "label": "TikTok"
+              },
+              {
+                "value": "shorts",
+                "label": "YouTube Shorts"
+              },
+              {
+                "value": "reels",
+                "label": "Instagram Reels"
+              }
+            ],
+            "multiple": false
+          },
+          {
+            "key": "keep",
+            "label": "Must stay the same",
+            "required": false,
+            "help": "Lines, names or facts to keep word for word. Leave empty if none.",
+            "type": "long_text",
+            "limits": {
+              "maxLength": 300
+            }
+          },
+          {
+            "key": "brand",
+            "label": "Brand Brain",
+            "required": false,
+            "help": "Which brand or client this is for. Uses your default Brand Brain when left empty.",
+            "type": "profile"
+          }
+        ],
+        "brand": {
+          "input": "brand"
+        },
+        "steps": [
+          {
+            "id": "version",
+            "label": "Make the new version",
+            "agent": {
+              "id": "repurposer",
+              "version": "current"
+            },
+            "inputs": {
+              "post": {
+                "from": "input",
+                "key": "post"
+              },
+              "posted_on": {
+                "from": "input",
+                "key": "posted_on"
+              },
+              "to": {
+                "from": "input",
+                "key": "to"
+              },
+              "keep": {
+                "from": "input",
+                "key": "keep"
+              }
+            },
+            "choose": {
+              "kind": "item",
+              "index": 0
+            },
+            "onFail": {
+              "when": "brand",
+              "rewrite": true,
+              "then": "review"
+            }
+          },
+          {
+            "id": "tags",
+            "label": "Pick the tags",
+            "agent": {
+              "id": "hashtag-picker",
+              "version": "current"
+            },
+            "inputs": {
+              "caption": {
+                "from": "step",
+                "step": "version",
+                "take": "picked"
+              },
+              "platform": {
+                "from": "input",
+                "key": "to"
+              }
+            }
+          }
+        ],
+        "package": [
+          {
+            "step": "version",
+            "label": "New version",
+            "take": "picked"
+          },
+          {
+            "step": "tags",
+            "label": "Tags and search words",
+            "take": "all"
+          }
+        ],
+        "approve": {
+          "label": "Happy with it? Approve it and it is ready to post."
+        },
+        "maxCostUsd": 0.5
+      },
+      "inputs": {
+        "post": "Our 2 a.m. regulars voted: the oat flat white stays on the night menu. Thank you, night owls.",
+        "posted_on": "x",
+        "to": "tiktok",
+        "brand": "bb_2defbfc85074e66410c9"
+      },
+      "brandBrain": {
+        "id": "bb_2defbfc85074e66410c9",
+        "name": "Night Owl Coffee"
+      },
+      "brandIdea": null,
+      "confirmations": {
+        "rights": true
+      },
+      "idempotencyKey": null,
+      "requestHash": "a2c87efe35f22cb576c848842cf785ada74fee872f852e163ffd85cd6c508c6c",
+      "status": "ready",
+      "needsReview": false,
+      "steps": [
+        {
+          "id": "version",
+          "label": "Make the new version",
+          "agent": {
+            "workspaceId": "ws_wovi",
+            "id": "repurposer",
+            "version": "2.0.0",
+            "name": "Platform Repurposer"
+          },
+          "status": "done",
+          "runIds": [
+            "run_3428119eb5ee4b298273"
+          ],
+          "runId": "run_3428119eb5ee4b298273",
+          "retries": 0,
+          "rewrite": null,
+          "inputs": {
+            "post": "Our 2 a.m. regulars voted: the oat flat white stays on the night menu. Thank you, night owls.",
+            "posted_on": "x",
+            "to": "tiktok"
+          },
+          "output": {
+            "kind": "caption_set",
+            "captions": [
+              {
+                "platform": "x",
+                "variants": [
+                  "Owls tiktok given regulars voted flat"
+                ]
+              },
+              {
+                "platform": "tiktok",
+                "variants": [
+                  "Stays night menu thank owls tiktok"
+                ]
+              },
+              {
+                "platform": "shorts",
+                "variants": [
+                  "Regulars voted flat white stays night"
+                ]
+              },
+              {
+                "platform": "reels",
+                "variants": [
+                  "Thank owls tiktok given regulars voted"
+                ]
+              }
+            ]
+          },
+          "candidates": [
+            {
+              "label": "X",
+              "text": "Owls tiktok given regulars voted flat",
+              "fields": null,
+              "brandFit": 74,
+              "flags": []
+            },
+            {
+              "label": "TikTok",
+              "text": "Stays night menu thank owls tiktok",
+              "fields": null,
+              "brandFit": 75,
+              "flags": []
+            },
+            {
+              "label": "YouTube Shorts",
+              "text": "Regulars voted flat white stays night",
+              "fields": null,
+              "brandFit": 75,
+              "flags": []
+            },
+            {
+              "label": "Instagram Reels",
+              "text": "Thank owls tiktok given regulars voted",
+              "fields": null,
+              "brandFit": 74,
+              "flags": []
+            }
+          ],
+          "suggested": null,
+          "picked": {
+            "index": 0,
+            "by": "rule",
+            "at": "2026-10-23T07:50:44.285Z"
+          },
+          "brandFit": 75,
+          "checks": [
+            {
+              "guardrail": "rights_confirmed",
+              "check": "rights_confirmation",
+              "status": "pass",
+              "message": "The user confirmed they own or may use this content."
+            },
+            {
+              "guardrail": "banned_phrases",
+              "check": "anti_slop_phrases",
+              "status": "pass",
+              "message": "No generic filler phrases."
+            },
+            {
+              "guardrail": "no_misleading_claims",
+              "check": "misleading_claim_phrases",
+              "status": "pass",
+              "message": "No misleading claims."
+            },
+            {
+              "guardrail": "no_fake_testimonials",
+              "check": "testimonial_phrases",
+              "status": "pass",
+              "message": "No testimonial-like lines."
+            },
+            {
+              "guardrail": "brand_voice_check",
+              "check": "brand_banned_words",
+              "status": "pass",
+              "message": "None of the brand's banned words."
+            },
+            {
+              "guardrail": "brand_voice_check",
+              "check": "brand_fit",
+              "status": "pass",
+              "message": "Brand fit 75. Close to the voice's sample lines.",
+              "findings": [
+                "Closest sample line: \"the last cup is always the best one\""
+              ],
+              "score": 75
+            },
+            {
+              "guardrail": "specificity_check",
+              "check": "specific_to_input",
+              "status": "pass",
+              "message": "Anchored to the input, no repeats."
+            },
+            {
+              "guardrail": "platform_policy",
+              "check": "platform_lengths",
+              "status": "pass",
+              "message": "Inside every platform limit."
+            }
+          ],
+          "quality": {
+            "score": 91,
+            "threshold": 65,
+            "verdict": "ready",
+            "rewrites": 0,
+            "firstScore": 91,
+            "reasons": []
+          },
+          "costMicroUsd": 7460,
+          "error": null,
+          "startedAt": "2026-10-23T07:50:44.261Z",
+          "finishedAt": "2026-10-23T07:50:44.285Z"
+        },
+        {
+          "id": "tags",
+          "label": "Pick the tags",
+          "agent": {
+            "workspaceId": "ws_wovi",
+            "id": "hashtag-picker",
+            "version": "2.0.0",
+            "name": "Hashtag Optimizer"
+          },
+          "status": "done",
+          "runIds": [
+            "run_e9cdbb4a59b1497ba350"
+          ],
+          "runId": "run_e9cdbb4a59b1497ba350",
+          "retries": 0,
+          "rewrite": null,
+          "inputs": {
+            "caption": "Owls tiktok given regulars voted flat",
+            "platform": "tiktok"
+          },
+          "output": {
+            "kind": "list",
+            "items": [
+              {
+                "type": "Owls given regulars voted flat tiktok",
+                "term": "Given regulars voted flat tiktok owls",
+                "where": "Regulars voted flat tiktok owls given",
+                "why": "Voted flat tiktok owls given regulars"
+              },
+              {
+                "type": "Flat tiktok owls given regulars voted",
+                "term": "Tiktok owls given regulars voted flat",
+                "where": "Owls regulars flat owls regulars flat",
+                "why": "Given voted tiktok given voted tiktok"
+              },
+              {
+                "type": "Regulars flat owls regulars flat owls",
+                "term": "Voted tiktok given voted tiktok given",
+                "where": "Flat owls regulars flat owls regulars",
+                "why": "Tiktok given voted tiktok given voted"
+              },
+              {
+                "type": "Owls voted owls voted owls voted",
+                "term": "Given flat given flat given flat",
+                "where": "Regulars tiktok regulars tiktok regulars tiktok",
+                "why": "Voted owls voted owls voted owls"
+              },
+              {
+                "type": "Flat given flat given flat given",
+                "term": "Tiktok regulars tiktok regulars tiktok regulars",
+                "where": "Owls flat regulars owls flat regulars",
+                "why": "Given tiktok voted given tiktok voted"
+              },
+              {
+                "type": "Regulars owls flat regulars owls flat",
+                "term": "Voted given tiktok voted given tiktok",
+                "where": "Flat regulars owls flat regulars owls",
+                "why": "Tiktok voted given tiktok voted given"
+              }
+            ]
+          },
+          "candidates": [],
+          "suggested": null,
+          "picked": null,
+          "brandFit": null,
+          "checks": [
+            {
+              "guardrail": "banned_phrases",
+              "check": "anti_slop_phrases",
+              "status": "pass",
+              "message": "No generic filler phrases."
+            },
+            {
+              "guardrail": "no_misleading_claims",
+              "check": "misleading_claim_phrases",
+              "status": "pass",
+              "message": "No misleading claims."
+            },
+            {
+              "guardrail": "specificity_check",
+              "check": "specific_to_input",
+              "status": "pass",
+              "message": "Anchored to the input, no repeats."
+            },
+            {
+              "guardrail": "platform_policy",
+              "check": "platform_lengths",
+              "status": "pass",
+              "message": "Inside every platform limit."
+            }
+          ],
+          "quality": {
+            "score": 90,
+            "threshold": 65,
+            "verdict": "ready",
+            "rewrites": 0,
+            "firstScore": 90,
+            "reasons": []
+          },
+          "costMicroUsd": 314,
+          "error": null,
+          "startedAt": "2026-10-23T07:50:44.287Z",
+          "finishedAt": "2026-10-23T07:50:44.309Z"
+        }
+      ],
+      "package": [
+        {
+          "step": "version",
+          "label": "New version",
+          "take": "picked",
+          "item": {
+            "label": "X",
+            "text": "Owls tiktok given regulars voted flat",
+            "fields": null,
+            "brandFit": 74,
+            "flags": []
+          },
+          "output": null,
+          "brandFit": 74,
+          "flags": []
+        },
+        {
+          "step": "tags",
+          "label": "Tags and search words",
+          "take": "all",
+          "item": null,
+          "output": {
+            "kind": "list",
+            "items": [
+              {
+                "type": "Owls given regulars voted flat tiktok",
+                "term": "Given regulars voted flat tiktok owls",
+                "where": "Regulars voted flat tiktok owls given",
+                "why": "Voted flat tiktok owls given regulars"
+              },
+              {
+                "type": "Flat tiktok owls given regulars voted",
+                "term": "Tiktok owls given regulars voted flat",
+                "where": "Owls regulars flat owls regulars flat",
+                "why": "Given voted tiktok given voted tiktok"
+              },
+              {
+                "type": "Regulars flat owls regulars flat owls",
+                "term": "Voted tiktok given voted tiktok given",
+                "where": "Flat owls regulars flat owls regulars",
+                "why": "Tiktok given voted tiktok given voted"
+              },
+              {
+                "type": "Owls voted owls voted owls voted",
+                "term": "Given flat given flat given flat",
+                "where": "Regulars tiktok regulars tiktok regulars tiktok",
+                "why": "Voted owls voted owls voted owls"
+              },
+              {
+                "type": "Flat given flat given flat given",
+                "term": "Tiktok regulars tiktok regulars tiktok regulars",
+                "where": "Owls flat regulars owls flat regulars",
+                "why": "Given tiktok voted given tiktok voted"
+              },
+              {
+                "type": "Regulars owls flat regulars owls flat",
+                "term": "Voted given tiktok voted given tiktok",
+                "where": "Flat regulars owls flat regulars owls",
+                "why": "Tiktok voted given tiktok voted given"
+              }
+            ]
+          },
+          "brandFit": null,
+          "flags": []
+        }
+      ],
+      "decision": null,
+      "error": null,
+      "capMicroUsd": 500000,
+      "costMicroUsd": 7774,
+      "costUsd": 0.007774,
+      "createdBy": "usr_2575da757b7dd96f747b",
+      "createdAt": "2026-10-23T07:50:44.259Z",
+      "updatedAt": "2026-10-23T07:50:44.312Z",
+      "finishedAt": null
+    }
+  ]
+}

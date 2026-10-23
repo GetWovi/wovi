@@ -1,0 +1,3068 @@
+{
+  "runs": [
+    {
+      "id": "run_399dfaa60b194f158644",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "hashtag-picker",
+        "version": "2.0.0"
+      },
+      "inputs": {
+        "caption": "One tin of chickpeas, three dinners, about 18p of chickpeas each. Curry, sandwich filling, crispy on a salad.",
+        "platform": "tiktok"
+      },
+      "confirmations": {},
+      "brandBrain": {
+        "id": "bb_3104947d447de5e5f435",
+        "name": "Desk Stretch",
+        "updatedAt": "2026-10-23T07:50:43.923Z",
+        "parts": [
+          "voice",
+          "dos_donts"
+        ],
+        "hash": "53bfa57dccb40d63"
+      },
+      "brandPick": {
+        "id": "bb_3104947d447de5e5f435",
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "d7f99a766ed779a01f10acf24d991c8843e4c6f6b15454bbf3d638f8f5917c9a",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "list",
+        "items": [
+          {
+            "type": "Chickpeas three dinners curry sandwich filling",
+            "term": "Salad given tiktok chickpeas three dinners",
+            "where": "Sandwich filling crispy salad given tiktok",
+            "why": "Three dinners curry sandwich filling crispy"
+          },
+          {
+            "type": "Given tiktok chickpeas three dinners curry",
+            "term": "Filling crispy salad given tiktok chickpeas",
+            "where": "Dinners curry sandwich filling crispy salad",
+            "why": "Tiktok chickpeas three dinners curry sandwich"
+          },
+          {
+            "type": "Crispy salad given tiktok chickpeas three",
+            "term": "Curry sandwich filling crispy salad given",
+            "where": "Chickpeas dinners sandwich crispy given chickpeas",
+            "why": "Salad tiktok three curry filling salad"
+          },
+          {
+            "type": "Sandwich crispy given chickpeas dinners sandwich",
+            "term": "Three curry filling salad tiktok three",
+            "where": "Given chickpeas dinners sandwich crispy given",
+            "why": "Filling salad tiktok three curry filling"
+          },
+          {
+            "type": "Dinners sandwich crispy given chickpeas dinners",
+            "term": "Tiktok three curry filling salad tiktok",
+            "where": "Crispy given chickpeas dinners sandwich crispy",
+            "why": "Curry filling salad tiktok three curry"
+          },
+          {
+            "type": "Chickpeas curry crispy tiktok dinners filling",
+            "term": "Salad chickpeas curry crispy tiktok dinners",
+            "where": "Sandwich salad chickpeas curry crispy tiktok",
+            "why": "Three sandwich salad chickpeas curry crispy"
+          }
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        },
+        {
+          "guardrail": "platform_policy",
+          "check": "platform_lengths",
+          "status": "pass",
+          "message": "Inside every platform limit."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-fast",
+        "provider": "fake",
+        "model": "openai/gpt-6-luna"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-fast",
+          "provider": "fake",
+          "model": "openai/gpt-6-luna",
+          "ok": true,
+          "tokensIn": 1394,
+          "tokensOut": 389,
+          "costMicroUsd": 334,
+          "ms": 2,
+          "at": "2026-10-23T07:50:43.976Z"
+        }
+      ],
+      "tokensIn": 1394,
+      "tokensOut": 389,
+      "capMicroUsd": 30000,
+      "costMicroUsd": 334,
+      "costUsd": 0.000334,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:43.966Z",
+        "startedAt": "2026-10-23T07:50:43.970Z",
+        "finishedAt": "2026-10-23T07:50:43.997Z",
+        "queueMs": 4,
+        "runMs": 27
+      },
+      "createdAt": "2026-10-23T07:50:43.966Z",
+      "updatedAt": "2026-10-23T07:50:43.997Z",
+      "quality": {
+        "version": 1,
+        "score": 90,
+        "threshold": 65,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "6 of 6 lines name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 76,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 66,
+            "reasons": [
+              "48% like your posts that worked.",
+              "Closest: \"\"5 stretches for desk workers:\n1. Neck rolls\n2. Wrist circles\n3. Seated twist...\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 90,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 90,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_657865ff6e894c6f9f2f",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "caption-writer",
+        "version": "1.1.0"
+      },
+      "inputs": {
+        "post": "Slow pour of decaf into a cup at the bar, neon sign behind, 1 a.m. on the clock.",
+        "platforms": [
+          "x",
+          "reels"
+        ],
+        "length": "short",
+        "details": "decaf after midnight, same price",
+        "action": "nothing"
+      },
+      "confirmations": {},
+      "brandBrain": {
+        "id": "bb_2defbfc85074e66410c9",
+        "name": "Night Owl Coffee",
+        "updatedAt": "2026-10-23T07:50:43.926Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts"
+        ],
+        "hash": "1d85a22fa18cd974"
+      },
+      "brandPick": {
+        "id": "bb_2defbfc85074e66410c9",
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "bf1119bcac15facf2992dcac88ae6315e34393f5332287e4e2777a1bbe8ca02f",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "caption_set",
+        "captions": [
+          {
+            "platform": "x",
+            "variants": [
+              "Decaf neon sign behind clock instagram",
+              "Short lines after midnight same price"
+            ]
+          },
+          {
+            "platform": "tiktok",
+            "variants": [
+              "Enjoy slow pour decaf neon sign",
+              "Clock instagram reels short lines after"
+            ]
+          },
+          {
+            "platform": "shorts",
+            "variants": [
+              "Same price nothing enjoy slow pour",
+              "Neon sign behind clock instagram reels"
+            ]
+          },
+          {
+            "platform": "reels",
+            "variants": [
+              "Lines after midnight same price nothing",
+              "Slow pour decaf neon sign behind"
+            ]
+          }
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 75. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"the last cup is always the best one\""
+          ],
+          "score": 75
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        },
+        {
+          "guardrail": "platform_policy",
+          "check": "platform_lengths",
+          "status": "pass",
+          "message": "Inside every platform limit."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-standard",
+        "provider": "fake",
+        "model": "anthropic/claude-sonnet-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-standard",
+          "provider": "fake",
+          "model": "anthropic/claude-sonnet-5.5",
+          "ok": true,
+          "tokensIn": 1428,
+          "tokensOut": 168,
+          "costMicroUsd": 4536,
+          "ms": 1,
+          "at": "2026-10-23T07:50:44.016Z"
+        }
+      ],
+      "tokensIn": 1428,
+      "tokensOut": 168,
+      "capMicroUsd": 80000,
+      "costMicroUsd": 4536,
+      "costUsd": 0.004536,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:44.008Z",
+        "startedAt": "2026-10-23T07:50:44.012Z",
+        "finishedAt": "2026-10-23T07:50:44.024Z",
+        "queueMs": 4,
+        "runMs": 12
+      },
+      "createdAt": "2026-10-23T07:50:44.008Z",
+      "updatedAt": "2026-10-23T07:50:44.024Z",
+      "quality": {
+        "version": 1,
+        "score": 91,
+        "threshold": 70,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "8 of 8 lines name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 75,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 72,
+            "reasons": [
+              "57% like your posts that worked.",
+              "Closest: \"\"still open. still warm. still here.\"\nWhy it works: Three beats, no pitch\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 91,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 91,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_adf35b51f714493d9d10",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "script-writer",
+        "version": "2.0.0"
+      },
+      "inputs": {
+        "idea": "Why our croissants take three days: day one the dough, day two the butter goes in, day three they are shaped and baked. That is why they sell out by ten.",
+        "length": "s30",
+        "format": "talking_head",
+        "footage": "the bench, the fridge, the oven, my hands, the counter",
+        "mood": "brand"
+      },
+      "confirmations": {},
+      "brandBrain": {
+        "id": "bb_8639dd8db309662400af",
+        "name": "Crumb and Co",
+        "updatedAt": "2026-10-23T07:50:43.920Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts",
+          "mood_board",
+          "idea"
+        ],
+        "hash": "350f426d5e36ddd2"
+      },
+      "brandPick": {
+        "id": "bb_8639dd8db309662400af",
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "fccae47af724ccd5042194e5a4983b3c2b7bceb5dda1365a2686b8128e3dfc8a",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "script",
+        "sections": [
+          {
+            "section": "hook",
+            "spoken": "Shaped baked sell seconds talking camera",
+            "on_screen": "Fridge oven hands counter same brand",
+            "seconds": 15
+          },
+          {
+            "section": "setup",
+            "spoken": "Croissants take three days dough butter",
+            "on_screen": "Shaped sell talking bench oven counter",
+            "seconds": 15
+          },
+          {
+            "section": "turn",
+            "spoken": "Fridge hands same brain take days",
+            "on_screen": "Croissants three dough goes baked seconds",
+            "seconds": 15
+          },
+          {
+            "section": "ending",
+            "spoken": "Shaped seconds bench hands brand take",
+            "on_screen": "Fridge counter brain three butter baked",
+            "seconds": 15
+          }
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "safe_content",
+          "check": "unsafe_phrases",
+          "status": "pass",
+          "message": "No unsafe advice."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 84. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"We burned 40 croissants so you would not have to.\""
+          ],
+          "score": 84
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-strong",
+        "provider": "fake",
+        "model": "anthropic/claude-opus-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-strong",
+          "provider": "fake",
+          "model": "anthropic/claude-opus-5.5",
+          "ok": true,
+          "tokensIn": 1774,
+          "tokensOut": 183,
+          "costMicroUsd": 10756,
+          "ms": 1,
+          "at": "2026-10-23T07:50:44.051Z"
+        }
+      ],
+      "tokensIn": 1774,
+      "tokensOut": 183,
+      "capMicroUsd": 150000,
+      "costMicroUsd": 10756,
+      "costUsd": 0.010756,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:44.044Z",
+        "startedAt": "2026-10-23T07:50:44.047Z",
+        "finishedAt": "2026-10-23T07:50:44.059Z",
+        "queueMs": 3,
+        "runMs": 12
+      },
+      "createdAt": "2026-10-23T07:50:44.044Z",
+      "updatedAt": "2026-10-23T07:50:44.059Z",
+      "quality": {
+        "version": 1,
+        "score": 94,
+        "threshold": 70,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "4 of 4 beats name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 84,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 81,
+            "reasons": [
+              "70% like your posts that worked.",
+              "Closest: \"\"We burned 40 croissants so you would not have to. Here is what we learned ab...\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Nothing platform-bound to check."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 94,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 94,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_fefde3a7ce944ec088bb",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "idea-generator",
+        "version": "1.0.0"
+      },
+      "inputs": {
+        "topic": "the quiet weeks after Christmas",
+        "goal": "trust",
+        "platform": "reels",
+        "coming_up": "We open an hour later, at 7, from 6 to 31 January."
+      },
+      "confirmations": {},
+      "brandBrain": {
+        "id": "bb_8639dd8db309662400af",
+        "name": "Crumb and Co",
+        "updatedAt": "2026-10-23T07:50:43.920Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts",
+          "idea"
+        ],
+        "hash": "03b54e0fcd450477"
+      },
+      "brandPick": {
+        "id": "bb_8639dd8db309662400af",
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "0f1b4a75269ca8d3947df3f4743f056a3670366c0cf989104e8b1f1893316ab5",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "list",
+        "items": [
+          {
+            "idea": "Open hour later january instagram reels",
+            "format": "Weeks after christmas build trust open",
+            "why_it_fits": "Later january instagram reels quiet weeks"
+          },
+          {
+            "idea": "Christmas build trust open hour later",
+            "format": "Instagram reels quiet weeks after christmas",
+            "why_it_fits": "Trust open hour later january instagram"
+          },
+          {
+            "idea": "Quiet weeks after christmas build trust",
+            "format": "Hour later january instagram reels quiet",
+            "why_it_fits": "After christmas build trust open hour"
+          },
+          {
+            "idea": "January instagram reels quiet weeks after",
+            "format": "Build trust open hour later january",
+            "why_it_fits": "Reels quiet weeks after christmas build"
+          },
+          {
+            "idea": "Open later instagram quiet after build",
+            "format": "Weeks christmas trust hour january reels",
+            "why_it_fits": "Later instagram quiet after build open"
+          },
+          {
+            "idea": "Christmas trust hour january reels weeks",
+            "format": "Instagram quiet after build open later",
+            "why_it_fits": "Trust hour january reels weeks christmas"
+          },
+          {
+            "idea": "Quiet after build open later instagram",
+            "format": "Hour january reels weeks christmas trust",
+            "why_it_fits": "After build open later instagram quiet"
+          }
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 83. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"The starter is called Gerald. Gerald is nine.\""
+          ],
+          "score": 83
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-strong",
+        "provider": "fake",
+        "model": "anthropic/claude-opus-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-strong",
+          "provider": "fake",
+          "model": "anthropic/claude-opus-5.5",
+          "ok": true,
+          "tokensIn": 1711,
+          "tokensOut": 341,
+          "costMicroUsd": 13664,
+          "ms": 0,
+          "at": "2026-10-23T07:50:44.085Z"
+        }
+      ],
+      "tokensIn": 1711,
+      "tokensOut": 341,
+      "capMicroUsd": 120000,
+      "costMicroUsd": 13664,
+      "costUsd": 0.013664,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:44.079Z",
+        "startedAt": "2026-10-23T07:50:44.082Z",
+        "finishedAt": "2026-10-23T07:50:44.089Z",
+        "queueMs": 3,
+        "runMs": 7
+      },
+      "createdAt": "2026-10-23T07:50:44.079Z",
+      "updatedAt": "2026-10-23T07:50:44.089Z",
+      "quality": {
+        "version": 1,
+        "score": 93,
+        "threshold": 65,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "7 of 7 lines name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 83,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 78,
+            "reasons": [
+              "66% like your posts that worked.",
+              "Closest: \"\"The sourdough starter is called Gerald. Gerald is nine years old. Gerald has...\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 93,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 93,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_be39b8110ff54a71aecf",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "idea-generator",
+        "version": "1.0.0"
+      },
+      "inputs": {
+        "topic": "the quiet weeks after Christmas\n\nNote for this run: Changes asked for: Fewer how-tos, more of the people in the shop.",
+        "goal": "trust",
+        "platform": "reels",
+        "coming_up": "We open an hour later, at 7, from 6 to 31 January."
+      },
+      "confirmations": {},
+      "brandBrain": {
+        "id": "bb_8639dd8db309662400af",
+        "name": "Crumb and Co",
+        "updatedAt": "2026-10-23T07:50:43.920Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts",
+          "idea"
+        ],
+        "hash": "03b54e0fcd450477"
+      },
+      "brandPick": {
+        "id": "bb_8639dd8db309662400af",
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "6ebcab08f80165973e6826a9004dc4ec6e06e1a976384acbb0a1b1b8b6ba3d81",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "list",
+        "items": [
+          {
+            "idea": "Open hour later january instagram reels",
+            "format": "Weeks after christmas note changes asked",
+            "why_it_fits": "People shop build trust open hour"
+          },
+          {
+            "idea": "January instagram reels quiet weeks after",
+            "format": "Note changes asked fewer people shop",
+            "why_it_fits": "Trust open hour later january instagram"
+          },
+          {
+            "idea": "Quiet weeks after christmas note changes",
+            "format": "Fewer people shop build trust open",
+            "why_it_fits": "Later january instagram reels quiet weeks"
+          },
+          {
+            "idea": "Christmas note changes asked fewer people",
+            "format": "Build trust open hour later january",
+            "why_it_fits": "Reels quiet weeks after christmas note"
+          },
+          {
+            "idea": "Asked fewer people shop build trust",
+            "format": "Hour later january instagram reels quiet",
+            "why_it_fits": "After christmas note changes asked fewer"
+          },
+          {
+            "idea": "Shop build trust open hour later",
+            "format": "Instagram reels quiet weeks after christmas",
+            "why_it_fits": "Changes asked fewer people shop build"
+          },
+          {
+            "idea": "Open later instagram quiet after note",
+            "format": "Weeks christmas changes fewer shop trust",
+            "why_it_fits": "People build open later instagram quiet"
+          }
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 84. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"The starter is called Gerald. Gerald is nine.\""
+          ],
+          "score": 84
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-strong",
+        "provider": "fake",
+        "model": "anthropic/claude-opus-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-strong",
+          "provider": "fake",
+          "model": "anthropic/claude-opus-5.5",
+          "ok": true,
+          "tokensIn": 1733,
+          "tokensOut": 336,
+          "costMicroUsd": 13652,
+          "ms": 0,
+          "at": "2026-10-23T07:50:44.107Z"
+        }
+      ],
+      "tokensIn": 1733,
+      "tokensOut": 336,
+      "capMicroUsd": 120000,
+      "costMicroUsd": 13652,
+      "costUsd": 0.013652,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:44.099Z",
+        "startedAt": "2026-10-23T07:50:44.102Z",
+        "finishedAt": "2026-10-23T07:50:44.111Z",
+        "queueMs": 3,
+        "runMs": 9
+      },
+      "createdAt": "2026-10-23T07:50:44.099Z",
+      "updatedAt": "2026-10-23T07:50:44.111Z",
+      "quality": {
+        "version": 1,
+        "score": 94,
+        "threshold": 65,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "7 of 7 lines name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 84,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 79,
+            "reasons": [
+              "68% like your posts that worked.",
+              "Closest: \"\"The sourdough starter is called Gerald. Gerald is nine years old. Gerald has...\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 94,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 94,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_f20d797b42274f4690e4",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "caption-writer",
+        "version": "1.1.0"
+      },
+      "inputs": {
+        "post": "Time-lapse of Gerald, our nine-year-old sourdough starter, rising overnight next to the oven.",
+        "platforms": [
+          "tiktok",
+          "reels"
+        ],
+        "length": "short",
+        "action": "best"
+      },
+      "confirmations": {},
+      "brandBrain": {
+        "id": "bb_8639dd8db309662400af",
+        "name": "Crumb and Co",
+        "updatedAt": "2026-10-23T07:50:43.920Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts"
+        ],
+        "hash": "a576f433b8b4fe18"
+      },
+      "brandPick": {
+        "id": "bb_8639dd8db309662400af",
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "108263537b193bc911138e0177e3df2754b476c0167a2c14ba1d1df6de2ff996",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "caption_set",
+        "captions": [
+          {
+            "platform": "x",
+            "variants": [
+              "Nine year sourdough starter rising overnight",
+              "Oven tiktok instagram reels short lines"
+            ]
+          },
+          {
+            "platform": "tiktok",
+            "variants": [
+              "Whatever fits best time lapse gerald",
+              "Year sourdough starter rising overnight next"
+            ]
+          },
+          {
+            "platform": "shorts",
+            "variants": [
+              "Tiktok instagram reels short lines given",
+              "Fits best time lapse gerald nine"
+            ]
+          },
+          {
+            "platform": "reels",
+            "variants": [
+              "Sourdough starter rising overnight next oven",
+              "Instagram reels short lines given whatever"
+            ]
+          }
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 86. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"The starter is called Gerald. Gerald is nine.\""
+          ],
+          "score": 86
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        },
+        {
+          "guardrail": "platform_policy",
+          "check": "platform_lengths",
+          "status": "pass",
+          "message": "Inside every platform limit."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-standard",
+        "provider": "fake",
+        "model": "anthropic/claude-sonnet-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-standard",
+          "provider": "fake",
+          "model": "anthropic/claude-sonnet-5.5",
+          "ok": true,
+          "tokensIn": 1560,
+          "tokensOut": 177,
+          "costMicroUsd": 4890,
+          "ms": 0,
+          "at": "2026-10-23T07:50:44.126Z"
+        }
+      ],
+      "tokensIn": 1560,
+      "tokensOut": 177,
+      "capMicroUsd": 80000,
+      "costMicroUsd": 4890,
+      "costUsd": 0.00489,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:44.119Z",
+        "startedAt": "2026-10-23T07:50:44.123Z",
+        "finishedAt": "2026-10-23T07:50:44.129Z",
+        "queueMs": 4,
+        "runMs": 6
+      },
+      "createdAt": "2026-10-23T07:50:44.119Z",
+      "updatedAt": "2026-10-23T07:50:44.129Z",
+      "quality": {
+        "version": 1,
+        "score": 89,
+        "threshold": 70,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 75,
+            "reasons": [
+              "6 of 8 lines name a real detail from your input or Brand Brain.",
+              "Could be about anyone: \"Tiktok instagram reels short lines given\", \"Instagram reels short lines given whatever\"."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 86,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 84,
+            "reasons": [
+              "76% like your posts that worked.",
+              "Closest: \"\"The sourdough starter is called Gerald. Gerald is nine years old. Gerald has...\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 89,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 89,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_0761238ea86e4977a395",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "hook-writer",
+        "version": "1.1.0"
+      },
+      "inputs": {
+        "idea": "We now do decaf after midnight, same beans, same price, for the night shift crowd",
+        "platform": "x",
+        "who_for": "night shift workers and students up late"
+      },
+      "confirmations": {},
+      "brandBrain": {
+        "id": "bb_2defbfc85074e66410c9",
+        "name": "Night Owl Coffee",
+        "updatedAt": "2026-10-23T07:50:43.926Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts"
+        ],
+        "hash": "1d85a22fa18cd974"
+      },
+      "brandPick": {
+        "id": "bb_2defbfc85074e66410c9",
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "947b0f4d55a9f63dc4531e3562177f6aca6c33d39aa0f0b9574077ecdeaa121b",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "list",
+        "items": [
+          "Crowd workers students late decaf after",
+          "Same beans price night shift crowd",
+          "Students late decaf after midnight same",
+          "Price night shift crowd workers students",
+          "Decaf after midnight same beans price",
+          "Shift crowd workers students late decaf",
+          "Midnight same beans price night shift",
+          "Workers students late decaf after midnight",
+          "Beans price night shift crowd workers",
+          "Late decaf after midnight same beans"
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 78. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"for the night shift, the second shift and the no shift ☕\""
+          ],
+          "score": 78
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-standard",
+        "provider": "fake",
+        "model": "anthropic/claude-sonnet-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-standard",
+          "provider": "fake",
+          "model": "anthropic/claude-sonnet-5.5",
+          "ok": true,
+          "tokensIn": 1232,
+          "tokensOut": 120,
+          "costMicroUsd": 3664,
+          "ms": 0,
+          "at": "2026-10-23T07:50:44.156Z"
+        }
+      ],
+      "tokensIn": 1232,
+      "tokensOut": 120,
+      "capMicroUsd": 50000,
+      "costMicroUsd": 3664,
+      "costUsd": 0.003664,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:44.149Z",
+        "startedAt": "2026-10-23T07:50:44.153Z",
+        "finishedAt": "2026-10-23T07:50:44.159Z",
+        "queueMs": 4,
+        "runMs": 6
+      },
+      "createdAt": "2026-10-23T07:50:44.149Z",
+      "updatedAt": "2026-10-23T07:50:44.159Z",
+      "quality": {
+        "version": 1,
+        "score": 92,
+        "threshold": 70,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "10 of 10 lines name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 78,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 73,
+            "reasons": [
+              "59% like your posts that worked.",
+              "Closest: \"\"still open. still warm. still here.\"\nWhy it works: Three beats, no pitch\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 92,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 92,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_edf0eaffe63c4ff7aaca",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "hook-writer",
+        "version": "1.1.0"
+      },
+      "inputs": {
+        "idea": "We now do decaf after midnight, same beans, same price, for the night shift crowd\n\nNote for this run: Changes asked for: Open on the 2 a.m. crowd, not the beans.",
+        "platform": "x",
+        "who_for": "night shift workers and students up late"
+      },
+      "confirmations": {},
+      "brandBrain": {
+        "id": "bb_2defbfc85074e66410c9",
+        "name": "Night Owl Coffee",
+        "updatedAt": "2026-10-23T07:50:43.926Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts"
+        ],
+        "hash": "1d85a22fa18cd974"
+      },
+      "brandPick": {
+        "id": "bb_2defbfc85074e66410c9",
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "ac501c6898014cceac02e2d248f62b346d72bf342d8bb05d4f50928e09a798ae",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "list",
+        "items": [
+          "Changes asked open workers students late",
+          "After midnight same beans price night",
+          "Crowd note changes asked open workers",
+          "Late decaf after midnight same beans",
+          "Night shift crowd note changes asked",
+          "Workers students late decaf after midnight",
+          "Beans price night shift crowd note",
+          "Asked open workers students late decaf",
+          "Midnight same beans price night shift",
+          "Note changes asked open workers students"
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 77. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"for the night shift, the second shift and the no shift ☕\""
+          ],
+          "score": 77
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-standard",
+        "provider": "fake",
+        "model": "anthropic/claude-sonnet-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-standard",
+          "provider": "fake",
+          "model": "anthropic/claude-sonnet-5.5",
+          "ok": true,
+          "tokensIn": 1252,
+          "tokensOut": 119,
+          "costMicroUsd": 3694,
+          "ms": 0,
+          "at": "2026-10-23T07:50:44.179Z"
+        }
+      ],
+      "tokensIn": 1252,
+      "tokensOut": 119,
+      "capMicroUsd": 50000,
+      "costMicroUsd": 3694,
+      "costUsd": 0.003694,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:44.170Z",
+        "startedAt": "2026-10-23T07:50:44.174Z",
+        "finishedAt": "2026-10-23T07:50:44.183Z",
+        "queueMs": 4,
+        "runMs": 9
+      },
+      "createdAt": "2026-10-23T07:50:44.170Z",
+      "updatedAt": "2026-10-23T07:50:44.183Z",
+      "quality": {
+        "version": 1,
+        "score": 92,
+        "threshold": 70,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "10 of 10 lines name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 77,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 75,
+            "reasons": [
+              "61% like your posts that worked.",
+              "Closest: \"\"still open. still warm. still here.\"\nWhy it works: Three beats, no pitch\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 92,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 92,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_4bf09262f5874a708596",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "hook-writer",
+        "version": "1.1.0"
+      },
+      "inputs": {
+        "idea": "Gerald the sourdough starter turns nine on Saturday and gets his own cake",
+        "platform": "reels",
+        "who_for": "neighbours who buy bread on the way to work"
+      },
+      "confirmations": {},
+      "brandBrain": {
+        "id": "bb_8639dd8db309662400af",
+        "name": "Crumb and Co",
+        "updatedAt": "2026-10-23T07:50:43.920Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts"
+        ],
+        "hash": "a576f433b8b4fe18"
+      },
+      "brandPick": {
+        "id": "bb_8639dd8db309662400af",
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "bad22ac9548b196b98d1d4f1c8e5b0f26edf407463a5fa42dc522775467527f9",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "list",
+        "items": [
+          "Neighbours bread work instagram reels gerald",
+          "Starter turns nine saturday gets cake",
+          "Bread work instagram reels gerald sourdough",
+          "Turns nine saturday gets cake neighbours",
+          "Work instagram reels gerald sourdough starter",
+          "Nine saturday gets cake neighbours bread",
+          "Instagram reels gerald sourdough starter turns",
+          "Saturday gets cake neighbours bread work",
+          "Reels gerald sourdough starter turns nine",
+          "Gets cake neighbours bread work instagram"
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 88. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"The starter is called Gerald. Gerald is nine.\""
+          ],
+          "score": 88
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-standard",
+        "provider": "fake",
+        "model": "anthropic/claude-sonnet-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-standard",
+          "provider": "fake",
+          "model": "anthropic/claude-sonnet-5.5",
+          "ok": true,
+          "tokensIn": 1368,
+          "tokensOut": 129,
+          "costMicroUsd": 4026,
+          "ms": 0,
+          "at": "2026-10-23T07:50:44.202Z"
+        }
+      ],
+      "tokensIn": 1368,
+      "tokensOut": 129,
+      "capMicroUsd": 50000,
+      "costMicroUsd": 4026,
+      "costUsd": 0.004026,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:44.193Z",
+        "startedAt": "2026-10-23T07:50:44.197Z",
+        "finishedAt": "2026-10-23T07:50:44.205Z",
+        "queueMs": 4,
+        "runMs": 8
+      },
+      "createdAt": "2026-10-23T07:50:44.193Z",
+      "updatedAt": "2026-10-23T07:50:44.205Z",
+      "quality": {
+        "version": 1,
+        "score": 96,
+        "threshold": 70,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "10 of 10 lines name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 88,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 86,
+            "reasons": [
+              "79% like your posts that worked.",
+              "Closest: \"\"The sourdough starter is called Gerald. Gerald is nine years old. Gerald has...\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 96,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 96,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_3428119eb5ee4b298273",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "repurposer",
+        "version": "2.0.0"
+      },
+      "inputs": {
+        "post": "Our 2 a.m. regulars voted: the oat flat white stays on the night menu. Thank you, night owls.",
+        "posted_on": "x",
+        "to": [
+          "tiktok"
+        ]
+      },
+      "confirmations": {
+        "rights": true
+      },
+      "brandBrain": {
+        "id": "bb_2defbfc85074e66410c9",
+        "name": "Night Owl Coffee",
+        "updatedAt": "2026-10-23T07:50:43.926Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts"
+        ],
+        "hash": "1d85a22fa18cd974"
+      },
+      "brandPick": {
+        "id": "bb_2defbfc85074e66410c9",
+        "idea": null
+      },
+      "parent": {
+        "pipelineRunId": "pip_9a40230bd0de4b14a2a8",
+        "step": 0
+      },
+      "idempotencyKey": "pip_9a40230bd0de4b14a2a8.version.0",
+      "requestHash": "11b687b7798ce52c7822ba83142cd9b0719b7de341be0ea80d31e51624448982",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "caption_set",
+        "captions": [
+          {
+            "platform": "x",
+            "variants": [
+              "Owls tiktok given regulars voted flat"
+            ]
+          },
+          {
+            "platform": "tiktok",
+            "variants": [
+              "Stays night menu thank owls tiktok"
+            ]
+          },
+          {
+            "platform": "shorts",
+            "variants": [
+              "Regulars voted flat white stays night"
+            ]
+          },
+          {
+            "platform": "reels",
+            "variants": [
+              "Thank owls tiktok given regulars voted"
+            ]
+          }
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "rights_confirmed",
+          "check": "rights_confirmation",
+          "status": "pass",
+          "message": "The user confirmed they own or may use this content."
+        },
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 75. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"the last cup is always the best one\""
+          ],
+          "score": 75
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        },
+        {
+          "guardrail": "platform_policy",
+          "check": "platform_lengths",
+          "status": "pass",
+          "message": "Inside every platform limit."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-strong",
+        "provider": "fake",
+        "model": "anthropic/claude-opus-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-strong",
+          "provider": "fake",
+          "model": "anthropic/claude-opus-5.5",
+          "ok": true,
+          "tokensIn": 1260,
+          "tokensOut": 121,
+          "costMicroUsd": 7460,
+          "ms": 1,
+          "at": "2026-10-23T07:50:44.277Z"
+        }
+      ],
+      "tokensIn": 1260,
+      "tokensOut": 121,
+      "capMicroUsd": 200000,
+      "costMicroUsd": 7460,
+      "costUsd": 0.00746,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:44.266Z",
+        "startedAt": "2026-10-23T07:50:44.270Z",
+        "finishedAt": "2026-10-23T07:50:44.279Z",
+        "queueMs": 4,
+        "runMs": 9
+      },
+      "createdAt": "2026-10-23T07:50:44.266Z",
+      "updatedAt": "2026-10-23T07:50:44.279Z",
+      "quality": {
+        "version": 1,
+        "score": 91,
+        "threshold": 65,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "4 of 4 lines name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 75,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 73,
+            "reasons": [
+              "59% like your posts that worked.",
+              "Closest: \"\"still open. still warm. still here.\"\nWhy it works: Three beats, no pitch\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 91,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 91,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_e9cdbb4a59b1497ba350",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "hashtag-picker",
+        "version": "2.0.0"
+      },
+      "inputs": {
+        "caption": "Owls tiktok given regulars voted flat",
+        "platform": "tiktok"
+      },
+      "confirmations": {
+        "rights": true
+      },
+      "brandBrain": {
+        "id": "bb_2defbfc85074e66410c9",
+        "name": "Night Owl Coffee",
+        "updatedAt": "2026-10-23T07:50:43.926Z",
+        "parts": [
+          "voice",
+          "dos_donts"
+        ],
+        "hash": "465071cc1a8e3723"
+      },
+      "brandPick": {
+        "id": "bb_2defbfc85074e66410c9",
+        "idea": null
+      },
+      "parent": {
+        "pipelineRunId": "pip_9a40230bd0de4b14a2a8",
+        "step": 1
+      },
+      "idempotencyKey": "pip_9a40230bd0de4b14a2a8.tags.0",
+      "requestHash": "0217bb3aaa9396d48be82bafda52b8c7881b8ae37d59173cd122aad88ddeea1d",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "list",
+        "items": [
+          {
+            "type": "Owls given regulars voted flat tiktok",
+            "term": "Given regulars voted flat tiktok owls",
+            "where": "Regulars voted flat tiktok owls given",
+            "why": "Voted flat tiktok owls given regulars"
+          },
+          {
+            "type": "Flat tiktok owls given regulars voted",
+            "term": "Tiktok owls given regulars voted flat",
+            "where": "Owls regulars flat owls regulars flat",
+            "why": "Given voted tiktok given voted tiktok"
+          },
+          {
+            "type": "Regulars flat owls regulars flat owls",
+            "term": "Voted tiktok given voted tiktok given",
+            "where": "Flat owls regulars flat owls regulars",
+            "why": "Tiktok given voted tiktok given voted"
+          },
+          {
+            "type": "Owls voted owls voted owls voted",
+            "term": "Given flat given flat given flat",
+            "where": "Regulars tiktok regulars tiktok regulars tiktok",
+            "why": "Voted owls voted owls voted owls"
+          },
+          {
+            "type": "Flat given flat given flat given",
+            "term": "Tiktok regulars tiktok regulars tiktok regulars",
+            "where": "Owls flat regulars owls flat regulars",
+            "why": "Given tiktok voted given tiktok voted"
+          },
+          {
+            "type": "Regulars owls flat regulars owls flat",
+            "term": "Voted given tiktok voted given tiktok",
+            "where": "Flat regulars owls flat regulars owls",
+            "why": "Tiktok voted given tiktok voted given"
+          }
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        },
+        {
+          "guardrail": "platform_policy",
+          "check": "platform_lengths",
+          "status": "pass",
+          "message": "Inside every platform limit."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-fast",
+        "provider": "fake",
+        "model": "openai/gpt-6-luna"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-fast",
+          "provider": "fake",
+          "model": "openai/gpt-6-luna",
+          "ok": true,
+          "tokensIn": 1367,
+          "tokensOut": 353,
+          "costMicroUsd": 314,
+          "ms": 1,
+          "at": "2026-10-23T07:50:44.302Z"
+        }
+      ],
+      "tokensIn": 1367,
+      "tokensOut": 353,
+      "capMicroUsd": 30000,
+      "costMicroUsd": 314,
+      "costUsd": 0.000314,
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:44.291Z",
+        "startedAt": "2026-10-23T07:50:44.295Z",
+        "finishedAt": "2026-10-23T07:50:44.305Z",
+        "queueMs": 4,
+        "runMs": 10
+      },
+      "createdAt": "2026-10-23T07:50:44.291Z",
+      "updatedAt": "2026-10-23T07:50:44.305Z",
+      "quality": {
+        "version": 1,
+        "score": 90,
+        "threshold": 65,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "6 of 6 lines name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 73,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 69,
+            "reasons": [
+              "52% like your posts that worked.",
+              "Closest: \"\"still open. still warm. still here.\"\nWhy it works: Three beats, no pitch\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 90,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 90,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_ac892b1b382d4397aa7b",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "caption-writer",
+        "version": "1.1.0"
+      },
+      "inputs": {
+        "post": "Time-lapse of Gerald, our nine-year-old sourdough starter, rising overnight next to the oven.",
+        "platforms": [
+          "tiktok",
+          "reels"
+        ],
+        "length": "short",
+        "action": "best"
+      },
+      "confirmations": {},
+      "brandBrain": {
+        "id": "bb_8639dd8db309662400af",
+        "name": "Crumb and Co",
+        "updatedAt": "2026-10-23T07:50:43.920Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts"
+        ],
+        "hash": "a576f433b8b4fe18"
+      },
+      "brandPick": {
+        "id": "bb_8639dd8db309662400af",
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "108263537b193bc911138e0177e3df2754b476c0167a2c14ba1d1df6de2ff996",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "caption_set",
+        "captions": [
+          {
+            "platform": "x",
+            "variants": [
+              "Nine year sourdough starter rising overnight",
+              "Oven tiktok instagram reels short lines"
+            ]
+          },
+          {
+            "platform": "tiktok",
+            "variants": [
+              "Whatever fits best time lapse gerald",
+              "Year sourdough starter rising overnight next"
+            ]
+          },
+          {
+            "platform": "shorts",
+            "variants": [
+              "Tiktok instagram reels short lines given",
+              "Fits best time lapse gerald nine"
+            ]
+          },
+          {
+            "platform": "reels",
+            "variants": [
+              "Sourdough starter rising overnight next oven",
+              "Instagram reels short lines given whatever"
+            ]
+          }
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 86. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"The starter is called Gerald. Gerald is nine.\""
+          ],
+          "score": 86
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        },
+        {
+          "guardrail": "platform_policy",
+          "check": "platform_lengths",
+          "status": "pass",
+          "message": "Inside every platform limit."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-standard",
+        "provider": "fake",
+        "model": "anthropic/claude-sonnet-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-standard",
+          "provider": "fake",
+          "model": "anthropic/claude-sonnet-5.5",
+          "ok": true,
+          "tokensIn": 1560,
+          "tokensOut": 177,
+          "costMicroUsd": 4890,
+          "ms": 1,
+          "at": "2026-10-23T07:50:46.783Z"
+        }
+      ],
+      "tokensIn": 1560,
+      "tokensOut": 177,
+      "capMicroUsd": 80000,
+      "costMicroUsd": 4890,
+      "costUsd": 0.00489,
+      "credits": {
+        "mode": "own",
+        "estimate": 13,
+        "holdId": "run:run_ac892b1b382d4397aa7b",
+        "state": "charged",
+        "charged": 2,
+        "back": 11,
+        "userId": "usr_2f1d552405dab2a06ff8"
+      },
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:46.764Z",
+        "startedAt": "2026-10-23T07:50:46.775Z",
+        "finishedAt": "2026-10-23T07:50:46.812Z",
+        "queueMs": 11,
+        "runMs": 37
+      },
+      "createdAt": "2026-10-23T07:50:46.764Z",
+      "updatedAt": "2026-10-23T07:50:46.812Z",
+      "quality": {
+        "version": 1,
+        "score": 89,
+        "threshold": 70,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 75,
+            "reasons": [
+              "6 of 8 lines name a real detail from your input or Brand Brain.",
+              "Could be about anyone: \"Tiktok instagram reels short lines given\", \"Instagram reels short lines given whatever\"."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 86,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 84,
+            "reasons": [
+              "76% like your posts that worked.",
+              "Closest: \"\"The sourdough starter is called Gerald. Gerald is nine years old. Gerald has...\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 89,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 89,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    },
+    {
+      "id": "run_93ae15c7b115445abcec",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "agent": {
+        "workspaceId": "ws_wovi",
+        "id": "repurposer",
+        "version": "2.0.0"
+      },
+      "inputs": {
+        "post": "We burned 40 croissants so you would not have to. Lamination is butter folded into dough, again and again, cold. Too warm and the butter melts in. Croissant 41 had layers you could count.",
+        "posted_on": "x",
+        "to": [
+          "reels",
+          "tiktok"
+        ],
+        "keep": "Croissant 41"
+      },
+      "confirmations": {
+        "rights": true
+      },
+      "brandBrain": {
+        "id": "bb_8639dd8db309662400af",
+        "name": "Crumb and Co",
+        "updatedAt": "2026-10-23T07:50:43.920Z",
+        "parts": [
+          "voice",
+          "references",
+          "dos_donts"
+        ],
+        "hash": "a576f433b8b4fe18"
+      },
+      "brandPick": {
+        "id": null,
+        "idea": null
+      },
+      "parent": null,
+      "idempotencyKey": null,
+      "requestHash": "7ea5b2e3c04c257fe461ba77c7f8f0ef559432d4279eb7580edec6e214ed4f89",
+      "status": "succeeded",
+      "attempts": 1,
+      "nextAttemptAt": null,
+      "output": {
+        "kind": "caption_set",
+        "captions": [
+          {
+            "platform": "x",
+            "variants": [
+              "Melts croissant layers could count instagram"
+            ]
+          },
+          {
+            "platform": "tiktok",
+            "variants": [
+              "Tiktok burned croissants would lamination butter"
+            ]
+          },
+          {
+            "platform": "shorts",
+            "variants": [
+              "Dough again cold warm melts croissant"
+            ]
+          },
+          {
+            "platform": "reels",
+            "variants": [
+              "Could count instagram reels tiktok burned"
+            ]
+          }
+        ]
+      },
+      "error": null,
+      "checks": [
+        {
+          "guardrail": "rights_confirmed",
+          "check": "rights_confirmation",
+          "status": "pass",
+          "message": "The user confirmed they own or may use this content."
+        },
+        {
+          "guardrail": "banned_phrases",
+          "check": "anti_slop_phrases",
+          "status": "pass",
+          "message": "No generic filler phrases."
+        },
+        {
+          "guardrail": "no_misleading_claims",
+          "check": "misleading_claim_phrases",
+          "status": "pass",
+          "message": "No misleading claims."
+        },
+        {
+          "guardrail": "no_fake_testimonials",
+          "check": "testimonial_phrases",
+          "status": "pass",
+          "message": "No testimonial-like lines."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_banned_words",
+          "status": "pass",
+          "message": "None of the brand's banned words."
+        },
+        {
+          "guardrail": "brand_voice_check",
+          "check": "brand_fit",
+          "status": "pass",
+          "message": "Brand fit 89. Close to the voice's sample lines.",
+          "findings": [
+            "Closest sample line: \"We burned 40 croissants so you would not have to.\""
+          ],
+          "score": 89
+        },
+        {
+          "guardrail": "specificity_check",
+          "check": "specific_to_input",
+          "status": "pass",
+          "message": "Anchored to the input, no repeats."
+        },
+        {
+          "guardrail": "platform_policy",
+          "check": "platform_lengths",
+          "status": "pass",
+          "message": "Inside every platform limit."
+        }
+      ],
+      "needsReview": false,
+      "model": {
+        "route": "text-strong",
+        "provider": "fake",
+        "model": "anthropic/claude-opus-5.5"
+      },
+      "calls": [
+        {
+          "purpose": "answer",
+          "route": "text-strong",
+          "provider": "fake",
+          "model": "anthropic/claude-opus-5.5",
+          "ok": true,
+          "tokensIn": 1422,
+          "tokensOut": 127,
+          "costMicroUsd": 8228,
+          "ms": 1,
+          "at": "2026-10-23T07:50:46.834Z"
+        }
+      ],
+      "tokensIn": 1422,
+      "tokensOut": 127,
+      "capMicroUsd": 200000,
+      "costMicroUsd": 8228,
+      "costUsd": 0.008228,
+      "credits": {
+        "mode": "own",
+        "estimate": 25,
+        "holdId": "run:run_93ae15c7b115445abcec",
+        "state": "charged",
+        "charged": 3,
+        "back": 22,
+        "userId": "usr_2f1d552405dab2a06ff8"
+      },
+      "timings": {
+        "queuedAt": "2026-10-23T07:50:46.822Z",
+        "startedAt": "2026-10-23T07:50:46.829Z",
+        "finishedAt": "2026-10-23T07:50:46.839Z",
+        "queueMs": 7,
+        "runMs": 10
+      },
+      "createdAt": "2026-10-23T07:50:46.822Z",
+      "updatedAt": "2026-10-23T07:50:46.839Z",
+      "quality": {
+        "version": 1,
+        "score": 95,
+        "threshold": 65,
+        "verdict": "ready",
+        "checks": [
+          {
+            "id": "specificity",
+            "label": "Specific to you",
+            "weight": 25,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "4 of 4 lines name a real detail from your input or Brand Brain."
+            ]
+          },
+          {
+            "id": "generic_phrases",
+            "label": "No generic phrases",
+            "weight": 20,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "None of the stock lines that could come from any brand."
+            ]
+          },
+          {
+            "id": "brand_fit",
+            "label": "Brand fit",
+            "weight": 20,
+            "status": "pass",
+            "score": 89,
+            "reasons": [
+              "Keeps every brand rule and sounds like your sample lines."
+            ]
+          },
+          {
+            "id": "reference_anchoring",
+            "label": "Like your best posts",
+            "weight": 15,
+            "status": "pass",
+            "score": 84,
+            "reasons": [
+              "76% like your posts that worked.",
+              "Closest: \"\"We burned 40 croissants so you would not have to. Here is what we learned ab...\""
+            ]
+          },
+          {
+            "id": "claims",
+            "label": "No misleading claims",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "No promises about results, money or health, and no invented reviews."
+            ]
+          },
+          {
+            "id": "platform_rules",
+            "label": "Fits the platform",
+            "weight": 10,
+            "status": "pass",
+            "score": 100,
+            "reasons": [
+              "Inside every platform limit."
+            ]
+          }
+        ],
+        "reasons": [],
+        "rewrites": 0,
+        "maxRewrites": 2,
+        "firstScore": 95,
+        "attempts": [
+          {
+            "n": 0,
+            "score": 95,
+            "ready": true,
+            "failing": [],
+            "failed": [],
+            "reasons": [],
+            "output": null
+          }
+        ],
+        "used": 0,
+        "stopped": null,
+        "judge": false
+      }
+    }
+  ]
+}

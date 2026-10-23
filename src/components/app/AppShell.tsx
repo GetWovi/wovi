@@ -1,3 +1,4 @@
+import { LegalLinks } from "@/components/safety/LegalLinks";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/brand/Logo";
@@ -124,6 +125,7 @@ export async function AppShell({ info, active, children }: { info: SessionInfo; 
         <div className={["container", styles.footerInner].join(" ")}>
           <span>WOVI. One agent, one job. Every result is a draft until you approve it.</span>
           <span>Use at your own risk. Nothing here is financial, legal or professional advice.</span>
+          <LegalLinks />
         </div>
       </footer>
       <nav className={styles.tabs} aria-label="App">

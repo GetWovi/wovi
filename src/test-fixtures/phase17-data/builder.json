@@ -1,0 +1,750 @@
+{
+  "samples": [
+    {
+      "id": "smp_2191e834441e5d1d0650",
+      "workspaceId": "ws_wovi",
+      "agentId": "trend-scout",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Beginner strength gym on TikTok",
+      "inputs": {
+        "niche": "beginner strength gym",
+        "platform": "tiktok",
+        "brand": "bb_ee07b0dc751f5753c8e1"
+      },
+      "idealOutput": "Trend: First lift, filmed start to finish\nWhat it looks like: One person's very first attempt at a lift, uncut, with the coach's cue as on-screen text and their face at the end.\nEvidence: Lookup: 58 posts from UK fitness accounts this week, up from 21 the week before. Top example from a small gym, original audio.\nHow you could use it: Film a new member's first deadlift with the coach's cue on screen, then their face. Only with their permission.\n\nTrend: Form fix, side by side\nWhat it looks like: Split screen: a common beginner mistake on one side, the fix on the other, with the coach talking over both.\nEvidence: Lookup: the search term form check has risen three weeks in a row; 34 posts from small gyms this week.\nHow you could use it: The coach shows the most common squat mistake from beginner sessions and the one cue that fixes it. Form first, weight later.\n\nTrend: Age on screen, number on the bar\nWhat it looks like: Text on screen with a member's age and the weight, then the lift in real time, no music drop.\nEvidence: Lookup: posts pairing age and weight in strength niches roughly doubled in 14 days, mostly from accounts under 10k followers.\nHow you could use it: Margaret, 61, and her 60 kg deadlift, with her permission, plus one line on how: two sessions a week for six months.\n\nTrend: What your first session really looks like\nWhat it looks like: A point-of-view walk through a first visit, step by step, ending on something small and friendly.\nEvidence: Lookup: first gym session is among the ten fastest-rising fitness searches this week.\nHow you could use it: Show the first session in 30 seconds: 20 minutes learning to brace, one lift, a cup of tea. Nothing scary in it.\n\nTrend: Video reply to a comment\nWhat it looks like: A short answer to one viewer's comment, with the comment shown as a sticker on screen.\nEvidence: Lookup: comment replies are about one in six top small-gym posts this week. A steady signal for a month, not a spike.\nHow you could use it: Answer the most common beginner question in the comments, like whether you need to be fit to start, with the coach on camera.",
+      "note": "Every trend is a format, not a theme, and every use is a post this gym could shoot this week with its own people and numbers. The evidence lines show the shape trend_lookup must return; their numbers are placeholders until the tool exists.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.026Z"
+    },
+    {
+      "id": "smp_b770fba1bb083ffc49f0",
+      "workspaceId": "ws_wovi",
+      "agentId": "trend-scout",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Local plumber on Reels",
+      "inputs": {
+        "niche": "plumbing and heating firm",
+        "platform": "reels",
+        "brand": "bb_e7179b3df205732bf75d"
+      },
+      "idealOutput": "Trend: Here is what we found reveals\nWhat it looks like: Panel off, torch on, a slow reveal of the problem, with a calm voiceover in plain words.\nEvidence: Lookup: reveal clips from UK trades up three weeks running; about 120 posts from local trades this week.\nHow you could use it: The Redland bath panel job: torch on the soft joist, then what a ten-minute plumbing fix early would have saved.\n\nTrend: One thing to check tonight\nWhat it looks like: A 15-second check viewers can do at home, one step per line of on-screen text.\nEvidence: Lookup: check-this-at-home posts in home and DIY Reels up about 40% this month.\nHow you could use it: Find your stopcock: where it usually is, which way to turn it, and why today and not during a leak.\n\nTrend: What is that noise\nWhat it looks like: A household sound plays first, like a gurgling radiator or a ticking pipe, then a plain explanation of what it means.\nEvidence: Lookup: sound-first home repair posts are a small but rising format; 18 posts this week, up from 7.\nHow you could use it: Record a gurgling radiator on a job and explain bleeding it, and when the noise means calling a heating engineer.\n\nTrend: Gauge close-up with one number\nWhat it looks like: A tight shot of a dial or meter with one number in big text and what it should read.\nEvidence: Lookup: boiler pressure searches rising as the weather turns; 9 of the top 20 heating Reels this week show a gauge.\nHow you could use it: Boiler pressure: the gauge, the range to look for, the one safe thing to do yourself, and when to call.\n\nTrend: Van to finished job in one shot\nWhat it looks like: A short time-lapse from opening the van door to the finished job, with the area named in text.\nEvidence: Lookup: weak signal. Time-lapse job clips are steady, not rising, but they are the most saved format for local trades this month.\nHow you could use it: A winter boiler check in Bristol, van to done, naming the area but never the house number or a customer's face.",
+      "note": "Practical formats that fit the brand's show the job, teach the fix rule, and every one respects the privacy don'ts. The evidence lines show the shape trend_lookup must return; their numbers are placeholders until the tool exists.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.028Z"
+    },
+    {
+      "id": "smp_ecb9ec731925feff6cf5",
+      "workspaceId": "ws_wovi",
+      "agentId": "trend-scout",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Budget cooking creator on TikTok",
+      "inputs": {
+        "niche": "budget cooking creator",
+        "platform": "tiktok",
+        "brand": "bb_b90d9b1baeedb3c9da79"
+      },
+      "idealOutput": "Trend: Receipt first, food after\nWhat it looks like: Open on the receipt in hand with the total circled, then fast cuts of every meal it made.\nEvidence: Lookup: receipt-first openings in UK budget cooking up from 12 to 47 posts in two weeks.\nHow you could use it: The Sunday shop receipt on screen, then each dinner for a few seconds with its price per portion.\n\nTrend: Price tags on everything\nWhat it looks like: Every ingredient shown with its price as a sticker, adding up to a running total in the corner.\nEvidence: Lookup: on-screen running totals appear in 6 of the top 20 budget cooking posts this week.\nHow you could use it: Chickpea curry with every ingredient priced to the penny and the total per portion at the end.\n\nTrend: One ingredient, three dinners\nWhat it looks like: The same ingredient used three ways across the week, with a count of how much is left.\nEvidence: Lookup: one-ingredient series rising for budget cooking; the search term one tin meals is up about 30% this month.\nHow you could use it: One tin of chickpeas across three dinners, with a running count of what is left in the tin.\n\nTrend: Rate my shop, kindly\nWhat it looks like: Viewers share a shopping list or receipt and the creator picks one thing to stretch further.\nEvidence: Lookup: stitch and reply formats on shopping hauls up 2x in budget food this month; comments full of lists.\nHow you could use it: Invite followers to share their weekly shop and pick one thing to stretch, kindly, never judging anyone's budget.\n\nTrend: Real-time dinner, one take\nWhat it looks like: A whole dinner cooked in one continuous shot, sped up, with a clock and the price on screen.\nEvidence: Lookup: one-take cooking clips steady in the top budget cooking posts; not new, still saved a lot.\nHow you could use it: This week's lowest-cost dinner start to finish in one take, with the clock and the price per portion on screen.",
+      "note": "Each trend fits the receipts-as-proof idea and the to-the-penny voice; the shop-rating idea is framed so it never shames a budget. The evidence lines show the shape trend_lookup must return; their numbers are placeholders until the tool exists.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.030Z"
+    },
+    {
+      "id": "smp_162cdd0eb96b89c7f030",
+      "workspaceId": "ws_wovi",
+      "agentId": "trend-scout",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Invoicing app on X",
+      "inputs": {
+        "niche": "invoicing app for freelancers",
+        "platform": "x",
+        "brand": "bb_3988235bdc2a5ed0f2b8"
+      },
+      "idealOutput": "Trend: Two-line before and after\nWhat it looks like: Two short lines, the old way and the better way, and nothing else.\nEvidence: Lookup: two-line contrast posts among the most reposted formats from freelance accounts this week.\nHow you could use it: 'Payment terms: 30 days' against 'Due 14 March', with one line on why a date is harder to ignore.\n\nTrend: Screenshot with one highlighted line\nWhat it looks like: A product screenshot with a single line highlighted and one sentence explaining it.\nEvidence: Lookup: single-highlight screenshots up about 25% in software accounts this month.\nHow you could use it: A Tallybook invoice with only the due date highlighted, and one sentence for freelancers on why it matters.\n\nTrend: Numbered money maths\nWhat it looks like: A post that walks through one sum in numbered lines, each line a step.\nEvidence: Lookup: numbered-step posts with pound amounts rising among UK freelancer accounts for three weeks.\nHow you could use it: The £2,400 invoice that is 30 days late: what to send on day 1, day 7 and day 14, one line each.\n\nTrend: Poll, then the answer\nWhat it looks like: A two-option poll, followed the next day by a reply with the answer and the reason.\nEvidence: Lookup: polls from freelancer accounts drawing about 3x the replies of plain posts this week.\nHow you could use it: Poll: a date or 30 days on your invoices? The next day, reply with why a date is harder to ignore.\n\nTrend: Myth, corrected in one post\nWhat it looks like: One common belief, stated plainly, then corrected in a sentence or two.\nEvidence: Lookup: weak signal. Correction posts are steady, not rising, but fit the freelance money topic well.\nHow you could use it: Your invoice is not late, their payment is: a calm post on what to send on the day it is due.",
+      "note": "Text-first formats that suit X, each turned into one calm, worked example for freelancers, never salesy. The evidence lines show the shape trend_lookup must return; their numbers are placeholders until the tool exists.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.031Z"
+    },
+    {
+      "id": "smp_cc913e7b3adf1e19a908",
+      "workspaceId": "ws_wovi",
+      "agentId": "trend-scout",
+      "version": "2.0.0",
+      "label": "bad",
+      "title": "Generic advice with no evidence",
+      "inputs": {
+        "niche": "bakery",
+        "platform": "reels",
+        "brand": "bb_7649692f96c31a626d52"
+      },
+      "idealOutput": "Trend: Trending audio\nWhat it looks like: Use whatever sound is trending right now.\nEvidence: Everyone is using it.\nHow you could use it: Post your products with a trending sound to unlock the power of Reels.\n\nTrend: Behind the scenes content\nWhat it looks like: Show your audience what happens behind the scenes.\nEvidence: Behind the scenes is huge right now.\nHow you could use it: Next-level behind the scenes content for your bakery.\n\nTrend: Day in the life\nWhat it looks like: Film a day in your life.\nEvidence: Very popular.\nHow you could use it: A day in the life of a baker, guaranteed to go viral.\n\nTrend: Tips and tricks\nWhat it looks like: Share helpful tips with your followers.\nEvidence: Tips always perform well.\nHow you could use it: Share baking tips and tricks.\n\nTrend: Post consistently\nWhat it looks like: Post every day to grow.\nEvidence: The algorithm loves consistency.\nHow you could use it: Post every day and watch your bakery skyrocket.",
+      "note": "Themes, not formats; no evidence from a lookup; nothing only this bakery could shoot; stock phrases and a promise of going viral.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.033Z"
+    },
+    {
+      "id": "smp_7854da2bf5c1252cc10c",
+      "workspaceId": "ws_wovi",
+      "agentId": "idea-generator",
+      "version": "1.0.0",
+      "label": "gold",
+      "title": "Bakery in the quiet weeks",
+      "inputs": {
+        "topic": "the quiet weeks after Christmas",
+        "goal": "trust",
+        "platform": "reels",
+        "coming_up": "We open an hour later, at 7, from 6 to 31 January.",
+        "brand": "bb_7649692f96c31a626d52"
+      },
+      "idealOutput": "Idea: Gerald does not know it is January. The starter still needs feeding before we open at 7. One shot of the feed, one line of text.\nFormat: Text on screen over footage\nWhy it fits: Gerald is the brand's best character, and the quiet weeks make him the one thing that never slows down.\n\nIdea: A quiet morning from the baker's side: flour, the first tray, the door unlocking at 7 instead of 6.\nFormat: Voiceover over footage\nWhy it fits: Shows the slower, honest side of the bakery and tells regulars about the later opening without a sales line.\n\nIdea: The mistake shelf: the loaves that went wrong this week, one by one, and what each taught us.\nFormat: Talking to camera\nWhy it fits: Owning the mess is what the brand's best post did with the 40 croissants, and quiet weeks leave time to try things.\n\nIdea: The croissant butter, close up, folded in slow motion, with one line on why it has to stay cold.\nFormat: Step-by-step demo\nWhy it fits: Names the real ingredient and shows the hands and the process, both on the brand's do list.\n\nIdea: Ask the regulars: what should we bake while it is quiet? Read out the best answers next week.\nFormat: Talking to camera\nWhy it fits: Trust grows when regulars shape the counter, and a slow January is the right time to ask.\n\nIdea: Croissant 41, revisited: the first one that did not burn next to this week's batch, same dry voice.\nFormat: Voiceover over footage\nWhy it fits: A new ending for the brand's strongest past post, so it builds on what already worked.\n\nIdea: Split screen: the same oven at 6 a.m. in December and at 7 a.m. in January. One line on what the extra hour is for.\nFormat: Text on screen over footage\nWhy it fits: Turns the opening-time change into a small, dry story instead of a notice on the door.",
+      "note": "Every idea uses the real January change, the brand's own characters and past posts, and a mix of four formats with no more than two of each.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.044Z"
+    },
+    {
+      "id": "smp_90a19e53c0823a1f17fc",
+      "workspaceId": "ws_wovi",
+      "agentId": "idea-generator",
+      "version": "1.0.0",
+      "label": "gold",
+      "title": "Invoicing app on late payments",
+      "inputs": {
+        "topic": "late payments",
+        "goal": "reach",
+        "platform": "x",
+        "brand": "bb_3988235bdc2a5ed0f2b8"
+      },
+      "idealOutput": "Idea: Your invoice is not late. Their payment is. A single post that reframes the late invoice and gives the one polite line to send on the due date.\nFormat: Single post\nWhy it fits: Built on the brand's own sample line; a calm reframe like this is the kind freelancers repost to each other.\n\nIdea: Reminder emails, graded: three versions from too soft to too sharp, and the middle one we would send.\nFormat: Short thread\nWhy it fits: Late payments is a core topic, and a graded set is easy to save and share without any selling.\n\nIdea: Poll: do you put a date or 30 days on your invoices? The next day, reply with why a date is harder to ignore.\nFormat: Poll\nWhy it fits: Freelancers have opinions on this, so it travels, and it leads to the brand's main tip on its own.\n\nIdea: A screenshot of an invoice with only the due date highlighted, and one line: dates beat terms.\nFormat: Photo with a line\nWhy it fits: Shows the real screen, as the dos ask, and makes one point in a few seconds of reading.\n\nIdea: Late payment in plain English: what you can politely say on day 30, written as a fill-in-the-blanks template.\nFormat: Single post\nWhy it fits: In plain English is the brand's own phrase, and a template is the most useful thing to repost.\n\nIdea: The awkward bit: chasing a client you like. A short thread with the exact words that keep the relationship friendly.\nFormat: Short thread\nWhy it fits: Speaks to the real worry behind late payments, calmly, which is how this brand talks about money.\n\nIdea: A calendar screenshot with the next Self Assessment deadline circled and the brand line: tax is not scary, not knowing the date is.\nFormat: Photo with a line\nWhy it fits: Moves to the brand's second topic for reach, while staying general and never personal tax advice.",
+      "note": "Seven X-native ideas, each a worked example or a reframe for freelancers, with no urgency, no emoji and no tax advice for a specific person.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.046Z"
+    },
+    {
+      "id": "smp_883da05f901cc7bea32e",
+      "workspaceId": "ws_wovi",
+      "agentId": "idea-generator",
+      "version": "1.0.0",
+      "label": "gold",
+      "title": "Plumber as it gets colder",
+      "inputs": {
+        "topic": "boiler and heating problems as it gets colder",
+        "goal": "reach",
+        "platform": "tiktok",
+        "brand": "bb_e7179b3df205732bf75d"
+      },
+      "idealOutput": "Idea: Boiler pressure in 15 seconds: torch on the gauge, the range to look for, and the one thing you can safely do yourself.\nFormat: Step-by-step demo\nWhy it fits: One thing people can check themselves, the brand's favourite kind of post, and a common search once the heating goes on.\n\nIdea: Here is what we found inside a radiator that would not warm up at the top: bleed it on camera, then the sound it makes.\nFormat: Voiceover over footage\nWhy it fits: Uses the brand's own opener and gives people a fix they can do before calling anyone.\n\nIdea: Know where your stopcock is. Today, not during the leak. Three places it usually hides, shown one by one.\nFormat: Talking to camera\nWhy it fits: The brand's own sample line, and a winter leak is when people need to find it fastest.\n\nIdea: When to call us and when not to: three heating noises, one to ignore, one to watch, one to call about.\nFormat: Talking to camera\nWhy it fits: Saying when not to call is on the do list, and it earns trust instead of scaring people.\n\nIdea: A real winter job in Bristol, from the van to finished, in one sped-up shot. Area named, no house number, no faces.\nFormat: Text on screen over footage\nWhy it fits: Shows the real job and the area, as the dos ask, while keeping customers private.\n\nIdea: Answer the comment: is a boiler service worth it before winter? A straight answer and who it matters most for.\nFormat: Answer a question from the comments\nWhy it fits: Answers the exact question people search, in the plain voice the brand is built on.\n\nIdea: Lagging a pipe in the loft: what it looks like done right, in under 30 seconds.\nFormat: Step-by-step demo\nWhy it fits: A cheap job people can do themselves before it gets colder, shown the practical way.",
+      "note": "Reach without fear: every idea teaches one thing or answers one question, uses the brand's own lines, and keeps faces and house numbers out.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.048Z"
+    },
+    {
+      "id": "smp_2b9e582d5fffa341d21b",
+      "workspaceId": "ws_wovi",
+      "agentId": "idea-generator",
+      "version": "1.0.0",
+      "label": "gold",
+      "title": "Desk physio on mouse wrists",
+      "inputs": {
+        "topic": "wrist and forearm ache from using a mouse all day",
+        "goal": "talk",
+        "platform": "shorts",
+        "brand": "bb_6a40dca22d0c7af9ae06"
+      },
+      "idealOutput": "Idea: 3 wrist moves you can do without letting go of your coffee. One move per line on screen, then ask which one they skip.\nFormat: Text on screen over footage\nWhy it fits: Opens with a number and ends on a question, both brand dos, for people who sit all day.\n\nIdea: Your mouse hand against your other hand: hold both out, compare, then one move for the tired one.\nFormat: Step-by-step demo\nWhy it fits: A small, surprising test people try at once and then talk about in the comments.\n\nIdea: Mouse at the desk edge or close to the keyboard? Show both setups and ask which one people use.\nFormat: Talking to camera\nWhy it fits: A friendly disagreement drives comments, the goal, and the answer teaches a better setup.\n\nIdea: One minute at your desk: a forearm stretch against the desk edge, in real time, with a timer on screen.\nFormat: Step-by-step demo\nWhy it fits: One minute and at your desk are brand phrases, and real time makes it easy to follow along.\n\nIdea: Answer a comment: does a wrist rest help? A calm, honest answer, and when to see a physio in person.\nFormat: Answer a question from the comments\nWhy it fits: Practical and honest, and saying when to get checked keeps the brand's promise of promising nothing it cannot keep.\n\nIdea: Your wrist is not broken. It is bored. Three seconds of shaking it out, then the real move.\nFormat: Talking to camera\nWhy it fits: Borrows the rhythm of the brand's best line for a new body part, so it sounds like Desk Stretch at once.\n\nIdea: Rate your setup: the desk filmed from above, mouse, keyboard and screen circled, and people invited to post theirs.\nFormat: Voiceover over footage\nWhy it fits: Gets people talking about their own desks, and every reply is a future post.",
+      "note": "Built for comments: questions, comparisons and a setup to rate, all in one-move-per-line style, with no promise to fix anything.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.050Z"
+    },
+    {
+      "id": "smp_d866fbef0e6b5bf50e3f",
+      "workspaceId": "ws_wovi",
+      "agentId": "idea-generator",
+      "version": "1.0.0",
+      "label": "bad",
+      "title": "Generic gym content calendar",
+      "inputs": {
+        "topic": "the gym",
+        "goal": "reach",
+        "platform": "reels",
+        "brand": "bb_ee07b0dc751f5753c8e1"
+      },
+      "idealOutput": "Idea: Motivation Monday: share a motivational quote to inspire your followers.\nFormat: Reel\nWhy it fits: Motivation always performs well.\n\nIdea: Transformation Tuesday: before-and-after photos of members who got in shape.\nFormat: Reel\nWhy it fits: Transformations go viral.\n\nIdea: 5 tips to unlock your fitness potential.\nFormat: Reel\nWhy it fits: Tips are popular.\n\nIdea: Beast mode workout of the day.\nFormat: Reel\nWhy it fits: People love workouts.\n\nIdea: Lose 10 kg in 30 days challenge for the gym.\nFormat: Reel\nWhy it fits: Challenges drive engagement.\n\nIdea: Ask followers about their fitness goals.\nFormat: Reel\nWhy it fits: Engagement is key.\n\nIdea: Share a customer review: \"Best gym in Manchester\" - John S.\nFormat: Reel\nWhy it fits: Social proof builds trust.",
+      "note": "Generic series names, one format seven times, a weight-loss promise, before-and-after photos, banned brand words and a made-up review. Nothing only this gym could post.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.052Z"
+    },
+    {
+      "id": "smp_2d8f1e7ca9d6cabedff4",
+      "workspaceId": "ws_wovi",
+      "agentId": "hook-writer",
+      "version": "1.1.0",
+      "label": "gold",
+      "title": "Margaret's 60 kg deadlift",
+      "inputs": {
+        "idea": "Margaret is 61 and deadlifted 60 kg today. Six months ago she needed a hand to get up off the floor. Two sessions a week with a coach.",
+        "platform": "reels",
+        "who_for": "people over 50 who think gyms are not for them",
+        "brand": "bb_ee07b0dc751f5753c8e1"
+      },
+      "idealOutput": "Margaret is 61. Today she deadlifted 60 kg.\nSix months ago Margaret needed a hand off the floor.\n60 kg at 61. Two sessions a week. That is it.\nIf you think you are too old to lift, meet Margaret.\nStrong is a skill. Margaret practised it twice a week.\nWhat do six months of two sessions a week get you?\nThis is what 61 looks like on the bar.\nYou do not need to be fit to start. Ask Margaret.\nSix months ago, the floor. Today, 60 kg.\nCount the sessions: two a week, six months, 60 kg.",
+      "note": "Every hook names Margaret, her age or the weight, and the post can keep each promise. No transformation talk, no weight-loss angle.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.064Z"
+    },
+    {
+      "id": "smp_f7101073c4539549c03c",
+      "workspaceId": "ws_wovi",
+      "agentId": "hook-writer",
+      "version": "1.1.0",
+      "label": "gold",
+      "title": "Due dates beat payment terms",
+      "inputs": {
+        "idea": "Changing 'Payment terms: 30 days' to a real due date like 'Due 14 March' makes an invoice harder to ignore. Our template now puts the date in by default.",
+        "platform": "x",
+        "who_for": "freelancers who chase late invoices",
+        "brand": "bb_3988235bdc2a5ed0f2b8"
+      },
+      "idealOutput": "'30 days' is a rule. '14 March' is a deadline.\nYour invoice says 30 days. Your client hears whenever.\nStop writing 'Payment terms: 30 days' on invoices.\nDue 14 March beats 30 days. Here is why.\nTiny invoice fix: swap the terms for a date.\nWe changed one default in our invoice template.\nWhen exactly is '30 days' from an invoice nobody opened?\nPayment terms are not a due date. Put the date.\nOn 14 March, your client either pays or is late.\n30 days, or 14 March? Only one of them is a date.",
+      "note": "First lines that work as text on X, each from a different angle on the same small change. Calm, nerdy, no urgency, no emoji.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.066Z"
+    },
+    {
+      "id": "smp_7f0cab9e6007f7a26040",
+      "workspaceId": "ws_wovi",
+      "agentId": "hook-writer",
+      "version": "1.1.0",
+      "label": "gold",
+      "title": "Five dinners for £12",
+      "inputs": {
+        "idea": "I made five dinners for £12 this week from one Sunday shop. The cheapest was a chickpea curry at 61p a portion. Receipt on screen.",
+        "platform": "tiktok",
+        "who_for": "students and anyone skint before payday",
+        "brand": "bb_b90d9b1baeedb3c9da79"
+      },
+      "idealOutput": "Five dinners. £12. Here is the receipt.\n61p a portion. The curry did not taste like 61p.\nI spent £12 on Sunday. I ate five dinners from it.\nSkint before payday? This is five dinners for £12.\nThe chickpea curry was 61p. I checked twice.\nReceipt first, food second. That is the rule here.\nCheap does not have to mean beige. 61p curry.\n£12 in, five dinners out. The maths is on screen.\nMeet the star of this week: a 61p chickpea curry.\nPause on the receipt. Every penny is there.",
+      "note": "Spoken hooks in her chatty first person, every one carrying a real number from the idea. No banned food words.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.068Z"
+    },
+    {
+      "id": "smp_524013f40ffd8a141857",
+      "workspaceId": "ws_wovi",
+      "agentId": "hook-writer",
+      "version": "1.1.0",
+      "label": "gold",
+      "title": "Decaf after midnight",
+      "inputs": {
+        "idea": "we now do decaf after midnight, same beans, same price, for the night shift crowd who still want the ritual without the 3 a.m. ceiling stare.",
+        "platform": "x",
+        "brand": "bb_d411a40915d43adbb74a"
+      },
+      "idealOutput": "decaf after midnight. same beans. same price.\nthe ritual stays. the 3 a.m. ceiling stare goes.\nfor the night shift who still want the cup, not the buzz.\nmidnight used to mean last call for coffee. not here.\na small thing for the regulars: decaf, after midnight.\nwhat do you order at 2 a.m. if sleep is the plan?\nsame cup. same beans. you still get to sleep.\nstill open. still warm. now also decaf.\norder decaf after midnight. sleep anyway.\nnight shift, second shift, no shift: there is decaf now ☕",
+      "note": "All lowercase, short and sleepy like the brand, one emoji in ten lines, and every hook is about the decaf change.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.070Z"
+    },
+    {
+      "id": "smp_4f90bf05ad2e38c7acd2",
+      "workspaceId": "ws_wovi",
+      "agentId": "hook-writer",
+      "version": "1.1.0",
+      "label": "bad",
+      "title": "Vague plumbing hooks",
+      "inputs": {
+        "idea": "A video about our plumbing services.",
+        "platform": "tiktok",
+        "brand": "bb_e7179b3df205732bf75d"
+      },
+      "idealOutput": "Plumbing nightmare? We have got you covered!\nYou won't believe what we found!\nStop scrolling if you own a home.\nUnlock your home's full potential.\nDid you know plumbing is important?\nThe cheapest plumber in town!\nThis changes everything about plumbing.\nEver wondered what plumbers do?\nDon't let a disaster ruin your day!\nGuaranteed results, every time!",
+      "note": "No detail from a real job, the brand's banned words (nightmare, cheapest, disaster), exclamation marks, scare tactics and a guarantee. The fix starts upstream: the idea needs a real job in it.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.073Z"
+    },
+    {
+      "id": "smp_c11ffa7c487f49282705",
+      "workspaceId": "ws_wovi",
+      "agentId": "script-writer",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Three-day croissant",
+      "inputs": {
+        "idea": "Why our croissants take three days: day one the dough, day two the butter goes in, day three they are shaped and baked. That is why they sell out by ten.",
+        "length": "s30",
+        "format": "talking_head",
+        "footage": "the bench, the fridge, the oven, my hands, the counter",
+        "mood": "brand",
+        "brand": "bb_7649692f96c31a626d52"
+      },
+      "idealOutput": "Hook (3 s)\nSay: This croissant took three days. Here is why.\nOn screen: Baker to camera at the counter, one croissant held up. Text: \"3 days\"\n\nSetup (9 s)\nSay: Day one, the dough. It rests in the fridge. Day two, the butter goes in, cold, folded over and over.\nOn screen: Hands on the bench, dough into the fridge. Cut to cold butter folded into dough, slow. Text: \"Day 1\", then \"Day 2\"\n\nTurn (10 s)\nSay: Day three, we shape them and bake them. You cannot rush the layers. The butter has to stay cold the whole way.\nOn screen: Hands shaping croissants on the bench, the tray going into the oven, the oven light on. Text: \"Day 3\"\n\nEnding (8 s)\nSay: Three days to make one. About three minutes to eat one. That is why they are gone by ten.\nOn screen: Back to camera at the counter, an empty tray beside the till. Text: \"Gone by 10\"",
+      "note": "One batch, one arc, every shot from the list they can film, a dry joke to end, no exclamation marks and nothing called artisanal.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.086Z"
+    },
+    {
+      "id": "smp_c87a29ecdd3d419ba5aa",
+      "workspaceId": "ws_wovi",
+      "agentId": "script-writer",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Find your stopcock",
+      "inputs": {
+        "idea": "Most people do not know where their stopcock is until water is coming through the ceiling. Show where it usually is: under the kitchen sink, near the front door, or in a cupboard. Turn it clockwise to shut it off.",
+        "length": "s30",
+        "format": "voiceover",
+        "footage": "under a kitchen sink, a hallway cupboard, the front door, a stopcock being turned, my torch",
+        "mood": "brand",
+        "brand": "bb_e7179b3df205732bf75d"
+      },
+      "idealOutput": "Hook (3 s)\nSay: Where is your stopcock? Find it today.\nOn screen: Torch beam sweeping under a kitchen sink. Text: \"Find it today\"\n\nSetup (8 s)\nSay: When a pipe goes, this is the tap that stops the water. You do not want to be hunting for it then.\nOn screen: Torch on the pipes under the sink, a slow pan to the stopcock.\n\nTurn (12 s)\nSay: Look in three places. Under the kitchen sink. Near the front door, where the pipe comes in. Or low down in a hallway cupboard.\nOn screen: Under the sink with the torch, then the floor by the front door, then a hallway cupboard opened low down. Text: \"1\", \"2\", \"3\"\n\nEnding (7 s)\nSay: Found it? Clockwise shuts it off. If it will not turn, that is worth a look from us.\nOn screen: A hand turning the stopcock clockwise. Text: \"Clockwise to shut off\"",
+      "note": "The brand's own warning, said calmly: three places, one action, and an honest line on when to call. No scare, no price.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.089Z"
+    },
+    {
+      "id": "smp_81cc600c27a56606d52e",
+      "workspaceId": "ws_wovi",
+      "agentId": "script-writer",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "One tin, three dinners",
+      "inputs": {
+        "idea": "One tin of chickpeas, three dinners: a curry, a smashed chickpea sandwich filling, and crispy chickpeas on a salad. The tin was 55p, so that is about 18p of chickpeas per dinner.",
+        "length": "s60",
+        "format": "talking_head",
+        "footage": "my kitchen counter, the hob, the tin, the receipt, me",
+        "mood": "lighter",
+        "brand": "bb_b90d9b1baeedb3c9da79"
+      },
+      "idealOutput": "Hook (3 s)\nSay: One tin of chickpeas. Three dinners. 55p.\nOn screen: Me to camera, holding the tin up. Text: \"55p\"\n\nSetup (13 s)\nSay: Chickpeas are the hardest-working thing in my cupboard, so this week I made one tin do three jobs. That's about 18p of chickpeas per dinner. I did the maths so you don't have to.\nOn screen: Me at the counter, the receipt next to the tin. Text: \"18p a dinner\"\n\nTurn (32 s)\nSay: Dinner one, a curry. Half the tin, an onion, whatever spices you've got. Dinner two, I smash a quarter of the tin with a fork, bit of mayo, and that's a sandwich filling. Dinner three, the last quarter goes in a hot pan till it's crispy, then on top of a salad. Same tin. Three completely different dinners.\nOn screen: The hob, the curry bubbling. Cut to a fork smashing chickpeas in a bowl. Cut to chickpeas crisping in a pan, then tipped onto a salad. Text: \"1\", \"2\", \"3\" on each dinner\n\nEnding (12 s)\nSay: So next time chickpeas are on the shelf, don't walk past them. Tell me your hardest-working tin and I'll cost it out to the penny.\nOn screen: Me to camera with all three plates on the counter. Text: \"Your turn: which tin?\"",
+      "note": "Chatty, first person, a little lighter than usual, with the 55p and 18p exactly as given and a call to comment that she can actually deliver.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.091Z"
+    },
+    {
+      "id": "smp_a35cc3381a2b55b3b27c",
+      "workspaceId": "ws_wovi",
+      "agentId": "script-writer",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "One move for a stiff neck",
+      "inputs": {
+        "idea": "One move for a stiff neck at your desk: sit tall, drop your right ear toward your right shoulder, hold for 15 seconds, then swap sides.",
+        "length": "s15",
+        "format": "voiceover",
+        "footage": "me at my desk, side view, my office chair",
+        "mood": "brand",
+        "brand": "bb_6a40dca22d0c7af9ae06"
+      },
+      "idealOutput": "Hook (3 s)\nSay: 1 move. 1 stiff neck. Now.\nOn screen: Side view of me at the desk. Text: \"1 move\"\n\nSetup (3 s)\nSay: Sit tall, shoulders down, nice and gentle.\nOn screen: Me sitting up straight in the office chair, side view.\n\nTurn (6 s)\nSay: Drop your right ear toward your right shoulder. Hold for 15 seconds. Then swap.\nOn screen: Close side view, ear dropping toward the shoulder, the clip sped up. Text: \"15 s each side\"\n\nEnding (3 s)\nSay: Which side was tighter?\nOn screen: Me back at the keyboard. Text: \"Left or right?\"",
+      "note": "Fifteen seconds really is fifteen seconds: opens with a number, one move, ends on a question, gentle wording, no promise to fix anything.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.094Z"
+    },
+    {
+      "id": "smp_614bf8f6154644441f05",
+      "workspaceId": "ws_wovi",
+      "agentId": "script-writer",
+      "version": "2.0.0",
+      "label": "bad",
+      "title": "Salesy app ad",
+      "inputs": {
+        "idea": "A video about why freelancers should use our invoicing app.",
+        "length": "s30",
+        "format": "talking_head",
+        "mood": "brand",
+        "brand": "bb_3988235bdc2a5ed0f2b8"
+      },
+      "idealOutput": "Hook (3 s)\nSay: Are you ready to take your freelance business to the next level?!\nOn screen: Stock photos of laptops and coffee.\n\nSetup (9 s)\nSay: In today's fast-paced digital landscape, freelancers need a seamless, all-in-one solution.\nOn screen: More stock photos of people smiling at laptops.\n\nTurn (12 s)\nSay: Tallybook is a game changer that will revolutionize how you get paid. Our customers say they get paid twice as fast!\nOn screen: Logo animation with sparkles.\n\nEnding (6 s)\nSay: Sign up today before it's too late! Like and subscribe!\nOn screen: Logo on screen with a big sign-up button.",
+      "note": "An ad, not a video: stock phrases, banned brand words (seamless, all-in-one), a made-up customer claim, stock photos, fake urgency and a like-and-subscribe ending. A freelancer learns nothing.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.096Z"
+    },
+    {
+      "id": "smp_e312e70eba278186ef67",
+      "workspaceId": "ws_wovi",
+      "agentId": "caption-writer",
+      "version": "1.1.0",
+      "label": "gold",
+      "title": "Gerald rising overnight",
+      "inputs": {
+        "post": "Time-lapse of Gerald, our nine-year-old sourdough starter, rising overnight next to the oven.",
+        "platforms": [
+          "tiktok",
+          "reels"
+        ],
+        "length": "short",
+        "action": "best",
+        "brand": "bb_7649692f96c31a626d52"
+      },
+      "idealOutput": "TikTok\n1. Our sourdough starter Gerald, rising overnight next to the oven. Nine years old and still the first one up.\n2. Sourdough starter time-lapse. Gerald rose overnight. We were asleep.\n\nInstagram Reels\n1. Nine years old and still the first one up. Gerald, our sourdough starter, overnight by the oven.\n2. Gerald rose. We did not. Every sourdough loaf this week starts with him.",
+      "note": "Short and dry, names Gerald, puts sourdough starter where TikTok search can read it, and ends on a small joke. No hashtags, no exclamation marks.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.111Z"
+    },
+    {
+      "id": "smp_b24a6911cd53b20f2209",
+      "workspaceId": "ws_wovi",
+      "agentId": "caption-writer",
+      "version": "1.1.0",
+      "label": "gold",
+      "title": "Squat cues with a free intro",
+      "inputs": {
+        "post": "Coach Sam correcting a new member's squat: knees out, chest up, slower on the way down. It is the member's second session.",
+        "platforms": [
+          "reels",
+          "tiktok"
+        ],
+        "length": "medium",
+        "details": "Free intro session every Saturday at 10. Book through the link in bio.",
+        "action": "visit",
+        "brand": "bb_ee07b0dc751f5753c8e1"
+      },
+      "idealOutput": "Instagram Reels\n1. Second session, first proper squat. Coach Sam's three cues: knees out, chest up, slower on the way down. Form first, weight later. Free intro session every Saturday at 10. Book through the link in bio.\n2. Nobody gets the squat right in their first week. That is what Sam is for. Knees out, chest up, slow on the way down. Free intro session every Saturday at 10. Book through the link in bio.\n\nTikTok\n1. How to squat as a beginner: knees out, chest up, slower on the way down. Coach Sam, second session, no rush. Free intro session every Saturday at 10. Book through the link in bio.\n2. This was their second session ever. Watch Sam fix the squat in three cues. Free intro session every Saturday at 10. Book through the link in bio.",
+      "note": "The cues are the value, the facts appear word for word, the member stays unnamed, and the next step is the real one they gave.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.114Z"
+    },
+    {
+      "id": "smp_c09627363ff88df827e3",
+      "workspaceId": "ws_wovi",
+      "agentId": "caption-writer",
+      "version": "1.1.0",
+      "label": "gold",
+      "title": "Due dates now filled in",
+      "inputs": {
+        "post": "Screen recording: creating an invoice in Tallybook. The due date field now fills in a real date, 14 days from today, instead of 'Payment terms: 30 days'.",
+        "platforms": [
+          "x",
+          "shorts"
+        ],
+        "length": "short",
+        "details": "Live for all accounts from today.",
+        "action": "save",
+        "brand": "bb_3988235bdc2a5ed0f2b8"
+      },
+      "idealOutput": "X\n1. New in Tallybook: the due date fills in as a real date, 14 days from today, instead of 'Payment terms: 30 days'. Live for all accounts from today. Save this for your next invoice.\n2. Your invoice is not late. Their payment is. Now the date says so: Tallybook fills in a real due date, 14 days from today. Live for all accounts from today. Worth saving.\n\nYouTube Shorts\n1. Tallybook now fills in a real due date\nEvery new invoice gets a due date 14 days from today instead of 'Payment terms: 30 days'. Live for all accounts from today. Save this for your next invoice.\n2. Put a date on your invoice, not 30 days\nTallybook does it for you now: 14 days from today, filled in. Live for all accounts from today. Save this before your next invoice.",
+      "note": "X stays well under 280 characters, the Shorts captions open with a searchable title, the fact appears exactly, and nothing is salesy.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.116Z"
+    },
+    {
+      "id": "smp_fd8f953c576177cc9162",
+      "workspaceId": "ws_wovi",
+      "agentId": "caption-writer",
+      "version": "1.1.0",
+      "label": "gold",
+      "title": "The 1 a.m. decaf pour",
+      "inputs": {
+        "post": "Slow pour of decaf into a cup at the bar, neon sign behind, 1 a.m. on the clock.",
+        "platforms": [
+          "x",
+          "reels"
+        ],
+        "length": "short",
+        "details": "decaf after midnight, same price",
+        "action": "nothing",
+        "brand": "bb_d411a40915d43adbb74a"
+      },
+      "idealOutput": "X\n1. decaf after midnight, same price. still open, still warm. you still get to sleep.\n2. 1 a.m. on the clock, one more cup on the bar. decaf after midnight, same price ☕\n\nInstagram Reels\n1. decaf after midnight, same price. for the night shift, the second shift and the no shift.\n2. the 1 a.m. pour. decaf after midnight, same price. one more cup, and you still sleep tonight.",
+      "note": "lowercase, under three lines, one emoji at most, the fact word for word, and no call to action because none was asked for.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.119Z"
+    },
+    {
+      "id": "smp_cdf237544050ffa93c66",
+      "workspaceId": "ws_wovi",
+      "agentId": "caption-writer",
+      "version": "1.1.0",
+      "label": "bad",
+      "title": "Slop curry caption",
+      "inputs": {
+        "post": "Me cooking a chickpea curry that cost 61p a portion.",
+        "platforms": [
+          "tiktok",
+          "reels"
+        ],
+        "length": "short",
+        "action": "best",
+        "brand": "bb_b90d9b1baeedb3c9da79"
+      },
+      "idealOutput": "TikTok\n1. This yummy guilt-free curry is a total game changer! 😍🔥 #foodie #budget #fyp\n2. You won't believe how cheap this is! Unlock your inner chef today! 🙌\n\nInstagram Reels\n1. Elevate your weeknight dinners with this superfood curry! ✨ #healthy #recipe\n2. Healthy eating has never been easier! Link in bio! 🙌",
+      "note": "Slop: the brand's banned words (yummy, guilt-free, superfood, foodie), stock phrases, hashtags, emoji spam, diet talk and a link in bio nobody gave. The 61p, the real hook, is missing.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.122Z"
+    },
+    {
+      "id": "smp_c0a1e935532fdb009b58",
+      "workspaceId": "ws_wovi",
+      "agentId": "hashtag-picker",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "One tin, three dinners on TikTok",
+      "inputs": {
+        "caption": "One tin of chickpeas, three dinners, about 18p of chickpeas each. Curry, sandwich filling, crispy on a salad.",
+        "platform": "tiktok",
+        "brand": "bb_b90d9b1baeedb3c9da79"
+      },
+      "idealOutput": "Type: hashtag\nTerm: #BudgetMeals\nWhere: End of the caption\nWhy: The broad category the whole channel sits in.\n\nType: hashtag\nTerm: #Chickpeas\nWhere: End of the caption\nWhy: The one ingredient every dinner in the post uses.\n\nType: hashtag\nTerm: #CheapDinners\nWhere: End of the caption\nWhy: Says what the viewer gets: three dinners for very little.\n\nType: hashtag\nTerm: #BatchCooking\nWhere: End of the caption\nWhy: One tin cooked across the week is batch cooking, a brand topic.\n\nType: keyword\nTerm: chickpea recipes\nWhere: First line of the caption\nWhy: What someone types when they have a tin of chickpeas and no plan.\n\nType: keyword\nTerm: dinners on a budget\nWhere: On-screen text in the first 3 seconds\nWhy: Puts the budget angle in the words people search for.",
+      "note": "Four hashtags and two search words, as TikTok wants; every term is about chickpeas, cheap dinners or the channel itself.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.137Z"
+    },
+    {
+      "id": "smp_6827d9ea0ec32184d472",
+      "workspaceId": "ws_wovi",
+      "agentId": "hashtag-picker",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Squat cues for a Manchester gym",
+      "inputs": {
+        "caption": "Second session, first proper squat. Coach Sam's three cues: knees out, chest up, slower on the way down. Form first, weight later.",
+        "platform": "reels",
+        "location": "Manchester",
+        "brand": "bb_ee07b0dc751f5753c8e1"
+      },
+      "idealOutput": "Type: hashtag\nTerm: #StrengthTraining\nWhere: End of the caption\nWhy: The broad category, so the post sits with other strength content.\n\nType: hashtag\nTerm: #SquatForm\nWhere: End of the caption\nWhy: The post is a squat form fix, and the cues are the value.\n\nType: hashtag\nTerm: #BeginnerWorkout\nWhere: End of the caption\nWhy: Speaks to the person this post is for: someone new to lifting.\n\nType: hashtag\nTerm: #ManchesterGym\nWhere: End of the caption\nWhy: The local tag, for people near enough to come in.\n\nType: keyword\nTerm: beginner squat form\nWhere: First line of the caption\nWhy: The exact question this clip answers.\n\nType: keyword\nTerm: beginner gym Manchester\nWhere: First line of the caption, beside the cues\nWhy: Local search for someone looking for a place to start.",
+      "note": "Four hashtags, never more than five on Instagram, one local tag and one local search phrase, all tied to the squat in the clip.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.140Z"
+    },
+    {
+      "id": "smp_4bf1086f5e88af12ffe7",
+      "workspaceId": "ws_wovi",
+      "agentId": "hashtag-picker",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Stopcock on Shorts in Bristol",
+      "inputs": {
+        "caption": "Where is your stopcock? Under the kitchen sink, near the front door, or in a hallway cupboard. Clockwise shuts it off.",
+        "platform": "shorts",
+        "location": "Bristol",
+        "brand": "bb_e7179b3df205732bf75d"
+      },
+      "idealOutput": "Type: hashtag\nTerm: #Plumbing\nWhere: Description, first of the three hashtags\nWhy: The broad category, for anyone browsing home repair.\n\nType: hashtag\nTerm: #Stopcock\nWhere: Description, second hashtag\nWhy: The exact thing the video shows.\n\nType: hashtag\nTerm: #BristolPlumber\nWhere: Description, third hashtag\nWhy: The local tag, for people near enough to call.\n\nType: keyword\nTerm: find your stopcock\nWhere: Shorts title\nWhy: What people type when they need it fast.\n\nType: keyword\nTerm: turn off water supply\nWhere: First line of the description\nWhy: The task behind the question, in the words people use.\n\nType: keyword\nTerm: plumber Bristol\nWhere: Last line of the description\nWhy: Local search, for the people the firm can actually visit.",
+      "note": "Three hashtags (the ones Shorts shows above the title) and three search words for the title and description, one of each local.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.142Z"
+    },
+    {
+      "id": "smp_bf2ded31c259599675ad",
+      "workspaceId": "ws_wovi",
+      "agentId": "hashtag-picker",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Gerald on X, no hashtags",
+      "inputs": {
+        "caption": "Gerald, our sourdough starter, is nine this week. He has never missed a bake.",
+        "platform": "x",
+        "location": "Leeds",
+        "brand": "bb_7649692f96c31a626d52"
+      },
+      "idealOutput": "Type: keyword\nTerm: sourdough starter\nWhere: First line, where it already is\nWhy: The words people search, and the whole post is about one.\n\nType: keyword\nTerm: Leeds bakery\nWhere: Work into the post, like: our Leeds bakery\nWhy: Local search for people who could come in for a loaf.\n\nType: keyword\nTerm: Leeds sourdough\nWhere: A reply under the post, with where to buy it\nWhy: People nearby search for the bread and the place together.\n\nType: keyword\nTerm: feeding a starter\nWhere: A reply showing how Gerald is fed\nWhy: Home bakers search how to keep a starter going; Gerald is nine years of it.\n\nType: keyword\nTerm: old sourdough starter\nWhere: Say nine years old in the post\nWhy: Says the age plainly, the way people search for long-lived starters.\n\nType: keyword\nTerm: bread in Leeds\nWhere: Your X bio, not the post\nWhy: Keeps the post short while the profile catches local searches.",
+      "note": "The brand's don'ts say no hashtags, so all six are search words with a place for each. The brand rule beats the X mix.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.145Z"
+    },
+    {
+      "id": "smp_5d36c5e49c0fcbdb3fac",
+      "workspaceId": "ws_wovi",
+      "agentId": "hashtag-picker",
+      "version": "2.0.0",
+      "label": "bad",
+      "title": "Hashtag wall for a desk physio",
+      "inputs": {
+        "caption": "3 moves for a stiff neck at your desk. Which one do you skip?",
+        "platform": "reels",
+        "brand": "bb_6a40dca22d0c7af9ae06"
+      },
+      "idealOutput": "Type: hashtag\nTerm: #fyp\nWhere: End of the caption\nWhy: Gets you on the For You page.\n\nType: hashtag\nTerm: #viral\nWhere: End of the caption\nWhy: Guaranteed to go viral.\n\nType: hashtag\nTerm: #explorepage\nWhere: End of the caption\nWhy: More reach.\n\nType: hashtag\nTerm: #MiracleCure\nWhere: End of the caption\nWhy: Neck pain gone overnight.\n\nType: hashtag\nTerm: #instagood\nWhere: End of the caption\nWhy: A popular tag.\n\nType: hashtag\nTerm: #fitness\nWhere: End of the caption\nWhy: Unlock your reach.",
+      "note": "Spam tags that say nothing about the post, a cure claim, six hashtags where Instagram allows five, a reach promise, and no search words at all.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.148Z"
+    },
+    {
+      "id": "smp_03b226b7a873ccf22bd3",
+      "workspaceId": "ws_wovi",
+      "agentId": "repurposer",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Forty croissants, from X to video",
+      "inputs": {
+        "post": "We burned 40 croissants so you would not have to. Lamination is butter folded into dough, again and again, cold. Too warm and the butter melts in. Croissant 41 had layers you could count.",
+        "posted_on": "x",
+        "to": [
+          "reels",
+          "tiktok"
+        ],
+        "keep": "Croissant 41",
+        "brand": "bb_7649692f96c31a626d52"
+      },
+      "idealOutput": "Instagram Reels\nHook: We burned 40 croissants so you would not have to.\nScript: Lamination is butter folded into dough, again and again, and it all stays cold. Too warm and the butter melts in. We burned forty getting there. Then came croissant 41.\nOn screen: Close-up of cold butter going into dough on the bench. Cut to the oven door opening. End on croissant 41 torn open, layers in morning light. Text: \"Croissant 41\"\nCaption: Forty burned, one on the counter. Croissant 41 had layers you could count.\n\nTikTok\nHook: Croissant 41. Here is what the first 40 taught us.\nScript: Lamination is butter folded into dough, again and again, cold. Too warm and the butter melts in. We burned 40 croissants learning that, so you would not have to.\nOn screen: Hands folding cold butter into dough, flour on the bench. Text: \"Keep it cold\". End on croissant 41 pulled apart.\nCaption: We burned 40 croissants so you would not have to. Croissant 41 had layers you could count. What should we get wrong next?",
+      "note": "The same point and the same numbers, reshaped twice: Reels leads with the confession, TikTok with croissant 41. Nothing added, the must-stay line kept.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.164Z"
+    },
+    {
+      "id": "smp_9e1829a3a87cc51c1930",
+      "workspaceId": "ws_wovi",
+      "agentId": "repurposer",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Desk moves, from TikTok to X and Shorts",
+      "inputs": {
+        "post": "Your back is not broken. It is bored. 3 moves, 1 minute, at your desk. 1. Seated twist, hold 10 seconds each side. 2. Shoulder rolls, 10 back. 3. Reach up and lean left, then right. Which one do you skip?",
+        "posted_on": "tiktok",
+        "to": [
+          "x",
+          "shorts"
+        ],
+        "brand": "bb_6a40dca22d0c7af9ae06"
+      },
+      "idealOutput": "X\n3 moves. 1 minute. At your desk.\n1. Seated twist, 10 seconds each side\n2. Shoulder rolls, 10 back\n3. Reach up, lean left, then right\nYour back is not broken. It is bored. Which one do you skip?\n\nYouTube Shorts\nHook: 3 moves. 1 minute. Do them now, not later.\nScript: Your back is not broken. It is bored. One: seated twist, hold 10 seconds each side. Two: shoulder rolls, 10 back. Three: reach up and lean left, then right. Which one do you skip?\nOn screen: Side view of one person in an office chair, natural light, one move per shot. Text on each: \"1\", \"2\", \"3\"\nCaption: 3 desk stretches in 1 minute\nSeated twist, shoulder rolls, reach and lean. Which one do you skip?",
+      "note": "X gets the list as text that works alone; Shorts gets a filmable version with a searchable title. Same three moves, same numbers.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.167Z"
+    },
+    {
+      "id": "smp_50a9d85a35d6858e2353",
+      "workspaceId": "ws_wovi",
+      "agentId": "repurposer",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Late invoice maths, from X to video",
+      "inputs": {
+        "post": "Freelancer maths: a £2,400 invoice, 30 days late. Day 1: a friendly reminder with the invoice attached. Day 7: the same, plus the due date in the first line. Day 14: a phone call, not another email.",
+        "posted_on": "x",
+        "to": [
+          "tiktok",
+          "shorts"
+        ],
+        "keep": "£2,400",
+        "brand": "bb_3988235bdc2a5ed0f2b8"
+      },
+      "idealOutput": "TikTok\nHook: A £2,400 invoice is 30 days late. Here is day 1.\nScript: Day 1, a friendly reminder with the invoice attached. Day 7, the same again, with the due date in the first line. Day 14, stop emailing. Pick up the phone.\nOn screen: Screen recording of a reminder email in Tallybook, the attachment highlighted. Text: \"Day 1\", \"Day 7\", \"Day 14\". Last shot: a phone on the desk. Text: \"Call\"\nCaption: Chasing a £2,400 invoice that is 30 days late: what to send on day 1, day 7 and day 14. Which day do you usually give up?\n\nYouTube Shorts\nHook: Day 14 of a late invoice? Stop emailing.\nScript: A £2,400 invoice, 30 days late. Day 1, a friendly reminder, invoice attached. Day 7, the same, with the due date in the first line. Day 14, a phone call, not another email.\nOn screen: A calendar with day 1, 7 and 14 circled, then the reminder email on screen, then a phone on the desk.\nCaption: What to do when an invoice is 30 days late\nA £2,400 example: the reminder for day 1, day 7, and the phone call on day 14.",
+      "note": "Two different openings for the same three steps, the £2,400 kept, and no reason invented for the phone call that the original does not give.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.170Z"
+    },
+    {
+      "id": "smp_5f5423463fd87da0e1da",
+      "workspaceId": "ws_wovi",
+      "agentId": "repurposer",
+      "version": "2.0.0",
+      "label": "gold",
+      "title": "Five dinners receipt, to Reels and Shorts",
+      "inputs": {
+        "post": "£12. Five dinners. One very small fridge. Sunday shop receipt: £11.86. Dinners: chickpea curry 61p a portion, egg fried rice, lentil soup, pasta with tinned tomatoes, jacket potatoes with beans. Prices from this Sunday, they change.",
+        "posted_on": "tiktok",
+        "to": [
+          "reels",
+          "shorts"
+        ],
+        "keep": "£11.86",
+        "brand": "bb_b90d9b1baeedb3c9da79"
+      },
+      "idealOutput": "Instagram Reels\nHook: £11.86 on Sunday. Five dinners from one receipt.\nScript: Here is the receipt. Here is what it made. Chickpea curry, 61p a portion. Egg fried rice. Lentil soup. Pasta with tinned tomatoes. Jacket potatoes with beans. Prices from this Sunday, and they change.\nOn screen: The receipt held up to the camera with the total circled. Then each dinner for two seconds, steam rising, a price sticker on the curry.\nCaption: £12 budget, £11.86 spent, five dinners. The chickpea curry came in at 61p a portion. Prices from this Sunday, they change. Which one would you make first?\n\nYouTube Shorts\nHook: Five dinners for £11.86. Receipt on screen.\nScript: One Sunday shop, £11.86, one very small fridge. Chickpea curry at 61p a portion. Egg fried rice, lentil soup, pasta with tinned tomatoes, and jacket potatoes with beans. Prices from this Sunday. They change.\nOn screen: Receipt in hand, then a fast cut of all five dinners on the counter, the 61p curry last.\nCaption: Five dinners for £11.86 from one Sunday shop\nChickpea curry at 61p a portion, egg fried rice, lentil soup, pasta, jacket potatoes. Prices from this Sunday, they change.",
+      "note": "Every price exactly as given, the prices-change line kept, the receipt as proof, and the shop never named because the original does not name it.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.174Z"
+    },
+    {
+      "id": "smp_a1f9baf2d72e60e78dff",
+      "workspaceId": "ws_wovi",
+      "agentId": "repurposer",
+      "version": "2.0.0",
+      "label": "bad",
+      "title": "Copy-paste with added claims",
+      "inputs": {
+        "post": "Margaret is 61. Six months ago she needed a hand to get up off the floor. Today she deadlifted 60 kg. Two sessions a week and a coach who made her slow down.",
+        "posted_on": "reels",
+        "to": [
+          "x",
+          "tiktok"
+        ],
+        "brand": "bb_ee07b0dc751f5753c8e1"
+      },
+      "idealOutput": "X\nMargaret is 61. Six months ago she needed a hand to get up off the floor. Today she deadlifted 60 kg. Join today and get your summer body in 6 weeks, guaranteed results!\n\nTikTok\nHook: You won't believe what this 61-year-old did!\nScript: Lose 15 kg in six months like Margaret did. \"Best gym in Manchester\" - Margaret T.\nOn screen: Before-and-after photos of Margaret.\nCaption: Beast mode at 61! No excuses!",
+      "note": "X is a copy with a weight-loss guarantee tacked on; TikTok invents results, a quote and before-and-after photos. Nothing in the original supports any of it.",
+      "links": [],
+      "files": [],
+      "createdBy": "usr_wovi_launch",
+      "createdAt": "2026-10-23T07:50:39.177Z"
+    }
+  ],
+  "boardItems": [],
+  "benches": [],
+  "ratings": [],
+  "batches": []
+}

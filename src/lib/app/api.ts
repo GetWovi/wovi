@@ -33,7 +33,7 @@ import { applyQuickEdit } from "./quick-edits";
 import { runSearchText, runState, type RunState } from "./results";
 import { REVIEW_DECISIONS, type AppStore, type OnboardingRow, type ReviewDecision, type ReviewRow } from "./store";
 
-export type AppErrorCode = "invalid_request" | "not_found" | "forbidden" | "not_ready" | "not_enough_credits" | "over_limit";
+export type AppErrorCode = "invalid_request" | "not_found" | "forbidden" | "not_ready" | "not_enough_credits" | "over_limit" | "blocked";
 
 export class AppError extends Error {
   constructor(
@@ -299,6 +299,7 @@ export class AppApi {
       if (err instanceof RunError) {
         if (err.code === "not_found") throw new AppError("not_found", "No such agent.", [], err);
         if (err.code === "not_enough_credits" || err.code === "over_limit") throw new AppError(err.code, err.message, [], err);
+        if (err.code === "blocked") throw new AppError("blocked", "WOVI cannot make this.", err.issues, err);
         throw new AppError("invalid_request", err.issues.length ? "Some fields need a look." : err.message.split("\n")[0], err.issues, err);
       }
       throw err;
@@ -331,6 +332,20 @@ export class AppApi {
     const review = await this.reviewOf(workspaceId, runId);
     const names = await this.agentNames(caller, workspaceId);
     return this.view(run, review, names);
+  }
+
+  /** Phase 18: notes (or clears) that the AI label will be applied where each platform requires it. */
+  async noteAiLabel(caller: Principal, workspaceId: string, runId: string, on: boolean): Promise<RunView | null> {
+    const view = await this.run(caller, workspaceId, runId);
+    if (!view) throw new AppError("not_found", "No such run.");
+    const spec = await this.o.agents.get(caller, PLATFORM_WORKSPACE_ID, view.run.agent.id).catch(() => null);
+    try {
+      await this.o.runs.noteAiLabel(caller, workspaceId, runId, on ? [...(spec?.platforms ?? [])] : null);
+    } catch (err) {
+      if (err instanceof RunError) throw new AppError(err.code === "not_found" ? "not_found" : "invalid_request", err.message, [], err);
+      throw err;
+    }
+    return this.run(caller, workspaceId, runId);
   }
 
   async cancelRun(caller: Principal, workspaceId: string, runId: string): Promise<PublicRun> {
@@ -561,7 +576,8 @@ export class AppApi {
       await this.o.team.decide(caller, workspaceId, runId, decision === "approved" ? "approve" : "reject", note);
       return this.reviewOf(workspaceId, runId);
     }
-    await this.o.accounts.authorize(caller, workspaceId, "run_agents");
+    // People approve (phase 18): "decide" is never open to an API key.
+    await this.o.accounts.authorize(caller, workspaceId, "decide");
     if (!REVIEW_DECISIONS.includes(decision)) throw new AppError("invalid_request", "Approve or reject.");
     const run = await this.o.runs.getRun(caller, workspaceId, runId);
     if (!run) throw new AppError("not_found", "No such run.");
@@ -578,7 +594,7 @@ export class AppApi {
       await this.o.team.reopen(caller, workspaceId, runId);
       return;
     }
-    await this.o.accounts.authorize(caller, workspaceId, "run_agents");
+    await this.o.accounts.authorize(caller, workspaceId, "decide");
     if (!(await this.reviewOf(workspaceId, runId))) throw new AccountError("not_found", "No decision on that run.");
     await this.o.store.reviews.delete(runId);
   }
@@ -590,6 +606,7 @@ function pipelineAppError(err: unknown): unknown {
   if (err.code === "not_found") return new AppError("not_found", err.message, [], err);
   if (err.code === "not_ready") return new AppError("not_ready", err.message, [], err);
   if (err.code === "not_enough_credits" || err.code === "over_limit") return new AppError(err.code, err.message, [], err);
+  if (err.code === "blocked") return new AppError("blocked", "WOVI cannot make this.", err.issues, err);
   return new AppError("invalid_request", err.code === "invalid_input" ? "Some fields need a look." : err.message.split("\n")[0], err.issues, err);
 }
 
@@ -599,7 +616,8 @@ function pick(row: OnboardingRow): OnboardingState {
 
 /** The confirmations the agent asks for, given again for a re-run of a run that had them. */
 function confirmationsOf(run: PublicRun, spec: Pick<AgentSpec, "guardrails">): Confirmations | undefined {
-  const rights = spec.guardrails.includes("rights_confirmed") && run.checks.some((c) => c.check === "rights_confirmation" && c.status === "pass");
+  // A rights confirmation given for files counts again too (phase 18), whatever the agent declares.
+  const rights = run.checks.some((c) => c.check === "rights_confirmation" && c.status === "pass");
   const voice = spec.guardrails.includes("voice_consent") && run.checks.some((c) => c.check === "voice_consent_confirmation" && c.status === "pass");
   return rights || voice ? { ...(rights ? { rights: true } : {}), ...(voice ? { voiceConsent: true } : {}) } : undefined;
 }

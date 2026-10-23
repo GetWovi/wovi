@@ -27,6 +27,7 @@
  * The engine trusts the workspace id it is given; callers go through
  * GuardedPipelines (guard.ts).
  */
+import { refusalLines, screen } from "@/lib/safety/screen";
 import { createHash, randomUUID } from "node:crypto";
 import type { AgentSpec } from "@/lib/agents/spec";
 import { explainCheck } from "@/lib/app/results";
@@ -34,7 +35,7 @@ import type { BrandBrain, BrandBrainSource } from "@/lib/runs/brand-brain";
 import { brandFit, describeFlag } from "@/lib/runs/brand-fit";
 import type { PipelineCredits, ReleaseReason } from "@/lib/credits/types";
 import { BillingRefusal } from "@/lib/runs/billing";
-import { RunEngine, RunError } from "@/lib/runs/engine";
+import { RunEngine, RunError, requestTexts } from "@/lib/runs/engine";
 import { runBeforeChecks, type CheckResult, type Confirmations } from "@/lib/runs/guardrails";
 import { validateRunInputs, type RunInputs } from "@/lib/runs/inputs";
 import { toMicroUsd, toUsd } from "@/lib/runs/prices";
@@ -202,6 +203,9 @@ export class PipelineEngine {
     const checked = validateRunInputs({ inputs: spec.inputs }, req.inputs);
     if (!checked.ok) throw new PipelineError("invalid_input", "Some inputs are not valid.", checked.errors);
     const inputs = checked.value;
+    // Phase 18: the content rules read the pipeline's inputs before anything is held. Each step's run reads its own again.
+    const screening = screen(requestTexts({ inputs: spec.inputs }, inputs, null), { where: "request" });
+    if (screening.blocked) throw new PipelineError("blocked", "WOVI cannot make this.", refusalLines(screening.findings));
 
     const confirmations = req.confirmations ?? {};
     const missingConfirm = [...new Set(agents.flatMap((a) => runBeforeChecks({ spec: a.spec, inputs: {}, confirmations }).filter((c) => c.status === "fail").map((c) => c.message)))];
@@ -609,6 +613,7 @@ export class PipelineEngine {
       if (err.code === "over_budget") return this.failRun(pr, i, "spend_cap", `The pipeline's budget ran out before "${step.label}". ${err.message.split("\n")[0]}`);
       if (err.code === "invalid_input") return this.failRun(pr, i, "bad_handoff", `"${step.label}" could not take what the steps before it gave: ${err.issues.join(" ")}`);
       if (err.code === "not_found" || err.code === "not_runnable") return this.failRun(pr, i, "agent_missing", `${step.agent.name} could not run: ${err.message.split("\n")[0]}`);
+      if (err.code === "blocked") return this.failRun(pr, i, "step_failed", `"${step.label}" was refused: ${err.issues.map((x) => x.replace(/^[a-z_]+: /, "")).join(" ")}`);
       return this.failRun(pr, i, "step_failed", err.message.split("\n")[0]);
     }
     step.inputs ??= inputs;

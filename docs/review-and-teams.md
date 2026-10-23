@@ -150,3 +150,7 @@ It signs in through the email flow, skips onboarding, then runs `scripts/seed-te
 - A client role inside the workspace for clients who want an account; the link already holds the rules.
 - Real email delivery when the app is deployed; the sender interface is already in place.
 - Notifications over webhooks and the event stream (phase 14).
+
+## People approve, on every path (phase 18)
+
+`GuardedPipelines.decide` and `clearDecision`, and the run decision without teams, now ask for `decide`, so no API key can approve or reject anywhere. Review items and the client view have a Report link; a comment can be taken down after a report, and a client never sees an output taken down. A deleted member's comments and decisions stay with the team as "Deleted member". See [safety.md](safety.md).

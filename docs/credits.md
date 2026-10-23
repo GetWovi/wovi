@@ -203,3 +203,8 @@ The earlier phases' screenshot scripts run agents from a workspace with no credi
 - Swaps and creator payouts only after the legal check.
 - A small starter pack or a low first top-up for new users outside crypto, as the doc says to revisit.
 - Credits for MCP and REST calls (phase 14) go through the same guarded engine, so they are billed already.
+
+## Buying and withdrawing (phase 18)
+
+- Before a top-up or a $WOVI price, the buyer ticks the request to start the credits at once and the withdrawal terms (`PURCHASE_CONSENT`). Without it the server refuses. The exact words and the time are stored on the top-up (`topUp.consent`); older top-ups have none. Pack buttons say "Buy and pay $X" and the price is the total, taxes included.
+- For 14 days after a paid top-up, "Withdraw from this purchase" with a confirm: the unused credits from it (at most what is left of the paid balance) leave through one `adjustment`, the money is written down as owed in `safety.json`, and a receipt goes by email. Nothing is paid out by the app. See [safety.md](safety.md).

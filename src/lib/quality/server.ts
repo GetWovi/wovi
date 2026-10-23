@@ -9,6 +9,7 @@ import { jsonFileAppStore } from "@/lib/app/store";
 import { appBuilder } from "@/lib/builder/server";
 import { jsonFileBuilderStore } from "@/lib/builder/store";
 import { jsonFileTeamStore } from "@/lib/team/store";
+import { localSafetyStore } from "@/lib/safety/local";
 import { QualityService } from "./service";
 
 const g = globalThis as { __woviQuality?: QualityService };
@@ -24,6 +25,8 @@ export function appQuality(): QualityService {
       activity: team.activity,
       ratings: jsonFileBuilderStore(join(dir, "builder.json")).ratings,
       requireBuilder: (caller) => appBuilder().requireBuilder(caller),
+      // Phase 18: drafts and change notes reach the builder only from people who turned on "Use my edits to improve agents".
+      mayLearnFrom: async (userId) => (await localSafetyStore(dir).consents.get(userId))?.improveAgents === true,
     });
   }
   return g.__woviQuality;

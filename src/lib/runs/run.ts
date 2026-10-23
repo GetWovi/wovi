@@ -26,7 +26,9 @@ export type RunFailureCode =
   /** The agent version could not be loaded any more. */
   | "agent_missing"
   /** A bug in the engine. Logged. */
-  | "internal_error";
+  | "internal_error"
+  /** Phase 18: every draft broke a hard content rule (hate, harassment, sexual content, unsafe advice), so it was withheld. */
+  | "blocked";
 
 export type ModelCall = {
   /** The first answer, a format repair, a quality-gate rewrite (phase 12), or the optional judge. */
@@ -89,13 +91,33 @@ export type Run = {
   /** What the run held and was charged in credits (phase 13). Missing when the engine bills nothing. */
   credits?: RunCredits | null;
 
+  /**
+   * Phase 18: when each confirmation was given at submit (ISO time). Missing
+   * on runs from before phase 18 and on runs that asked for none.
+   */
+  confirmedAt?: { rights?: string; voiceConsent?: string } | null;
+  /**
+   * Phase 18: the person's note that they will apply each platform's AI label
+   * where it is required, kept with the output. Null until someone gives it.
+   */
+  aiLabel?: AiLabelNote | null;
+  /**
+   * Phase 18: the output was taken down after a report (notice and action).
+   * The output stays in the store for disputes; no view shows it.
+   */
+  withheld?: { at: string; reportId: string; reason: string } | null;
+
   timings: { queuedAt: string; startedAt: string | null; finishedAt: string | null; queueMs: number | null; runMs: number | null };
   createdAt: string;
   updatedAt: string;
 };
 
+/** Who noted the AI label, when, and for which platforms. */
+export type AiLabelNote = { at: string; by: string; platforms: string[] };
+
 /** What a user, MCP client or API caller sees: no model, no calls, no internal cost. */
 export function publicRunView(run: Run) {
+  const withheld = run.withheld ?? null;
   return {
     id: run.id,
     workspaceId: run.workspaceId,
@@ -103,7 +125,7 @@ export function publicRunView(run: Run) {
     status: run.status,
     inputs: run.inputs,
     brandBrain: run.brandBrain ? { id: run.brandBrain.id, name: run.brandBrain.name ?? null } : null,
-    output: run.output,
+    output: withheld ? null : run.output,
     error: run.error,
     checks: run.checks,
     needsReview: run.needsReview,
@@ -113,5 +135,11 @@ export function publicRunView(run: Run) {
     charge: chargeView(run.credits),
     createdAt: run.createdAt,
     finishedAt: run.timings.finishedAt,
+    /** Phase 18: every output is written by an AI model (EU AI Act Art. 50 transparency). */
+    aiGenerated: true as const,
+    /** Phase 18: the AI-label note, when someone gave it. */
+    aiLabel: run.aiLabel ?? null,
+    /** Phase 18: set when the output was taken down after a report. */
+    withheld: withheld ? { at: withheld.at, reason: withheld.reason } : null,
   };
 }

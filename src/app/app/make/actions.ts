@@ -10,6 +10,8 @@ import type { ReviewDecision, ReviewRow } from "@/lib/app/types";
 import { appBrands } from "@/lib/brand/server";
 import { checkFile, localFileStorage } from "@/lib/builder/storage";
 import type { FileRef } from "@/lib/runs/inputs";
+import { RIGHTS_REFUSAL, recordRights, rightsGiven } from "@/lib/safety/rights";
+import { appSafetyStore } from "@/lib/safety/server";
 
 /**
  * A file for an agent's form, kept under the workspace like a mood board
@@ -21,6 +23,8 @@ export async function uploadRunFile(csrf: string, formData: FormData): Promise<R
     const file = formData.get("file");
     const kind = formData.get("kind") === "image" ? "image" : "text";
     if (!(file instanceof File)) throw new AppError("invalid_request", "Pick a file first.");
+    // Phase 18: no file is stored without the person's rights confirmation.
+    if (!rightsGiven(formData)) throw new AppError("invalid_request", RIGHTS_REFUSAL);
     const bytes = new Uint8Array(await file.arrayBuffer());
     const input = { name: file.name, mimeType: file.type || "application/octet-stream", bytes };
     let stored;
@@ -31,6 +35,7 @@ export async function uploadRunFile(csrf: string, formData: FormData): Promise<R
       if (problem) throw new AppError("invalid_request", problem);
       stored = await localFileStorage(join(dataDirFromEnv(), "files")).put(workspaceId, input);
     }
+    await recordRights(appSafetyStore(), { workspaceId, userId: me.userId, subject: "run_file", fileId: stored.id, fileName: stored.name });
     return { assetId: stored.id, name: stored.name, mimeType: stored.mimeType, sizeMb: Number((stored.sizeBytes / 1024 / 1024).toFixed(3)) };
   });
 }
@@ -68,4 +73,9 @@ export async function clearReview(csrf: string, runId: string): Promise<Result<n
     },
     { refresh: "/app" },
   );
+}
+
+/** Phase 18: notes (or clears) that the AI label will be applied where each platform requires it, stored with the output. */
+export async function noteAiLabel(csrf: string, runId: string, on: boolean): Promise<Result<RunView | null>> {
+  return appCall(csrf, ({ api, me, workspaceId }) => api.noteAiLabel(me, workspaceId, runId, on));
 }

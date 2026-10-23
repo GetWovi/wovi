@@ -4,7 +4,8 @@ import { AppShell } from "@/components/app/AppShell";
 import { Mascot } from "@/components/brand/Mascot";
 import { currentTime } from "@/components/builder/labels";
 import { ActivityList } from "@/components/credits/ActivityList";
-import { LimitsForm, TopUpPacks } from "@/components/credits/CreditForms";
+import { LimitsForm, TopUpPacks, WithdrawList, type WithdrawRow } from "@/components/credits/CreditForms";
+import { appWithdrawals } from "@/lib/safety/server";
 import c from "@/components/credits/Credits.module.css";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -37,6 +38,11 @@ export default async function CreditsPage() {
   const showHolder = balance.holder.available > 0 || Boolean(holderView?.creditsOn);
   const pay = ts.pay?.status().on ? ts.pay.status() : null;
   const myWallets = pay ? (await accounts().wallets.list(info.user.id)).map((w) => w.address) : [];
+  // Phase 18: purchases still inside their 14 days to withdraw, for people who top up.
+  const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const withdrawable: WithdrawRow[] = summary.canManage
+    ? (await appWithdrawals().list(me, workspaceId)).map((w) => ({ id: w.topUp.id, credits: w.topUp.credits, price: priceWords(w.topUp.credits), boughtAt: day(w.topUp.completedAt ?? w.topUp.createdAt), until: day(w.until), test: w.topUp.test, withdrawn: w.withdrawn ? { credits: w.withdrawn.credits, price: priceWords(w.withdrawn.credits) } : null }))
+    : [];
 
   return (
     <AppShell info={info} active="credits">
@@ -113,6 +119,20 @@ export default async function CreditsPage() {
                   Link a wallet on <a href="/account#wovi">your account</a> first: the $WOVI has to come from a wallet linked to you.
                 </p>
               )}
+            </section>
+          )}
+
+          {withdrawable.length > 0 && (
+            <section id="withdraw" className={[styles.panel, styles.stack].join(" ")} aria-label="Withdraw from a purchase">
+              <div className={c.panelHead}>
+                <div>
+                  <h2>Withdraw from a purchase</h2>
+                  <p>
+                    Within 14 days of buying. The credits from it you have not used come off your balance and we pay them back. <a href="/terms#withdrawal">How it works</a>.
+                  </p>
+                </div>
+              </div>
+              <WithdrawList csrf={csrf} rows={withdrawable} />
             </section>
           )}
 

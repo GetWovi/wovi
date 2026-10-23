@@ -12,6 +12,8 @@ import type { Role } from "@/lib/accounts/policy";
 import { SESSION_COOKIE, accounts, actionSession, clearSessionCookie } from "@/lib/accounts/server";
 import type { SessionInfo } from "@/lib/accounts/sessions";
 import { tokenServices } from "@/lib/token/local";
+import { PrivacyError } from "@/lib/privacy/privacy";
+import { appPrivacy } from "@/lib/safety/server";
 
 /** A person's $WOVI holder status, read again after their wallets change (phase 17). Never fails the action. */
 async function recheckHolder(userId: string) {
@@ -173,4 +175,32 @@ export async function unlinkWallet(_prev: ActionState, fd: FormData) {
     await accounts().wallets.unlink(user.id, field(fd, "address"));
     await recheckHolder(user.id);
   });
+}
+
+/* ---------- Your data (phase 18) ---------- */
+
+/** "Use my edits to improve agents": on or off, as easy either way. */
+export async function setImproveConsent(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  return act(fd, async ({ user }) => {
+    const on = field(fd, "on") === "yes";
+    await appPrivacy().setConsent(user.id, on);
+    return on ? "On. Builders may read your notes and drafts from now on." : "Off. Your notes and drafts are no longer shown to builders.";
+  });
+}
+
+/** Deletes the account after the person typed their email, then signs them out. */
+export async function deleteMyAccount(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  let done = false;
+  const state = await act(fd, async ({ user }) => {
+    try {
+      await appPrivacy().deleteAccount(user.id, field(fd, "confirm"));
+      done = true;
+    } catch (err) {
+      if (err instanceof PrivacyError) return { error: err.issues.length ? err.issues.map((i) => i.replace(/^confirm: /, "")).join(" ") : err.message };
+      throw err;
+    }
+  });
+  if (!done) return state;
+  await clearSessionCookie();
+  redirect("/?account=deleted");
 }

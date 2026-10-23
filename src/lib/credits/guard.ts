@@ -91,9 +91,9 @@ export class GuardedCredits {
     return out;
   }
 
-  async topUp(caller: Principal, workspaceId: string, credits: number, idempotencyKey?: string): Promise<TopUp> {
+  async topUp(caller: Principal, workspaceId: string, credits: number, idempotencyKey?: string, consent?: { at: string; wording: string }): Promise<TopUp> {
     await this.accounts.authorize(caller, workspaceId, "manage_credits");
-    return this.credits.topUp(workspaceId, { credits, by: savedBy(caller), ...(idempotencyKey ? { idempotencyKey } : {}) });
+    return this.credits.topUp(workspaceId, { credits, by: savedBy(caller), ...(idempotencyKey ? { idempotencyKey } : {}), ...(consent ? { consent } : {}) });
   }
 
   async topUps(caller: Principal, workspaceId: string): Promise<TopUp[]> {

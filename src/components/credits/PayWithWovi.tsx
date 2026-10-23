@@ -12,6 +12,7 @@ import { creditWords, priceWords } from "@/lib/credits/config";
 import type { PayQuote } from "@/lib/token/pay";
 import { shortAddress, wholeWords } from "@/lib/token/words";
 import { Coin } from "./CreditParts";
+import { PurchaseConsent } from "@/components/safety/PurchaseConsent";
 import styles from "./Credits.module.css";
 
 type Stage = "quote" | "connect" | "chain" | "send" | "wait" | null;
@@ -39,11 +40,14 @@ export function PayWithWovi({ csrf, packs, wallets, source, explorer }: { csrf: 
   const [stage, setStage] = useState<Stage>(null);
   const [error, setError] = useState<string | null>(null);
   const [tx, setTx] = useState("");
+  const [consent, setConsent] = useState(false);
 
   async function price(pack: number) {
     setError(null);
+    // Phase 18: the same request and acceptance as a card purchase, never ticked in advance.
+    if (!consent) return setError("Tick the box above the packs first.");
     setStage("quote");
-    const r = await woviQuote(csrf, pack);
+    const r = await woviQuote(csrf, pack, consent);
     setStage(null);
     if (!r.ok) return setError(r.error);
     setQuote(r.value);
@@ -131,6 +135,7 @@ export function PayWithWovi({ csrf, packs, wallets, source, explorer }: { csrf: 
     <div className={styles.wovi}>
       {!quote ? (
         <>
+          <PurchaseConsent checked={consent} onChange={setConsent} />
           <div className={styles.packs}>
             {packs.map((pack) => (
               <button key={pack} type="button" className={styles.pack} onClick={() => price(pack)} disabled={busy} aria-label={`Pay for ${creditWords(pack)} with $WOVI`}>

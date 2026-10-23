@@ -527,3 +527,36 @@
   font-size: var(--fs-sm);
   color: var(--blaze-text);
 }
+
+/* Phase 18: the price note under the packs and the withdrawal list. */
+.packNote {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.withdrawList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.withdrawRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.withdrawRow:last-child {
+  border-bottom: 0;
+}
+.withdrawAsk {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}

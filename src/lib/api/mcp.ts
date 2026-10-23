@@ -70,7 +70,9 @@ function runText(run: ApiRun): string {
     ? `${name} finished (run ${run.id}). Quality ${q.score} against a bar of ${q.bar}: ${run.ready ? "ready for a person to approve in WOVI" : `needs a closer look: ${q.reasons.join(" ") || run.flags.map((f) => f.message).join(" ")}`}.`
     : `${name} finished (run ${run.id}).`;
   const charge = run.charge?.charged != null ? ` Charged ${run.charge.charged} credits.` : "";
-  return `${head}${charge}\n\n${run.output ? copyAll(run.output as RunOutput) : ""}`.trim();
+  // Phase 18: say plainly that an AI wrote it (EU AI Act Art. 50).
+  const ai = run.output ? " Written by AI: a draft for a person to check, and to label as AI where a platform asks." : "";
+  return `${head}${charge}${ai}\n\n${run.output ? copyAll(run.output as RunOutput) : ""}`.trim();
 }
 
 function pipelineText(run: ApiPipelineRun): string {

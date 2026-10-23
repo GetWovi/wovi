@@ -1,3 +1,4 @@
+import { ReportLink } from "@/components/safety/LegalLinks";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -95,6 +96,7 @@ export default async function ReviewItemPage({ params }: { params: Promise<{ id:
             </span>
           </section>
           <ActivityLog rows={d.activity} now={now} itemHref={href} />
+          <ReportLink id={item.id} />
         </aside>
 
         <div className={t.areaTalk}>

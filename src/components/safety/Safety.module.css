@@ -1,0 +1,602 @@
+/* Phase 18: safety, legal and platform rules. Built on the WOVI tokens:
+   night ground, rounded panels, orange eyebrows, cream headlines. */
+
+/* ---------- A ticked confirmation (upload rights, purchase, report) ---------- */
+.confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface-alt);
+  border: 1px solid var(--hairline);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  cursor: pointer;
+}
+.confirm input {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+  accent-color: var(--blaze);
+  flex: none;
+}
+.confirm a {
+  color: var(--link);
+  text-decoration: underline;
+}
+.confirmOn {
+  border-color: var(--blaze);
+}
+
+/* ---------- Platform rules beside a form ---------- */
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.rulesHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: var(--fw-semibold);
+}
+.rule {
+  border-radius: var(--r-md);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+}
+.rule summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-sm);
+}
+.rule summary::-webkit-details-marker {
+  display: none;
+}
+.rule summary::after {
+  content: "+";
+  font-weight: var(--fw-bold);
+  color: var(--text-muted);
+}
+.rule[open] summary::after {
+  content: "\2212";
+}
+.ruleList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: 0 var(--s-4) var(--s-4);
+  margin: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: var(--lh-snug);
+}
+.ruleList b {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+/* ---------- AI label reminder on a result ---------- */
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  border: var(--stroke) solid var(--cobalt);
+  background: var(--cobalt-tint);
+}
+.labelHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.labelHead h3 {
+  font-size: var(--fs-md);
+}
+.aiTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding-inline: 10px;
+  border-radius: var(--r-pill);
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.02em;
+}
+.labelRows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--s-3);
+}
+.labelRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+  color: var(--text-muted);
+}
+.labelRow b {
+  color: var(--text);
+}
+.labelDone {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+/* ---------- A blocked request ---------- */
+.blocked {
+  display: flex;
+  gap: var(--s-4);
+  align-items: flex-start;
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  border: var(--stroke) solid var(--blaze);
+  background: var(--blaze-tint);
+}
+.blockedText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.blockedText h3 {
+  font-size: var(--fs-lg);
+}
+.blockedText ul {
+  margin: 0;
+  padding-left: 1.1em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+}
+.blockedText p {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.blockedText a {
+  color: var(--link);
+  text-decoration: underline;
+}
+.found {
+  color: var(--text-muted);
+}
+
+/* ---------- Footer links ---------- */
+.legalLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  font-size: var(--fs-xs);
+}
+.legalLinks a {
+  color: var(--text-muted);
+}
+.legalLinks a:hover {
+  color: var(--text);
+}
+.homeStrip {
+  padding: var(--s-5) 0 var(--s-6);
+  border-top: 1px solid var(--hairline);
+}
+.homeStripInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-3);
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+/* ---------- Legal pages ---------- */
+.page {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: clamp(24px, 5vw, 72px);
+  padding: clamp(32px, 5vw, 64px) 0 var(--s-8);
+  align-items: start;
+}
+.toc {
+  position: sticky;
+  top: calc(var(--header-h, 72px) + 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font-size: var(--fs-sm);
+}
+.toc a {
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+.toc a:hover {
+  color: var(--text);
+}
+.tocTitle {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blaze-text);
+  margin-bottom: var(--s-1);
+}
+.doc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  min-width: 0;
+  max-width: 760px;
+}
+.docHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.docHead h1 {
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.lead {
+  font-size: var(--fs-lg);
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.metaPill {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding-inline: 12px;
+  border-radius: var(--r-pill);
+  background: var(--text-tint);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  scroll-margin-top: calc(var(--header-h, 72px) + 24px);
+}
+.section h2 {
+  font-size: var(--fs-xl);
+  letter-spacing: -0.01em;
+}
+.section h3 {
+  font-size: var(--fs-md);
+  margin-top: var(--s-2);
+}
+.section p,
+.section li {
+  line-height: var(--lh-body);
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+.section b,
+.section strong {
+  color: var(--text);
+}
+.section ul,
+.section ol {
+  margin: 0;
+  padding-left: 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.section a {
+  color: var(--link);
+  text-decoration: underline;
+}
+.box {
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.warn {
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--blaze-tint);
+  border: var(--stroke) solid var(--blaze);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.warn ul {
+  margin: 0;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--s-3);
+  border-bottom: 1px solid var(--hairline);
+  color: var(--text-muted);
+  line-height: var(--lh-snug);
+}
+.table th {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+.tableWrap {
+  overflow-x: auto;
+  border-radius: var(--r-md);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+}
+
+/* ---------- Report form and owner queue ---------- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+}
+.done {
+  display: flex;
+  gap: var(--s-4);
+  align-items: center;
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+.ref {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: var(--fw-bold);
+  color: var(--blaze-text);
+}
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+}
+.reportHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+}
+.reportHead b {
+  font-size: var(--fs-md);
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding-inline: 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  background: var(--text-tint);
+  color: var(--text-muted);
+}
+.statusNew {
+  background: var(--blaze);
+  color: var(--on-blaze);
+}
+.statusReviewing {
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+}
+.reportMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.reportBody {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.decide {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: var(--s-3);
+  align-items: end;
+}
+.decideWide {
+  grid-column: 1 / -1;
+}
+.decideBar {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+.reportLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.reportLink:hover {
+  color: var(--text);
+}
+
+/* ---------- Your data (account) ---------- */
+.dataRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.dataRow:last-child {
+  border-bottom: 0;
+}
+.dataText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.dataText span {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  line-height: var(--lh-snug);
+}
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.planItem {
+  display: flex;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--surface-alt);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-snug);
+}
+.planItem b {
+  display: block;
+}
+.planItem span {
+  color: var(--text-muted);
+}
+.planTag {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding-inline: 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  background: var(--text-tint);
+  color: var(--text-muted);
+}
+.planDelete {
+  background: var(--blaze);
+  color: var(--on-blaze);
+}
+.planBlocked {
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+}
+.danger {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-radius: var(--r-md);
+  border: var(--stroke) solid var(--blaze);
+}
+.inlineForm {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 860px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+  /* On a phone the sections follow one another; the contents list would only push the page down. */
+  .toc {
+    display: none;
+  }
+  .formGrid,
+  .decide {
+    grid-template-columns: 1fr;
+  }
+  /* The privacy table as one card per row: no sideways scrolling on a phone. */
+  .table thead {
+    display: none;
+  }
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+  .table tr {
+    padding: var(--s-3) var(--s-4);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .table tr:last-child {
+    border-bottom: 0;
+  }
+  .table td {
+    padding: 4px 0;
+    border: 0;
+  }
+  .table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--blaze-text);
+  }
+  .dataRow {
+    flex-direction: column;
+  }
+}
+.blocked > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--blaze-text);
+}

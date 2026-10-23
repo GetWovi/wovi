@@ -14,7 +14,9 @@ export type PipelineErrorCode =
   /** Credits (phase 13): the balance does not cover the estimate. */
   | "not_enough_credits"
   /** Credits (phase 13): a monthly limit would be passed. */
-  | "over_limit";
+  | "over_limit"
+  /** Phase 18: the inputs ask for something WOVI does not write. */
+  | "blocked";
 
 export class PipelineError extends Error {
   constructor(

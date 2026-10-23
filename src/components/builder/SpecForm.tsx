@@ -201,6 +201,8 @@ export function SpecForm({
               <Icon name="warning" size={16} /> {m}
             </p>
           ))}
+          <p className={styles.sectionNote}>WOVI&apos;s own content rules (fake reviews, impersonation, deepfakes, false claims, hate, harassment, sexual content, unsafe advice, copyrighted music) run on every agent. Add words this agent should also refuse, one per line.</p>
+          <BlockedPhrases value={body.safety?.block ?? []} onChange={(block) => set({ safety: block.length ? { block } : undefined })} error={looseErrors(issues, "safety", []).join(" ") || undefined} />
         </Card>
 
         <Card id="model" title="Model slot" className={styles.section} actions={<span className="eyebrow">Builders only</span>}>
@@ -256,5 +258,23 @@ export function SpecForm({
         </Card>
       </div>
     </div>
+  );
+}
+
+/** Phase 18: the agent's own blocked phrases, one per line. Empty lines are dropped when saved, not while typing. */
+function BlockedPhrases({ value, onChange, error }: { value: string[]; onChange: (block: string[]) => void; error?: string }) {
+  const [text, setText] = useState(() => value.join("\n"));
+  return (
+    <Textarea
+      label="Blocked for this agent (optional)"
+      rows={3}
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value);
+        onChange(e.target.value.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 30));
+      }}
+      error={error}
+      hint="A competitor's name, a topic this agent never touches. Matched as whole words."
+    />
   );
 }

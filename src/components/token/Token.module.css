@@ -582,3 +582,14 @@
     transform-origin: right bottom;
   }
 }
+
+/* Phase 18: the own-risk line under the hero buttons, and the link in the risk box. */
+.riskLine {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+.riskLine a,
+.risk a {
+  color: var(--link);
+  text-decoration: underline;
+}

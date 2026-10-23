@@ -100,6 +100,12 @@ export type TopUp = {
   createdAt: string;
   completedAt: string | null;
   error: string | null;
+  /**
+   * Phase 18: the buyer asked for the credits to start at once and accepted
+   * the withdrawal terms (Consumer Rights Directive Art. 8(8) and 16), with
+   * the exact words they ticked. Missing on top-ups from before phase 18.
+   */
+  consent?: { at: string; wording: string } | null;
 };
 
 /** Monthly limits in credits. Null means no limit. */

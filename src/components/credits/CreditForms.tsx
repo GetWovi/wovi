@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { setLimits, topUp } from "@/app/app/credits/actions";
+import { setLimits, topUp, withdrawPurchase } from "@/app/app/credits/actions";
+import { PurchaseConsent } from "@/components/safety/PurchaseConsent";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -21,10 +22,14 @@ export function TopUpPacks({ csrf, packs, test }: { csrf: string; packs: number[
   const router = useRouter();
   const { toast } = useToast();
   const [busy, setBusy] = useState<number | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [needConsent, setNeedConsent] = useState(false);
 
   async function buy(pack: number) {
+    // Phase 18: never ticked for the buyer, and nothing is bought without it.
+    if (!consent) return setNeedConsent(true);
     setBusy(pack);
-    const r = await topUp(csrf, pack, pressKey(pack));
+    const r = await topUp(csrf, pack, pressKey(pack), consent);
     setBusy(null);
     if (!r.ok) return toast({ tone: "warning", title: r.error });
     toast({ tone: "success", title: `${creditWords(r.value.credits)} added`, description: r.value.test ? "A test top-up: no money moved." : undefined });
@@ -32,6 +37,15 @@ export function TopUpPacks({ csrf, packs, test }: { csrf: string; packs: number[
   }
 
   return (
+    <>
+    <PurchaseConsent
+      checked={consent}
+      onChange={(v) => {
+        setConsent(v);
+        if (v) setNeedConsent(false);
+      }}
+      error={needConsent ? "Tick this first." : null}
+    />
     <div className={styles.packs}>
       {packs.map((pack) => (
         <button key={pack} type="button" className={styles.pack} onClick={() => buy(pack)} disabled={busy !== null} aria-label={`${test ? "Test top-up" : "Top up"}: ${creditWords(pack)} for ${priceWords(pack)}`}>
@@ -43,11 +57,69 @@ export function TopUpPacks({ csrf, packs, test }: { csrf: string; packs: number[
             {test ? ", test, not charged" : ""}
           </span>
           <span className={styles.packCta}>
-            {busy === pack ? "Adding" : test ? "Add as a test" : "Buy"} <Icon name="arrow-right" size={14} />
+            {busy === pack ? "Adding" : test ? "Add as a test" : `Buy and pay ${priceWords(pack)}`} <Icon name="arrow-right" size={14} />
           </span>
         </button>
       ))}
     </div>
+    <p className={styles.packNote}>The price shown is the total you pay, taxes included.</p>
+    </>
+  );
+}
+
+export type WithdrawRow = { id: string; credits: number; price: string; boughtAt: string; until: string; test: boolean; withdrawn: { credits: number; price: string } | null };
+
+/**
+ * Phase 18, the right of withdrawal (Consumer Rights Directive Art. 11a):
+ * every purchase still inside its 14 days, with "Withdraw from this
+ * purchase" and a confirm step.
+ */
+export function WithdrawList({ csrf, rows }: { csrf: string; rows: WithdrawRow[] }) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [asking, setAsking] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function confirm(id: string) {
+    setBusy(true);
+    const r = await withdrawPurchase(csrf, id);
+    setBusy(false);
+    setAsking(null);
+    if (!r.ok) return toast({ tone: "warning", title: r.error });
+    toast({ tone: "success", title: `Withdrawn: ${creditWords(r.value.credits)} left your balance`, description: r.value.test ? "A test top-up: no money moves." : `We pay back ${priceWords(r.value.credits)} within 14 days. A receipt is in your email.` });
+    router.refresh();
+  }
+
+  return (
+    <ul className={styles.withdrawList}>
+      {rows.map((w) => (
+        <li key={w.id} className={styles.withdrawRow}>
+          <span className={styles.limitWho}>
+            <b>
+              {creditWords(w.credits)} for {w.price}
+              {w.test ? ", test" : ""}
+            </b>
+            <span>{w.withdrawn ? `Withdrawn: ${creditWords(w.withdrawn.credits)} back, ${w.withdrawn.price} owed to you.` : `Bought ${w.boughtAt}. You can withdraw until ${w.until}.`}</span>
+          </span>
+          {!w.withdrawn &&
+            (asking === w.id ? (
+              <span className={styles.withdrawAsk}>
+                <span>The credits from it you have not used leave your balance. Sure?</span>
+                <Button size="sm" variant="ghost" onClick={() => setAsking(null)} disabled={busy}>
+                  Keep it
+                </Button>
+                <Button size="sm" onClick={() => confirm(w.id)} loading={busy}>
+                  Confirm withdrawal
+                </Button>
+              </span>
+            ) : (
+              <Button size="sm" variant="secondary" onClick={() => setAsking(w.id)}>
+                Withdraw from this purchase
+              </Button>
+            ))}
+        </li>
+      ))}
+    </ul>
   );
 }
 

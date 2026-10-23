@@ -9,7 +9,7 @@ import { monthEnd } from "@/lib/credits/pricing";
 import { tokenServices } from "@/lib/token/local";
 import { utcWords, wholeWords } from "@/lib/token/words";
 import { AppShell } from "@/components/app/AppShell";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input, Select } from "@/components/ui/Field";
 import type { Principal } from "@/lib/accounts/accounts";
@@ -30,7 +30,12 @@ import {
   signOutEverywhere,
   switchWorkspace,
   unlinkWallet,
+  setImproveConsent,
+  deleteMyAccount,
 } from "./actions";
+import safe from "@/components/safety/Safety.module.css";
+import { IMPROVE_CONSENT } from "@/lib/legal/operator";
+import { appPrivacy } from "@/lib/safety/server";
 
 export const metadata: Metadata = { title: "Account", robots: { index: false, follow: false } };
 
@@ -58,6 +63,11 @@ export default async function AccountPage() {
   const period = new Date().toISOString().slice(0, 7);
   const invitable = ROLES.filter((r) => canAssign(role, null, r));
   const lastOwner = role === "owner" && members.filter((m) => m.role === "owner").length === 1;
+  // Your data (phase 18): the consent, and what deleting the account would do, workspace by workspace.
+  const privacy = appPrivacy();
+  const consent = await privacy.consent(info.user.id);
+  const plan = await privacy.deletionPlan(info.user.id);
+  const PLAN_TAG = { delete: "Deleted", leave: "You leave", blocked: "Owner needed" } as const;
 
   return (
     <AppShell info={info} active="settings">
@@ -318,6 +328,66 @@ export default async function AccountPage() {
             </div>
           </Card>
         )}
+
+        <Card title="Your data" className={styles.section}>
+          <div id="your-data">
+            <div className={safe.dataRow}>
+              <div className={safe.dataText}>
+                <b>{IMPROVE_CONSENT.label}</b>
+                <span>{IMPROVE_CONSENT.text}</span>
+                <span>{consent?.improveAgents ? `On since ${day(consent.at)}.` : consent ? `Off since ${day(consent.at)}.` : "Off. You have never turned it on."}</span>
+              </div>
+              <ActionForm action={setImproveConsent} csrf={csrf}>
+                <input type="hidden" name="on" value={consent?.improveAgents ? "no" : "yes"} />
+                <Button type="submit" size="sm" variant={consent?.improveAgents ? "secondary" : "primary"}>
+                  {consent?.improveAgents ? "Turn off" : "Turn on"}
+                </Button>
+              </ActionForm>
+            </div>
+            <div className={safe.dataRow}>
+              <div className={safe.dataText}>
+                <b>Download my data</b>
+                <span>Everything WOVI holds about you in one JSON file: your account, sign-ins, wallets, consents, and the content of workspaces you own or what you made in others.</span>
+              </div>
+              <ButtonLink href="/account/export" size="sm" variant="secondary" download>
+                Download (JSON)
+              </ButtonLink>
+            </div>
+            <div className={safe.dataRow}>
+              <div className={safe.dataText}>
+                <b>Delete my account</b>
+                <span>What happens to each of your workspaces:</span>
+                <ul className={safe.plan}>
+                  {plan.workspaces.map((w) => (
+                    <li key={w.id} className={safe.planItem}>
+                      <span className={[safe.planTag, w.action === "delete" ? safe.planDelete : w.action === "blocked" ? safe.planBlocked : ""].join(" ")}>{PLAN_TAG[w.action]}</span>
+                      <span>
+                        <b>{w.name}</b>
+                        {w.why}
+                        {w.counts && ` ${w.counts.brandBrains} Brand Brain${w.counts.brandBrains === 1 ? "" : "s"}, ${w.counts.runs} run${w.counts.runs === 1 ? "" : "s"} and ${w.counts.pipelineRuns} pipeline run${w.counts.pipelineRuns === 1 ? "" : "s"} go with it.`}
+                        {w.paidCredits ? ` ${creditWords(w.paidCredits)} you paid for are paid back to you.` : ""}
+                        {w.holderCredits ? ` ${creditWords(w.holderCredits)} holder credits end with it.` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <span>Your sign-in, passkeys, wallets, notifications and consents are deleted. Records of credits and payments stay for the books, without your name.</span>
+              </div>
+            </div>
+            <div className={safe.danger}>
+              {plan.blocked ? (
+                <p className={styles.fine}>First make someone else an owner of the shared workspaces marked above, in Members. Then you can delete your account.</p>
+              ) : (
+                <ActionForm action={deleteMyAccount} csrf={csrf} className={safe.inlineForm}>
+                  <Input name="confirm" label={info.user.email ? "Type your email to confirm" : "Type delete to confirm"} autoComplete="off" />
+                  <Button type="submit" variant="secondary">
+                    Delete my account
+                  </Button>
+                </ActionForm>
+              )}
+            </div>
+          </div>
+        </Card>
       </div>
     </AppShell>
   );

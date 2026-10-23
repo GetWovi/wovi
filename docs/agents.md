@@ -119,3 +119,7 @@ Pipelines pin `agentId@version`, which `get(ws, id, version)` serves even after 
 - `npm run agents:seed` seeds the local store. Data lives in `.data/` (git-ignored); set `WOVI_DATA_DIR` to put it elsewhere.
 - `npm run agents:try -- <agent-id>` runs a launch agent end to end on the fake provider.
 - `npm run agents:launch` installs the phase 8 launch set: specs, golden samples and Brand Brains ([launch-agents.md](launch-agents.md)).
+
+## Safety field (phase 18)
+
+`safety` is an optional body field: `{ "block": ["Crumbly Bakes"] }`, up to 30 phrases of 2 to 60 characters. The agent refuses requests that name them and keeps them out of its drafts, on top of the platform's content rules. Specs saved before phase 18 have none and read unchanged. `publicView` leaves it out. See [safety.md](safety.md).

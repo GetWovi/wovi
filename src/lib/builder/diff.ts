@@ -58,6 +58,7 @@ export const FIELD_LABELS: Record<Exclude<keyof AgentBody, "id" | "version">, st
   routing: "Model slot",
   instructions: "Instructions",
   gate: "Quality bar",
+  safety: "Blocked phrases",
 };
 
 export type DiffField = keyof typeof FIELD_LABELS;
@@ -128,6 +129,8 @@ export function fieldLines(body: AgentBody, field: DiffField): string[] {
     }
     case "instructions":
       return body.instructions.split("\n");
+    case "safety":
+      return body.safety?.block.length ? [...body.safety.block] : ["none beyond the platform rules"];
     case "gate": {
       const g = gateFor(body);
       const own = body.gate ?? {};

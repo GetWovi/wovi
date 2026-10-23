@@ -591,7 +591,7 @@ export class Credits implements RunBilling {
    * once and the top-up is marked as a test. With a key, a second call
    * returns the first top-up.
    */
-  async topUp(workspaceId: string, input: { credits: number; by: string; idempotencyKey?: string }): Promise<TopUp> {
+  async topUp(workspaceId: string, input: { credits: number; by: string; idempotencyKey?: string; consent?: { at: string; wording: string } }): Promise<TopUp> {
     const provider = this.payments;
     if (!provider) throw new CreditError("payments_closed", "Top-ups are not open yet.");
     if (!Number.isInteger(input.credits) || input.credits < this.cfg.minTopUpCredits) {
@@ -621,6 +621,7 @@ export class Credits implements RunBilling {
       createdAt: this.iso(),
       completedAt: null,
       error: null,
+      ...(input.consent ? { consent: input.consent } : {}),
     };
     await this.o.store.topUps.insert(row);
     const result = await provider.checkout({ topUpId: row.id, workspaceId, credits: row.credits, amountCents: row.amountCents, currency: "usd" });

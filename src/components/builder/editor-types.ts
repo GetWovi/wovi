@@ -31,6 +31,8 @@ export type Body = {
   guardrails: string[];
   routing: { model: string; fallback: string; temperature?: number; maxCostUsd?: number; maxOutputTokens?: number };
   instructions: string;
+  /** Phase 18: phrases this agent refuses in requests and keeps out of drafts, on top of the platform's rules. */
+  safety?: { block: string[] };
 };
 
 /** The versioned body only (no id, version, or listing fields), as the form holds it. */

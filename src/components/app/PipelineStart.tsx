@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
 import type { PipelineInfo, Price } from "@/lib/app/api";
 import { CreditsBlocked, PriceLine } from "@/components/credits/CreditParts";
+import { BlockedNotice } from "@/components/safety/BlockedNotice";
 import { checkForm, formFields, initialValues, valuesFrom, type FormValues } from "@/lib/app/forms";
 import type { PipelineExample } from "@/lib/app/pipeline-examples";
 import styles from "./App.module.css";
@@ -35,6 +36,7 @@ export function PipelineStart({ csrf, info, brains, editor, examples, price = nu
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [creditStop, setCreditStop] = useState<{ code: "not_enough_credits" | "over_limit"; message: string } | null>(null);
+  const [blocked, setBlocked] = useState<string[] | null>(null);
   const asks = info.confirmations;
 
   const set = (key: string, v: FormValues[string]) => {
@@ -62,6 +64,7 @@ export function PipelineStart({ csrf, info, brains, editor, examples, price = nu
     if (asks.voice && !voice) problems.voice = "Confirm you have consent for the voice first.";
     if (Object.keys(problems).length) return setErrors(problems);
     setBusy(true);
+    setBlocked(null);
     const r = await startPipeline(csrf, {
       pipelineId: spec.id,
       pipelineWorkspaceId: info.workspaceId,
@@ -73,6 +76,7 @@ export function PipelineStart({ csrf, info, brains, editor, examples, price = nu
     if (!r.ok) {
       setBusy(false);
       if (r.code === "not_enough_credits" || r.code === "over_limit") return setCreditStop({ code: r.code, message: r.error });
+      if (r.code === "blocked") return setBlocked(r.issues?.length ? r.issues : [r.error]);
       if (r.issues?.length) {
         const byField: Record<string, string> = {};
         for (const line of r.issues) {
@@ -126,6 +130,7 @@ export function PipelineStart({ csrf, info, brains, editor, examples, price = nu
           </p>
         )}
 
+        {blocked && <BlockedNotice lines={blocked} fieldLabel={(key) => fields.find((f) => f.key === key)?.label ?? key} />}
         {editor && price && (price.blocked || creditStop) && <CreditsBlocked price={creditStop ? { ...price, blocked: creditStop } : price} />}
 
         <div className={styles.runBar}>

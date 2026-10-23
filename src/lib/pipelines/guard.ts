@@ -149,13 +149,14 @@ export class GuardedPipelines {
     return this.view(caller, role, await this.engine.retry(workspaceId, id));
   }
 
+  /** The human approve step. "decide", so an API key never approves (phase 18 closed this: it used to ask for run_agents only). */
   async decide(caller: Principal, workspaceId: string, id: string, decision: "approved" | "rejected", note = ""): Promise<PublicPipelineRun> {
-    const role = await this.accounts.authorize(caller, workspaceId, "run_agents");
+    const role = await this.accounts.authorize(caller, workspaceId, "decide");
     return this.view(caller, role, await this.engine.decide(workspaceId, id, decision, note, savedBy(caller)));
   }
 
   async clearDecision(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {
-    const role = await this.accounts.authorize(caller, workspaceId, "run_agents");
+    const role = await this.accounts.authorize(caller, workspaceId, "decide");
     return this.view(caller, role, await this.engine.clearDecision(workspaceId, id));
   }
 

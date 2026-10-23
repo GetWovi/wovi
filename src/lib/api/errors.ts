@@ -27,6 +27,7 @@ export const API_ERROR_CODES = [
   "payload_too_large",
   "method_not_allowed",
   "internal_error",
+  "content_blocked",
 ] as const;
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
 
@@ -44,6 +45,7 @@ export const STATUS: Record<ApiErrorCode, number> = {
   payload_too_large: 413,
   method_not_allowed: 405,
   internal_error: 500,
+  content_blocked: 422,
 };
 
 /** What each code means, for the OpenAPI document and the docs page. */
@@ -58,6 +60,7 @@ export const CODE_WORDS: Record<ApiErrorCode, string> = {
   idempotency_conflict: "That Idempotency-Key was already used for a different request.",
   not_ready: "Not possible yet in the run's current state.",
   rate_limited: "Too many requests. Wait the seconds in Retry-After.",
+  content_blocked: "The request asks for something WOVI does not write (fake reviews, impersonation, deepfakes, false claims, hate, harassment, sexual content, unsafe advice, copyrighted music). Nothing was started or charged. Each issue says which field and why.",
   payload_too_large: "The body is larger than the API takes.",
   method_not_allowed: "That path does not take this method.",
   internal_error: "Something went wrong on our side. Nothing secret is in the message.",
@@ -121,6 +124,8 @@ function fromRunError(err: RunError): ApiError {
     case "not_enough_credits":
     case "over_limit":
       return new ApiError(err.code, err.message);
+    case "blocked":
+      return new ApiError("content_blocked", "WOVI cannot make this.", inputIssues(err.issues));
     default:
       return new ApiError("invalid_request", err.message.split("\n")[0]);
   }
@@ -141,6 +146,8 @@ function fromPipelineError(err: PipelineError): ApiError {
     case "not_enough_credits":
     case "over_limit":
       return new ApiError(err.code, err.message);
+    case "blocked":
+      return new ApiError("content_blocked", "WOVI cannot make this.", inputIssues(err.issues));
     default:
       return new ApiError("invalid_request", err.message.split("\n")[0]);
   }

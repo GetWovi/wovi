@@ -17,6 +17,9 @@ import type { FileRef } from "@/lib/runs/inputs";
 import styles from "./App.module.css";
 import { AGENT_GETS } from "./agent-icons";
 import { Asked, RunResult } from "./RunResult";
+import { BlockedNotice } from "@/components/safety/BlockedNotice";
+import { PlatformRules } from "@/components/safety/PlatformRules";
+import { RightsCheck } from "@/components/safety/RightsCheck";
 
 export type BrainOption = { id: string; name: string; isDefault: boolean };
 
@@ -65,6 +68,8 @@ export function AgentRun({
   const [uploading, setUploading] = useState<string | null>(null);
   /** The engine's own refusal for credits, when it came at submit. */
   const [creditStop, setCreditStop] = useState<{ code: "not_enough_credits" | "over_limit"; message: string } | null>(null);
+  /** Phase 18: the content rules refused the request, field by field. */
+  const [blocked, setBlocked] = useState<string[] | null>(null);
   const [phase, setPhase] = useState<Phase>(() => (initialRun ? (initialRun.state === "queued" || initialRun.state === "running" ? { kind: "running", runId: initialRun.run.id, view: initialRun, startedAt: Date.parse(initialRun.run.createdAt) } : { kind: "done", view: initialRun }) : { kind: "form" }));
   const [nowMs, setNowMs] = useState(0);
   const polling = useRef(false);
@@ -124,6 +129,7 @@ export function AgentRun({
       return;
     }
     setBusy(true);
+    setBlocked(null);
     const r = await startRun(csrf, {
       agentId: agent.id,
       inputs: check.ok ? check.inputs : {},
@@ -137,6 +143,10 @@ export function AgentRun({
     if (!r.ok) {
       if (r.code === "not_enough_credits" || r.code === "over_limit") {
         setCreditStop({ code: r.code, message: r.error });
+        return;
+      }
+      if (r.code === "blocked") {
+        setBlocked(r.issues?.length ? r.issues : [r.error]);
         return;
       }
       if (r.issues?.length) {
@@ -177,13 +187,15 @@ export function AgentRun({
     setErrors({});
   }
 
-  async function upload(field: FormField, list: FileList | null) {
+  async function upload(field: FormField, list: FileList | null, rightsOk: boolean) {
     const file = list?.[0];
     if (!file) return;
     setUploading(field.key);
     const fd = new FormData();
     fd.set("file", file);
     fd.set("kind", field.kind);
+    // Phase 18: the server refuses the file without the rights box ticked.
+    if (rightsOk) fd.set("rights", "yes");
     const r = await uploadRunFile(csrf, fd);
     setUploading(null);
     if (!r.ok) return toast({ tone: "warning", title: r.error });
@@ -254,7 +266,7 @@ export function AgentRun({
         <div className={styles.formGrid}>
           {fields.map((f) => (
             <div key={f.key} className={f.kind === "long_text" || f.kind === "choices" || f.kind === "image" || f.kind === "file" || f.kind === "video" ? styles.span2 : undefined}>
-              <Field field={f} value={values[f.key]} error={errors[f.key]} uploading={uploading === f.key} onChange={(v) => set(f.key, v)} onFiles={(list) => upload(f, list)} />
+              <Field field={f} value={values[f.key]} error={errors[f.key]} uploading={uploading === f.key} onChange={(v) => set(f.key, v)} onFiles={(list, ok) => upload(f, list, ok)} />
             </div>
           ))}
         </div>
@@ -281,6 +293,8 @@ export function AgentRun({
             <Icon name="warning" size={16} /> {errors.form}
           </p>
         )}
+
+        {blocked && <BlockedNotice lines={blocked} fieldLabel={(key) => fields.find((f) => f.key === key)?.label ?? (key === "brandIdea" ? "The idea" : key)} />}
 
         {editor && price && (price.blocked || creditStop) && <CreditsBlocked price={creditStop ? { ...price, blocked: creditStop } : price} />}
 
@@ -314,6 +328,9 @@ export function AgentRun({
           )}
           {readsIdea && <Textarea label="The idea behind it (optional)" rows={2} value={idea} onChange={(e) => setIdea(e.target.value)} maxLength={1000} hint="Only for this run. Replaces the standing idea in your Brand Brain." placeholder="What this week is really about" />}
         </div>
+        <div className={[styles.panel, styles.panelTight].join(" ")}>
+          <PlatformRules platforms={agent.platforms} />
+        </div>
         <div className={[styles.panel, styles.panelTight, styles.gets].join(" ")}>
           <span className={styles.fieldLabel}>What you get</span>
           <ul>
@@ -333,8 +350,10 @@ export function AgentRun({
 }
 
 /** One field of the agent's form. Pipelines use it for their own form too. */
-export function Field({ field, value, error, uploading, onChange, onFiles }: { field: FormField; value: FormValues[string] | undefined; error?: string; uploading: boolean; onChange: (v: FormValues[string]) => void; onFiles: (list: FileList | null) => void }) {
+export function Field({ field, value, error, uploading, onChange, onFiles }: { field: FormField; value: FormValues[string] | undefined; error?: string; uploading: boolean; onChange: (v: FormValues[string]) => void; onFiles: (list: FileList | null, rightsConfirmed: boolean) => void }) {
   const label = `${field.label}${field.required ? "" : " (optional)"}`;
+  // Phase 18: a file is only picked once its rights are confirmed.
+  const [rights, setRights] = useState(false);
   switch (field.kind) {
     case "long_text":
       return <Textarea label={label} rows={field.key === "post" || field.key === "caption" ? 6 : 4} value={(value as string) ?? ""} onChange={(e) => onChange(e.target.value)} hint={field.help} error={error} maxLength={field.maxLength} />;
@@ -376,14 +395,15 @@ export function Field({ field, value, error, uploading, onChange, onFiles }: { f
       return (
         <div className={styles.stackTight}>
           <span className={styles.fieldLabel}>{label}</span>
+          {field.kind !== "video" && <RightsCheck checked={rights} onChange={setRights} />}
           <div className={styles.fileRow}>
             {field.kind === "video" ? (
               <span className={styles.fieldHelp}>Video uploads arrive with the media tools. Leave this empty for now.</span>
             ) : (
-              <label className={styles.filePick} aria-disabled={uploading || full}>
+              <label className={styles.filePick} aria-disabled={uploading || full || !rights}>
                 <Icon name="upload" size={18} />
                 {uploading ? "Uploading" : `Add ${field.kind === "image" ? "an image" : "a file"}`}
-                <input type="file" accept={field.accept} disabled={uploading || full} className="visually-hidden" onChange={(e) => onFiles(e.target.files)} />
+                <input type="file" accept={field.accept} disabled={uploading || full || !rights} className="visually-hidden" onChange={(e) => onFiles(e.target.files, rights)} />
               </label>
             )}
             {list.map((f) => (

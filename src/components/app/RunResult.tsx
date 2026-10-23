@@ -20,8 +20,10 @@ import { ChargeLine } from "@/components/credits/CreditParts";
 import styles from "./App.module.css";
 import { CopyButton } from "./CopyButton";
 import { ReviewPanel } from "./ReviewControls";
+import { AiLabelPanel } from "@/components/safety/AiLabelPanel";
+import { ReportLink } from "@/components/safety/LegalLinks";
 
-export type AgentForResult = Pick<PublicAgent, "id" | "name" | "job" | "inputs" | "output" | "guardrails">;
+export type AgentForResult = Pick<PublicAgent, "id" | "name" | "job" | "inputs" | "output" | "guardrails"> & { platforms?: readonly string[] };
 
 /**
  * A finished run: Wovi celebrating, the result in its typed shape with copy
@@ -78,11 +80,12 @@ export function RunResult({
         <div className={styles.resultHead}>
           <Mascot pose="wait" size={96} className="wovi" label="Wovi, waiting" />
           <div className={styles.resultTitle}>
-            <h2>{run.status === "cancelled" ? "Stopped" : "That one did not work"}</h2>
+            <h2>{run.withheld ? "Taken down after a report" : run.status === "cancelled" ? "Stopped" : run.error?.code === "blocked" ? "Withheld by the content rules" : "That one did not work"}</h2>
             <div className={styles.resultMeta}>
               <span>{agent.name}</span>
               <span>{ago(run.createdAt, now)}</span>
             </div>
+            {run.withheld && <p className={styles.muted}>WOVI took this result down after a report ({run.withheld.reason}). The workspace&apos;s owners got the reasons by email and can reply to object.</p>}
             {run.error && <p className={styles.muted}>{run.error.message}</p>}
             {run.charge && <ChargeLine charge={run.charge} />}
           </div>
@@ -176,6 +179,8 @@ export function RunResult({
 
       {run.quality && <QualityBreakdown q={run.quality} />}
 
+      <AiLabelPanel csrf={csrf} runId={run.id} platforms={agent.platforms ?? []} initial={run.aiLabel ?? null} editable={editor} />
+
       <div className={styles.resultFoot}>
         {editor && (
           <div className={styles.quick}>
@@ -198,6 +203,7 @@ export function RunResult({
         )}
         <ReviewPanel csrf={csrf} runId={run.id} review={view.review} editor={editor} needsReview={run.needsReview} by={reviewer} />
       </div>
+      <ReportLink id={run.id} />
     </section>
   );
 }

@@ -156,6 +156,8 @@ export function primaryTextKey(spec: Pick<AgentSpec, "inputs">): string | null {
 }
 
 /** Which confirmations the form must ask for, from the agent's guardrails. */
-export function confirmationsFor(spec: Pick<AgentSpec, "guardrails">): { rights: boolean; voice: boolean } {
-  return { rights: spec.guardrails.includes("rights_confirmed"), voice: spec.guardrails.includes("voice_consent") };
+export function confirmationsFor(spec: Pick<AgentSpec, "guardrails"> & { inputs?: AgentSpec["inputs"] }): { rights: boolean; voice: boolean } {
+  // Phase 18: any agent that takes files asks for the rights confirmation, whatever it declares.
+  const files = (spec.inputs ?? []).some((i) => i.type === "file" || i.type === "image" || i.type === "video");
+  return { rights: spec.guardrails.includes("rights_confirmed") || files, voice: spec.guardrails.includes("voice_consent") };
 }

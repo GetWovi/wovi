@@ -8,6 +8,7 @@ import { AgentGallery } from "@/components/home/AgentGallery";
 import { AntiSlop } from "@/components/home/AntiSlop";
 import { Creators } from "@/components/home/Creators";
 import { Closing } from "@/components/home/Closing";
+import { HomeLegalStrip } from "@/components/safety/LegalLinks";
 
 /* The code panel is far below the fold; load it when needed. */
 const PlugIn = dynamic(() => import("@/components/home/PlugIn").then((m) => m.PlugIn));
@@ -35,6 +36,7 @@ export default function Home() {
         <PlugIn />
         <Creators />
         <Closing />
+        <HomeLegalStrip />
       </main>
     </>
   );

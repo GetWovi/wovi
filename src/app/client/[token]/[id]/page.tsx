@@ -1,3 +1,4 @@
+import { ReportLink } from "@/components/safety/LegalLinks";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -58,6 +59,7 @@ export default async function ClientItemPage({ params }: { params: Promise<{ tok
         <aside className={t.areaSide}>
           <DecisionPanel id={item.id} state={item.state} running={false} approvals={item.approvals} needed={item.approvalsNeeded} last={item.last} reRuns={item.reRuns} itemBase={base} as={{ kind: "client", token, canApprove: session.link.canApprove }} />
           <ActivityLog rows={d.activity} now={now} itemHref={(x) => `${base}${x}`} />
+          <ReportLink id={item.id} />
         </aside>
         <div className={t.areaTalk}>
           <Comments id={item.id} threads={d.threads} members={[]} now={now} as={{ kind: "client", token }} />

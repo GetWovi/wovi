@@ -25,6 +25,10 @@ export interface RunStore {
    * show counts and averages, never another workspace's runs.
    */
   listForAgent(agentWorkspaceId: string, agentId: string): Promise<Run[]>;
+  /** Phase 18: one run by id, whatever its workspace. For notice and action only. */
+  findById(id: string): Promise<Run | null>;
+  /** Phase 18: deletes every run of a workspace (an account deletion). Returns how many. */
+  deleteWorkspace(workspaceId: string): Promise<number>;
 }
 
 const clone = <T>(v: T): T => structuredClone(v);
@@ -73,6 +77,16 @@ function ops(load: () => Run[], save: (runs: Run[]) => void): RunStore {
           .filter((r) => r.agent.workspaceId === agentWorkspaceId && r.agent.id === agentId)
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id)),
       );
+    },
+    async findById(id) {
+      const run = load().find((r) => r.id === id);
+      return run ? clone(run) : null;
+    },
+    async deleteWorkspace(workspaceId) {
+      const runs = load();
+      const keep = runs.filter((r) => r.workspaceId !== workspaceId);
+      if (keep.length !== runs.length) save(keep);
+      return runs.length - keep.length;
     },
   };
 }

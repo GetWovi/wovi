@@ -151,6 +151,7 @@ export function apiRun(run: PublicRun, agentName: string | null, review: ReviewR
     decision: review ? { decision: review.decision, note: review.note, at: review.at } : null,
     createdAt: run.createdAt,
     finishedAt: run.finishedAt,
+    aiGenerated: true,
   };
 }
 

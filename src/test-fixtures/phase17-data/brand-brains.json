@@ -1,0 +1,1324 @@
+{
+  "brains": [
+    {
+      "id": "bb_7649692f96c31a626d52",
+      "workspaceId": "ws_wovi",
+      "name": "Crumb and Co",
+      "isDefault": true,
+      "currentVersion": 1,
+      "createdBy": "seed",
+      "createdAt": "2026-10-23T07:50:38.975Z",
+      "updatedAt": "2026-10-23T07:50:38.975Z"
+    },
+    {
+      "id": "bb_6a40dca22d0c7af9ae06",
+      "workspaceId": "ws_wovi",
+      "name": "Desk Stretch",
+      "isDefault": false,
+      "currentVersion": 1,
+      "createdBy": "seed",
+      "createdAt": "2026-10-23T07:50:38.977Z",
+      "updatedAt": "2026-10-23T07:50:38.977Z"
+    },
+    {
+      "id": "bb_d411a40915d43adbb74a",
+      "workspaceId": "ws_wovi",
+      "name": "Night Owl Coffee",
+      "isDefault": false,
+      "currentVersion": 1,
+      "createdBy": "seed",
+      "createdAt": "2026-10-23T07:50:38.979Z",
+      "updatedAt": "2026-10-23T07:50:38.979Z"
+    },
+    {
+      "id": "bb_ee07b0dc751f5753c8e1",
+      "workspaceId": "ws_wovi",
+      "name": "Northside Strength",
+      "isDefault": false,
+      "currentVersion": 1,
+      "createdBy": "seed",
+      "createdAt": "2026-10-23T07:50:38.981Z",
+      "updatedAt": "2026-10-23T07:50:38.981Z"
+    },
+    {
+      "id": "bb_3988235bdc2a5ed0f2b8",
+      "workspaceId": "ws_wovi",
+      "name": "Tallybook",
+      "isDefault": false,
+      "currentVersion": 1,
+      "createdBy": "seed",
+      "createdAt": "2026-10-23T07:50:38.983Z",
+      "updatedAt": "2026-10-23T07:50:38.983Z"
+    },
+    {
+      "id": "bb_e7179b3df205732bf75d",
+      "workspaceId": "ws_wovi",
+      "name": "Fernhill Plumbing",
+      "isDefault": false,
+      "currentVersion": 1,
+      "createdBy": "seed",
+      "createdAt": "2026-10-23T07:50:38.985Z",
+      "updatedAt": "2026-10-23T07:50:38.985Z"
+    },
+    {
+      "id": "bb_b90d9b1baeedb3c9da79",
+      "workspaceId": "ws_wovi",
+      "name": "Twelve Quid Kitchen",
+      "isDefault": false,
+      "currentVersion": 1,
+      "createdBy": "seed",
+      "createdAt": "2026-10-23T07:50:38.987Z",
+      "updatedAt": "2026-10-23T07:50:38.987Z"
+    },
+    {
+      "id": "bb_8639dd8db309662400af",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "name": "Crumb and Co",
+      "isDefault": true,
+      "currentVersion": 1,
+      "createdBy": "seed",
+      "createdAt": "2026-10-23T07:50:43.920Z",
+      "updatedAt": "2026-10-23T07:50:43.920Z"
+    },
+    {
+      "id": "bb_3104947d447de5e5f435",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "name": "Desk Stretch",
+      "isDefault": false,
+      "currentVersion": 1,
+      "createdBy": "seed",
+      "createdAt": "2026-10-23T07:50:43.923Z",
+      "updatedAt": "2026-10-23T07:50:43.923Z"
+    },
+    {
+      "id": "bb_2defbfc85074e66410c9",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "name": "Night Owl Coffee",
+      "isDefault": false,
+      "currentVersion": 1,
+      "createdBy": "seed",
+      "createdAt": "2026-10-23T07:50:43.926Z",
+      "updatedAt": "2026-10-23T07:50:43.926Z"
+    }
+  ],
+  "brainVersions": [
+    {
+      "id": "bb_7649692f96c31a626d52@1",
+      "workspaceId": "ws_wovi",
+      "brainId": "bb_7649692f96c31a626d52",
+      "version": 1,
+      "body": {
+        "name": "Crumb and Co",
+        "niche": "Small bakery in Leeds",
+        "platforms": [
+          "x",
+          "tiktok",
+          "reels"
+        ],
+        "voice": {
+          "description": "Warm, dry humour, short sentences. Talks like the baker at 5 a.m., not like a brand. Owns the mistakes and shows the mess.",
+          "tone": [
+            "warm",
+            "dry",
+            "punchy",
+            "personal"
+          ],
+          "use": [
+            "proper loaf",
+            "Gerald",
+            "the 5 a.m. shift"
+          ],
+          "avoid": [
+            "artisanal",
+            "mouthwatering",
+            "indulge",
+            "game-changer"
+          ],
+          "samples": [
+            "We burned 40 croissants so you would not have to.",
+            "The starter is called Gerald. Gerald is nine.",
+            "First loaf goes to whoever is waiting at five."
+          ]
+        },
+        "topics": [
+          "sourdough",
+          "early mornings",
+          "mistakes in the kitchen"
+        ],
+        "references": [
+          {
+            "id": "ref_dce07e4a9ec34ee1c392",
+            "text": "We burned 40 croissants so you would not have to. Here is what we learned about lamination.",
+            "url": null,
+            "note": "Owns the mistake, then teaches something real"
+          },
+          {
+            "id": "ref_fd0ad0d0efeea1faa9e4",
+            "text": "The sourdough starter is called Gerald. Gerald is nine years old. Gerald has never missed a bake.",
+            "url": null,
+            "note": "One named character carries the whole post"
+          },
+          {
+            "id": "ref_3c54ec347ee8ce5778da",
+            "text": "",
+            "url": "https://www.tiktok.com/@crumbandco/video/1",
+            "note": "The time-lapse of the oven at 5 a.m. Shows the work, no voiceover"
+          }
+        ],
+        "moodBoard": [
+          {
+            "id": "mood_7ec61aa56c24e1aedaf8",
+            "kind": "image",
+            "note": "The colour of a proper crust",
+            "url": null,
+            "text": null,
+            "color": null,
+            "file": {
+              "id": "fil_9310eff9f57dba57680a",
+              "workspaceId": "ws_wovi",
+              "name": "crust.png",
+              "mimeType": "image/png",
+              "sizeBytes": 423586,
+              "createdAt": "2026-10-23T07:50:38.972Z"
+            }
+          },
+          {
+            "id": "mood_ef143f29c6161dcb9ce1",
+            "kind": "image",
+            "note": "Morning light through the flour",
+            "url": null,
+            "text": null,
+            "color": null,
+            "file": {
+              "id": "fil_3a3a96a47a43ac78168e",
+              "workspaceId": "ws_wovi",
+              "name": "morning.png",
+              "mimeType": "image/png",
+              "sizeBytes": 350950,
+              "createdAt": "2026-10-23T07:50:38.973Z"
+            }
+          },
+          {
+            "id": "mood_4cf7991c2b8d5af3150d",
+            "kind": "text",
+            "note": "The feel of every clip",
+            "url": null,
+            "text": "flour dust in morning light, close hands, slow pours",
+            "color": null,
+            "file": null
+          },
+          {
+            "id": "mood_4936c236aa05fff646ec",
+            "kind": "swatch",
+            "note": "Crust",
+            "url": null,
+            "text": null,
+            "color": "#8A4B2A",
+            "file": null
+          },
+          {
+            "id": "mood_eeb53b5245c05008fc5b",
+            "kind": "swatch",
+            "note": "Crumb",
+            "url": null,
+            "text": null,
+            "color": "#F3E3C3",
+            "file": null
+          },
+          {
+            "id": "mood_5172c682c7f226006d29",
+            "kind": "swatch",
+            "note": "The oven at night",
+            "url": null,
+            "text": null,
+            "color": "#2B2420",
+            "file": null
+          },
+          {
+            "id": "mood_a8458bcc76de84bc3ff0",
+            "kind": "link",
+            "note": "The board we shot the shop from",
+            "url": "https://www.pinterest.com/crumbandco/bakery-mornings",
+            "text": null,
+            "color": null,
+            "file": null
+          }
+        ],
+        "dos": [
+          "Show the hands and the process",
+          "Name the real ingredient",
+          "End on a small, dry joke"
+        ],
+        "donts": [
+          "No hashtags",
+          "Never call anything artisanal",
+          "No discounts in the first line",
+          "No exclamation marks"
+        ],
+        "idea": "Honest baking: show the mess behind every good loaf."
+      },
+      "note": "Example Brand Brain",
+      "changed": [
+        "name",
+        "niche",
+        "platforms",
+        "voice",
+        "topics",
+        "references",
+        "moodBoard",
+        "dos",
+        "donts",
+        "idea"
+      ],
+      "by": "seed",
+      "at": "2026-10-23T07:50:38.975Z"
+    },
+    {
+      "id": "bb_6a40dca22d0c7af9ae06@1",
+      "workspaceId": "ws_wovi",
+      "brainId": "bb_6a40dca22d0c7af9ae06",
+      "version": 1,
+      "body": {
+        "name": "Desk Stretch",
+        "niche": "Physio for people who sit all day",
+        "platforms": [
+          "tiktok",
+          "shorts",
+          "reels"
+        ],
+        "voice": {
+          "description": "Calm, practical, a little teasing. Lists and numbers, one move per line. Talks to you, never at you.",
+          "tone": [
+            "calm",
+            "practical",
+            "direct"
+          ],
+          "use": [
+            "your back is bored",
+            "one minute",
+            "at your desk"
+          ],
+          "avoid": [
+            "pain-free forever",
+            "miracle",
+            "cure"
+          ],
+          "samples": [
+            "Your back is not broken. It is bored.",
+            "3 moves. 1 minute. Do them now, not later.",
+            "Which one do you skip?"
+          ]
+        },
+        "topics": [
+          "desk posture",
+          "neck and shoulders",
+          "tiny habits"
+        ],
+        "references": [
+          {
+            "id": "ref_276bc0805c5f38dee115",
+            "text": "5 stretches for desk workers:\n1. Neck rolls\n2. Wrist circles\n3. Seated twist\n4. Hip opener\n5. Shoulder shrugs\nWhich one do you skip?",
+            "url": null,
+            "note": "Numbered, saveable, ends on a question"
+          }
+        ],
+        "moodBoard": [
+          {
+            "id": "mood_1cc98c619eb2e5986550",
+            "kind": "swatch",
+            "note": "Calm blue",
+            "url": null,
+            "text": null,
+            "color": "#3E7CB1",
+            "file": null
+          },
+          {
+            "id": "mood_a67e7135118ee433ee2b",
+            "kind": "swatch",
+            "note": "Clinic white",
+            "url": null,
+            "text": null,
+            "color": "#E8F1F8",
+            "file": null
+          },
+          {
+            "id": "mood_74765b29083b6d52bb2c",
+            "kind": "text",
+            "note": "Every video looks like this",
+            "url": null,
+            "text": "one person, one chair, one move, natural light",
+            "color": null,
+            "file": null
+          }
+        ],
+        "dos": [
+          "Open with a number",
+          "One move per line",
+          "End with a question"
+        ],
+        "donts": [
+          "Never promise to cure anything",
+          "No emoji",
+          "Never say \"no pain, no gain\""
+        ],
+        "idea": "Small moves you can do without standing up."
+      },
+      "note": "Example Brand Brain",
+      "changed": [
+        "name",
+        "niche",
+        "platforms",
+        "voice",
+        "topics",
+        "references",
+        "moodBoard",
+        "dos",
+        "donts",
+        "idea"
+      ],
+      "by": "seed",
+      "at": "2026-10-23T07:50:38.977Z"
+    },
+    {
+      "id": "bb_d411a40915d43adbb74a@1",
+      "workspaceId": "ws_wovi",
+      "brainId": "bb_d411a40915d43adbb74a",
+      "version": 1,
+      "body": {
+        "name": "Night Owl Coffee",
+        "niche": "Late-night coffee bar",
+        "platforms": [
+          "x",
+          "reels"
+        ],
+        "voice": {
+          "description": "lowercase, sleepy, warm. writes like a text sent at 1 a.m. short lines, one emoji at most.",
+          "tone": [
+            "casual",
+            "warm",
+            "playful"
+          ],
+          "use": [
+            "still open",
+            "night shift",
+            "one more cup"
+          ],
+          "avoid": [
+            "grind",
+            "hustle",
+            "rise and grind"
+          ],
+          "samples": [
+            "still open. still warm. still here.",
+            "for the night shift, the second shift and the no shift ☕",
+            "the last cup is always the best one"
+          ]
+        },
+        "topics": [
+          "night shifts",
+          "the regulars",
+          "decaf after midnight"
+        ],
+        "references": [
+          {
+            "id": "ref_8481a0e0835d40e29be8",
+            "text": "still open. still warm. still here.",
+            "url": null,
+            "note": "Three beats, no pitch"
+          }
+        ],
+        "moodBoard": [
+          {
+            "id": "mood_73b9154f56e6bbc8dd37",
+            "kind": "swatch",
+            "note": "Midnight",
+            "url": null,
+            "text": null,
+            "color": "#1B1F3B",
+            "file": null
+          },
+          {
+            "id": "mood_a844d1fae1a2ec85cfdd",
+            "kind": "swatch",
+            "note": "Lamp light",
+            "url": null,
+            "text": null,
+            "color": "#E0A458",
+            "file": null
+          },
+          {
+            "id": "mood_7b9906732174da52c5a7",
+            "kind": "text",
+            "note": "The look",
+            "url": null,
+            "text": "neon on wet pavement, steam off a cup",
+            "color": null,
+            "file": null
+          }
+        ],
+        "dos": [
+          "Write in lowercase",
+          "Keep it under three lines"
+        ],
+        "donts": [
+          "No hashtags",
+          "No ALL CAPS",
+          "Never mention hustle culture"
+        ],
+        "idea": "A warm place for people awake when everyone else is not."
+      },
+      "note": "Example Brand Brain",
+      "changed": [
+        "name",
+        "niche",
+        "platforms",
+        "voice",
+        "topics",
+        "references",
+        "moodBoard",
+        "dos",
+        "donts",
+        "idea"
+      ],
+      "by": "seed",
+      "at": "2026-10-23T07:50:38.979Z"
+    },
+    {
+      "id": "bb_ee07b0dc751f5753c8e1@1",
+      "workspaceId": "ws_wovi",
+      "brainId": "bb_ee07b0dc751f5753c8e1",
+      "version": 1,
+      "body": {
+        "name": "Northside Strength",
+        "niche": "Beginner strength gym in Manchester",
+        "platforms": [
+          "tiktok",
+          "shorts",
+          "reels"
+        ],
+        "voice": {
+          "description": "Encouraging but blunt. Plain gym talk, no bro-speak. Short sentences. Celebrates small, real numbers: a first pull-up, a first 40 kg deadlift. Sounds like a coach between sets, not an influencer.",
+          "tone": [
+            "direct",
+            "warm",
+            "practical",
+            "punchy"
+          ],
+          "use": [
+            "first rep",
+            "on the bar",
+            "coach",
+            "form first"
+          ],
+          "avoid": [
+            "shred",
+            "beast mode",
+            "no excuses",
+            "summer body",
+            "toxins"
+          ],
+          "samples": [
+            "Margaret is 61. Today she deadlifted 60 kg.",
+            "You do not need to be fit to start. That is our job.",
+            "Strong is a skill. You practise it."
+          ]
+        },
+        "topics": [
+          "first lifts",
+          "members over 40",
+          "form before weight"
+        ],
+        "references": [
+          {
+            "id": "ref_09227a45e0468d0822c0",
+            "text": "Margaret is 61. Six months ago she needed a hand to get up off the floor. Today she deadlifted 60 kg. No secret. Two sessions a week and a coach who made her slow down.",
+            "url": null,
+            "note": "A real member, a real number, and the honest how"
+          },
+          {
+            "id": "ref_17a0c2cd43b9143be7b3",
+            "text": "Your first session here: 20 minutes of learning to brace, one lift, and a cup of tea. That is it.",
+            "url": null,
+            "note": "Takes the fear out of starting"
+          }
+        ],
+        "moodBoard": [
+          {
+            "id": "mood_621d9095394bd89cf0c0",
+            "kind": "swatch",
+            "note": "Rubber floor",
+            "url": null,
+            "text": null,
+            "color": "#1E1E1E",
+            "file": null
+          },
+          {
+            "id": "mood_40eb7911e6831ed466b4",
+            "kind": "swatch",
+            "note": "The red plates",
+            "url": null,
+            "text": null,
+            "color": "#E4572E",
+            "file": null
+          },
+          {
+            "id": "mood_3fd5d9eeac18ecbdbd08",
+            "kind": "text",
+            "note": "Every clip looks like this",
+            "url": null,
+            "text": "chalk on hands, worn rubber floor, morning light through the roller door",
+            "color": null,
+            "file": null
+          }
+        ],
+        "dos": [
+          "Use real numbers from real sessions",
+          "Show the coach correcting form",
+          "Name a member only with their permission"
+        ],
+        "donts": [
+          "Never promise weight loss",
+          "No before-and-after photos",
+          "No shirtless thumbnails",
+          "Never shame anyone's body"
+        ],
+        "idea": "Strength for people who never thought a gym was for them."
+      },
+      "note": "Example Brand Brain",
+      "changed": [
+        "name",
+        "niche",
+        "platforms",
+        "voice",
+        "topics",
+        "references",
+        "moodBoard",
+        "dos",
+        "donts",
+        "idea"
+      ],
+      "by": "seed",
+      "at": "2026-10-23T07:50:38.981Z"
+    },
+    {
+      "id": "bb_3988235bdc2a5ed0f2b8@1",
+      "workspaceId": "ws_wovi",
+      "brainId": "bb_3988235bdc2a5ed0f2b8",
+      "version": 1,
+      "body": {
+        "name": "Tallybook",
+        "niche": "Invoicing app for UK freelancers",
+        "platforms": [
+          "x",
+          "tiktok",
+          "shorts"
+        ],
+        "voice": {
+          "description": "Clear, friendly and a bit nerdy about money admin. Explains one thing at a time with a worked number. Never salesy, never scary about tax. Talks to freelancers as peers.",
+          "tone": [
+            "practical",
+            "nerdy",
+            "calm",
+            "direct"
+          ],
+          "use": [
+            "get paid",
+            "late invoice",
+            "sole trader",
+            "in plain English"
+          ],
+          "avoid": [
+            "seamless",
+            "streamline",
+            "leverage",
+            "empower",
+            "revolutionary",
+            "all-in-one"
+          ],
+          "samples": [
+            "Your invoice is not late. Their payment is.",
+            "Invoice 0047 got paid in 2 days. Here is what was different.",
+            "Tax is not scary. Not knowing the date is."
+          ]
+        },
+        "topics": [
+          "late payments",
+          "invoice wording",
+          "Self Assessment dates"
+        ],
+        "references": [
+          {
+            "id": "ref_0996719b3b8e5e3d04c6",
+            "text": "Swap 'Payment terms: 30 days' for 'Due 14 March'. A date is harder to ignore than a rule.",
+            "url": null,
+            "note": "One small change, explained in one line"
+          },
+          {
+            "id": "ref_92b42ab11bab676c5bea",
+            "text": "Freelancer maths: £2,400 invoice, 30 days late, 3 reminders. Here is the reminder we would send on day 1, day 7 and day 14.",
+            "url": null,
+            "note": "A worked example with numbers"
+          }
+        ],
+        "moodBoard": [
+          {
+            "id": "mood_6ea4ad884be5bdb6a034",
+            "kind": "swatch",
+            "note": "Tallybook green",
+            "url": null,
+            "text": null,
+            "color": "#0F766E",
+            "file": null
+          },
+          {
+            "id": "mood_6f7c6cc9cdbaf818485d",
+            "kind": "swatch",
+            "note": "Paper white",
+            "url": null,
+            "text": null,
+            "color": "#F8FAFC",
+            "file": null
+          },
+          {
+            "id": "mood_5a627941340ccd78e50b",
+            "kind": "text",
+            "note": "The look",
+            "url": null,
+            "text": "clean screen recordings of the app, one highlighted line, a calm desk",
+            "color": null,
+            "file": null
+          }
+        ],
+        "dos": [
+          "Show the real screen",
+          "Use one worked example with numbers",
+          "Say when something depends on your situation"
+        ],
+        "donts": [
+          "No fake urgency",
+          "Never give tax advice as fact for a specific person",
+          "No stock photos",
+          "No emoji"
+        ],
+        "idea": "Getting paid should be the easy part of freelancing."
+      },
+      "note": "Example Brand Brain",
+      "changed": [
+        "name",
+        "niche",
+        "platforms",
+        "voice",
+        "topics",
+        "references",
+        "moodBoard",
+        "dos",
+        "donts",
+        "idea"
+      ],
+      "by": "seed",
+      "at": "2026-10-23T07:50:38.983Z"
+    },
+    {
+      "id": "bb_e7179b3df205732bf75d@1",
+      "workspaceId": "ws_wovi",
+      "brainId": "bb_e7179b3df205732bf75d",
+      "version": 1,
+      "body": {
+        "name": "Fernhill Plumbing",
+        "niche": "Family plumbing and heating firm in Bristol",
+        "platforms": [
+          "x",
+          "tiktok",
+          "reels"
+        ],
+        "voice": {
+          "description": "A friendly, straight-talking tradesperson. Explains what went wrong in plain words, shows the actual job, and gives one thing people can check themselves. Never scares people into calling.",
+          "tone": [
+            "practical",
+            "warm",
+            "direct",
+            "calm"
+          ],
+          "use": [
+            "here is what we found",
+            "stopcock",
+            "in plain terms",
+            "worth a look"
+          ],
+          "avoid": [
+            "cheapest",
+            "nightmare",
+            "disaster",
+            "cowboys"
+          ],
+          "samples": [
+            "Here is what we found behind the bath panel.",
+            "Know where your stopcock is. Today, not during the leak.",
+            "Ten-minute job. Two-year-old drip."
+          ]
+        },
+        "topics": [
+          "leaks",
+          "boiler pressure",
+          "getting ready for winter"
+        ],
+        "references": [
+          {
+            "id": "ref_42bc0ce8d8a1964645dc",
+            "text": "Here is what we found behind a bath panel in Redland. A slow drip, two years of it, and a joist gone soft. A ten-minute fix if caught early. Check yours: torch, panel off, look for dark wood.",
+            "url": null,
+            "note": "A real job, a plain lesson, a thing to check yourself"
+          }
+        ],
+        "moodBoard": [
+          {
+            "id": "mood_9dba65b103b8d84f0c40",
+            "kind": "swatch",
+            "note": "Van navy",
+            "url": null,
+            "text": null,
+            "color": "#1D3557",
+            "file": null
+          },
+          {
+            "id": "mood_712280f3624fc48fb341",
+            "kind": "swatch",
+            "note": "Copper pipe",
+            "url": null,
+            "text": null,
+            "color": "#B87333",
+            "file": null
+          },
+          {
+            "id": "mood_b3726ec6161d7a697eed",
+            "kind": "text",
+            "note": "The look",
+            "url": null,
+            "text": "real jobs in real kitchens, torchlight under sinks, hands and tools close up",
+            "color": null,
+            "file": null
+          }
+        ],
+        "dos": [
+          "Show the real job and the area",
+          "Give one thing people can check themselves",
+          "Say when to call a pro and when not to"
+        ],
+        "donts": [
+          "Never scare people into booking",
+          "No prices in posts",
+          "Never show customers' faces or house numbers",
+          "No exclamation marks"
+        ],
+        "idea": "The honest plumber: show the job, teach the fix, earn the call."
+      },
+      "note": "Example Brand Brain",
+      "changed": [
+        "name",
+        "niche",
+        "platforms",
+        "voice",
+        "topics",
+        "references",
+        "moodBoard",
+        "dos",
+        "donts",
+        "idea"
+      ],
+      "by": "seed",
+      "at": "2026-10-23T07:50:38.985Z"
+    },
+    {
+      "id": "bb_b90d9b1baeedb3c9da79@1",
+      "workspaceId": "ws_wovi",
+      "brainId": "bb_b90d9b1baeedb3c9da79",
+      "version": 1,
+      "body": {
+        "name": "Twelve Quid Kitchen",
+        "niche": "Creator cooking a week of dinners for £12",
+        "platforms": [
+          "tiktok",
+          "shorts",
+          "reels"
+        ],
+        "voice": {
+          "description": "First person, chatty and quick. Prices to the penny. Laughs at her own kitchen mess, proud of the maths. Says quid. Talks like a friend on a video call.",
+          "tone": [
+            "playful",
+            "casual",
+            "personal",
+            "upbeat"
+          ],
+          "use": [
+            "quid",
+            "to the penny",
+            "the Sunday shop",
+            "the maths"
+          ],
+          "avoid": [
+            "hack",
+            "foodie",
+            "yummy",
+            "guilt-free",
+            "superfood"
+          ],
+          "samples": [
+            "Four dinners. £3.10 each. I did the maths so you don't have to.",
+            "The onions were 8p. The onions were the star.",
+            "One tin of chickpeas, three dinners, one very tired me."
+          ]
+        },
+        "topics": [
+          "the Sunday shop",
+          "cheap protein",
+          "batch cooking"
+        ],
+        "references": [
+          {
+            "id": "ref_0009fb84c9c0cc92f83a",
+            "text": "£12. Five dinners. One very small fridge. Here is the receipt and here is what I made.",
+            "url": null,
+            "note": "The receipt is the proof and the number is the hook"
+          }
+        ],
+        "moodBoard": [
+          {
+            "id": "mood_ef0178b77f74aa96e3d9",
+            "kind": "swatch",
+            "note": "Receipt yellow",
+            "url": null,
+            "text": null,
+            "color": "#F2C14E",
+            "file": null
+          },
+          {
+            "id": "mood_e6ab49d3a5803c7d51d0",
+            "kind": "swatch",
+            "note": "Herb green",
+            "url": null,
+            "text": null,
+            "color": "#3A5A40",
+            "file": null
+          },
+          {
+            "id": "mood_f54d4d19a1b2486da31e",
+            "kind": "text",
+            "note": "The look",
+            "url": null,
+            "text": "receipts on the counter, steam, phone-camera honesty, a small kitchen",
+            "color": null,
+            "file": null
+          }
+        ],
+        "dos": [
+          "Show the receipt",
+          "Give the price per portion to the penny",
+          "Name the shop and say prices change"
+        ],
+        "donts": [
+          "Never say 'hack'",
+          "No diet talk",
+          "Never shame anyone's food budget"
+        ],
+        "idea": "Good food on a tiny budget, with the receipts to prove it."
+      },
+      "note": "Example Brand Brain",
+      "changed": [
+        "name",
+        "niche",
+        "platforms",
+        "voice",
+        "topics",
+        "references",
+        "moodBoard",
+        "dos",
+        "donts",
+        "idea"
+      ],
+      "by": "seed",
+      "at": "2026-10-23T07:50:38.987Z"
+    },
+    {
+      "id": "bb_8639dd8db309662400af@1",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "brainId": "bb_8639dd8db309662400af",
+      "version": 1,
+      "body": {
+        "name": "Crumb and Co",
+        "niche": "Small bakery in Leeds",
+        "platforms": [
+          "x",
+          "tiktok",
+          "reels"
+        ],
+        "voice": {
+          "description": "Warm, dry humour, short sentences. Talks like the baker at 5 a.m., not like a brand. Owns the mistakes and shows the mess.",
+          "tone": [
+            "warm",
+            "dry",
+            "punchy",
+            "personal"
+          ],
+          "use": [
+            "proper loaf",
+            "Gerald",
+            "the 5 a.m. shift"
+          ],
+          "avoid": [
+            "artisanal",
+            "mouthwatering",
+            "indulge",
+            "game-changer"
+          ],
+          "samples": [
+            "We burned 40 croissants so you would not have to.",
+            "The starter is called Gerald. Gerald is nine.",
+            "First loaf goes to whoever is waiting at five."
+          ]
+        },
+        "topics": [
+          "sourdough",
+          "early mornings",
+          "mistakes in the kitchen"
+        ],
+        "references": [
+          {
+            "id": "ref_49b1a48864d118b04c88",
+            "text": "We burned 40 croissants so you would not have to. Here is what we learned about lamination.",
+            "url": null,
+            "note": "Owns the mistake, then teaches something real"
+          },
+          {
+            "id": "ref_aeb4c4ffa412db855876",
+            "text": "The sourdough starter is called Gerald. Gerald is nine years old. Gerald has never missed a bake.",
+            "url": null,
+            "note": "One named character carries the whole post"
+          },
+          {
+            "id": "ref_93381d5995bff9db5c23",
+            "text": "",
+            "url": "https://www.tiktok.com/@crumbandco/video/1",
+            "note": "The time-lapse of the oven at 5 a.m. Shows the work, no voiceover"
+          }
+        ],
+        "moodBoard": [
+          {
+            "id": "mood_f8b4c858656fcae86624",
+            "kind": "image",
+            "note": "The colour of a proper crust",
+            "url": null,
+            "text": null,
+            "color": null,
+            "file": {
+              "id": "fil_adc1b6fab839a6ffc9a7",
+              "workspaceId": "ws_1520f9b6d24198df442c",
+              "name": "crust.png",
+              "mimeType": "image/png",
+              "sizeBytes": 423586,
+              "createdAt": "2026-10-23T07:50:43.915Z"
+            }
+          },
+          {
+            "id": "mood_46c63b7de4e14583d510",
+            "kind": "image",
+            "note": "Morning light through the flour",
+            "url": null,
+            "text": null,
+            "color": null,
+            "file": {
+              "id": "fil_d069476c4da7e943e43a",
+              "workspaceId": "ws_1520f9b6d24198df442c",
+              "name": "morning.png",
+              "mimeType": "image/png",
+              "sizeBytes": 350950,
+              "createdAt": "2026-10-23T07:50:43.917Z"
+            }
+          },
+          {
+            "id": "mood_193d55fb78036e66b354",
+            "kind": "text",
+            "note": "The feel of every clip",
+            "url": null,
+            "text": "flour dust in morning light, close hands, slow pours",
+            "color": null,
+            "file": null
+          },
+          {
+            "id": "mood_f101e78558ea26c71355",
+            "kind": "swatch",
+            "note": "Crust",
+            "url": null,
+            "text": null,
+            "color": "#8A4B2A",
+            "file": null
+          },
+          {
+            "id": "mood_206a87d23e7454ed6921",
+            "kind": "swatch",
+            "note": "Crumb",
+            "url": null,
+            "text": null,
+            "color": "#F3E3C3",
+            "file": null
+          },
+          {
+            "id": "mood_0d71d5474da4cd8009a6",
+            "kind": "swatch",
+            "note": "The oven at night",
+            "url": null,
+            "text": null,
+            "color": "#2B2420",
+            "file": null
+          },
+          {
+            "id": "mood_f04aeb00734aa4d6f775",
+            "kind": "link",
+            "note": "The board we shot the shop from",
+            "url": "https://www.pinterest.com/crumbandco/bakery-mornings",
+            "text": null,
+            "color": null,
+            "file": null
+          }
+        ],
+        "dos": [
+          "Show the hands and the process",
+          "Name the real ingredient",
+          "End on a small, dry joke"
+        ],
+        "donts": [
+          "No hashtags",
+          "Never call anything artisanal",
+          "No discounts in the first line",
+          "No exclamation marks"
+        ],
+        "idea": "Honest baking: show the mess behind every good loaf."
+      },
+      "note": "Example Brand Brain",
+      "changed": [
+        "name",
+        "niche",
+        "platforms",
+        "voice",
+        "topics",
+        "references",
+        "moodBoard",
+        "dos",
+        "donts",
+        "idea"
+      ],
+      "by": "seed",
+      "at": "2026-10-23T07:50:43.920Z"
+    },
+    {
+      "id": "bb_3104947d447de5e5f435@1",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "brainId": "bb_3104947d447de5e5f435",
+      "version": 1,
+      "body": {
+        "name": "Desk Stretch",
+        "niche": "Physio for people who sit all day",
+        "platforms": [
+          "tiktok",
+          "shorts",
+          "reels"
+        ],
+        "voice": {
+          "description": "Calm, practical, a little teasing. Lists and numbers, one move per line. Talks to you, never at you.",
+          "tone": [
+            "calm",
+            "practical",
+            "direct"
+          ],
+          "use": [
+            "your back is bored",
+            "one minute",
+            "at your desk"
+          ],
+          "avoid": [
+            "pain-free forever",
+            "miracle",
+            "cure"
+          ],
+          "samples": [
+            "Your back is not broken. It is bored.",
+            "3 moves. 1 minute. Do them now, not later.",
+            "Which one do you skip?"
+          ]
+        },
+        "topics": [
+          "desk posture",
+          "neck and shoulders",
+          "tiny habits"
+        ],
+        "references": [
+          {
+            "id": "ref_84012d5c2e861a5b30f6",
+            "text": "5 stretches for desk workers:\n1. Neck rolls\n2. Wrist circles\n3. Seated twist\n4. Hip opener\n5. Shoulder shrugs\nWhich one do you skip?",
+            "url": null,
+            "note": "Numbered, saveable, ends on a question"
+          }
+        ],
+        "moodBoard": [
+          {
+            "id": "mood_9f800eb39465519d6fdb",
+            "kind": "swatch",
+            "note": "Calm blue",
+            "url": null,
+            "text": null,
+            "color": "#3E7CB1",
+            "file": null
+          },
+          {
+            "id": "mood_189b2d96458ba2f84bc3",
+            "kind": "swatch",
+            "note": "Clinic white",
+            "url": null,
+            "text": null,
+            "color": "#E8F1F8",
+            "file": null
+          },
+          {
+            "id": "mood_c469fe97d53dc4f696a7",
+            "kind": "text",
+            "note": "Every video looks like this",
+            "url": null,
+            "text": "one person, one chair, one move, natural light",
+            "color": null,
+            "file": null
+          }
+        ],
+        "dos": [
+          "Open with a number",
+          "One move per line",
+          "End with a question"
+        ],
+        "donts": [
+          "Never promise to cure anything",
+          "No emoji",
+          "Never say \"no pain, no gain\""
+        ],
+        "idea": "Small moves you can do without standing up."
+      },
+      "note": "Example Brand Brain",
+      "changed": [
+        "name",
+        "niche",
+        "platforms",
+        "voice",
+        "topics",
+        "references",
+        "moodBoard",
+        "dos",
+        "donts",
+        "idea"
+      ],
+      "by": "seed",
+      "at": "2026-10-23T07:50:43.923Z"
+    },
+    {
+      "id": "bb_2defbfc85074e66410c9@1",
+      "workspaceId": "ws_1520f9b6d24198df442c",
+      "brainId": "bb_2defbfc85074e66410c9",
+      "version": 1,
+      "body": {
+        "name": "Night Owl Coffee",
+        "niche": "Late-night coffee bar",
+        "platforms": [
+          "x",
+          "reels"
+        ],
+        "voice": {
+          "description": "lowercase, sleepy, warm. writes like a text sent at 1 a.m. short lines, one emoji at most.",
+          "tone": [
+            "casual",
+            "warm",
+            "playful"
+          ],
+          "use": [
+            "still open",
+            "night shift",
+            "one more cup"
+          ],
+          "avoid": [
+            "grind",
+            "hustle",
+            "rise and grind"
+          ],
+          "samples": [
+            "still open. still warm. still here.",
+            "for the night shift, the second shift and the no shift ☕",
+            "the last cup is always the best one"
+          ]
+        },
+        "topics": [
+          "night shifts",
+          "the regulars",
+          "decaf after midnight"
+        ],
+        "references": [
+          {
+            "id": "ref_07e20ff62fc44c335049",
+            "text": "still open. still warm. still here.",
+            "url": null,
+            "note": "Three beats, no pitch"
+          }
+        ],
+        "moodBoard": [
+          {
+            "id": "mood_766d3e81a16267918b25",
+            "kind": "swatch",
+            "note": "Midnight",
+            "url": null,
+            "text": null,
+            "color": "#1B1F3B",
+            "file": null
+          },
+          {
+            "id": "mood_59bc10c18954bbc7698a",
+            "kind": "swatch",
+            "note": "Lamp light",
+            "url": null,
+            "text": null,
+            "color": "#E0A458",
+            "file": null
+          },
+          {
+            "id": "mood_57f558f54116d4d337d4",
+            "kind": "text",
+            "note": "The look",
+            "url": null,
+            "text": "neon on wet pavement, steam off a cup",
+            "color": null,
+            "file": null
+          }
+        ],
+        "dos": [
+          "Write in lowercase",
+          "Keep it under three lines"
+        ],
+        "donts": [
+          "No hashtags",
+          "No ALL CAPS",
+          "Never mention hustle culture"
+        ],
+        "idea": "A warm place for people awake when everyone else is not."
+      },
+      "note": "Example Brand Brain",
+      "changed": [
+        "name",
+        "niche",
+        "platforms",
+        "voice",
+        "topics",
+        "references",
+        "moodBoard",
+        "dos",
+        "donts",
+        "idea"
+      ],
+      "by": "seed",
+      "at": "2026-10-23T07:50:43.926Z"
+    }
+  ],
+  "proposals": []
+}

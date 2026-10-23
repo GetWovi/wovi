@@ -138,6 +138,16 @@ async function gateLoop(ctx: ExecContext, messages: ChatMessage[], first: { outp
   // A rewrite that came back broken never counts as the used draft; its reading stays empty in the report.
   const scoredDrafts = drafts.map((d) => (d.reading ? d : { ...d, reading: { score: 0, checks: [], ready: false, failing: [], failed: [], reasons: [d.error ?? "No usable answer."] } }));
   const used = drafts.indexOf(best);
+  // Phase 18: a draft that still breaks a hard content rule after the rewrites is withheld. The run fails, so nothing is charged.
+  const unsafe = best.guards.find((g) => g.check === "content_safety" && g.status === "fail");
+  if (unsafe) {
+    return {
+      ok: false,
+      code: "blocked",
+      message: `Every draft broke WOVI's content rules (${(unsafe.findings ?? []).map((f) => f.split(":")[0]).filter((v, i, a) => a.indexOf(v) === i).join(", ") || "content rules"}), so nothing is shown and nothing is charged.`,
+      retryable: false,
+    };
+  }
   return {
     ok: true,
     output: best.output,

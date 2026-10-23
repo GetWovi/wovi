@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { deleteBrain, makeDefault, restoreVersion, saveBrain, uploadImage } from "@/app/brand-brain/actions";
 import { FilePick } from "@/components/builder/FilePick";
+import { RightsCheck } from "@/components/safety/RightsCheck";
 import { ago } from "@/components/builder/labels";
 import shell from "@/components/builder/Builder.module.css";
 import { Button } from "@/components/ui/Button";
@@ -212,14 +213,18 @@ export function MoodPanel(props: Common & { workspaceId: string }) {
   const [color, setColor] = useState("#FF5A1F");
   const [file, setFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  /** Phase 18: an image is only stored once its rights are confirmed. */
+  const [rights, setRights] = useState(false);
 
   async function add() {
     setUploadError(null);
     const item: MoodItem = { id: "", kind, note, url: null, text: null, color: null, file: null };
     if (kind === "image") {
       if (!file) return setUploadError("Pick an image first.");
+      if (!rights) return setUploadError("Tick the box to confirm the image is yours or you may use it.");
       const fd = new FormData();
       fd.set("file", file);
+      fd.set("rights", "yes");
       const up = await uploadImage(csrf, fd);
       if (!up.ok) return setUploadError(up.error);
       item.file = up.value;
@@ -231,6 +236,7 @@ export function MoodPanel(props: Common & { workspaceId: string }) {
       setUrl("");
       setText("");
       setFile(null);
+      setRights(false);
     }
   }
 
@@ -310,6 +316,7 @@ export function MoodPanel(props: Common & { workspaceId: string }) {
                     <FilePick label="Choose an image" accept="image/png,image/jpeg,image/webp,image/gif" fileName={file?.name} onFiles={(list) => setFile(list?.[0] ?? null)} />
                   </div>
                   <span className={shell.hint}>PNG, JPEG, WebP or GIF up to 8 MB.</span>
+                  <RightsCheck checked={rights} onChange={setRights} />
                 </div>
               )}
               {kind === "link" && <Input label="Link" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" />}

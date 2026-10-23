@@ -132,7 +132,7 @@ export type PlatformRule = {
 
 export const PLATFORM_RULES: Record<Platform, PlatformRule> = {
   x: { name: "X", captionChars: 280, hashtagsMax: 2, titleChars: null, firstLineChars: null },
-  tiktok: { name: "TikTok", captionChars: 4000, hashtagsMax: 5, titleChars: null, firstLineChars: null },
+  tiktok: { name: "TikTok", captionChars: 2200, hashtagsMax: 5, titleChars: null, firstLineChars: null },
   shorts: { name: "YouTube Shorts", captionChars: 5000, hashtagsMax: 15, titleChars: 100, firstLineChars: null },
   reels: { name: "Instagram Reels", captionChars: 2200, hashtagsMax: 5, titleChars: null, firstLineChars: 125 },
 };

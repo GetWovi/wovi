@@ -32,6 +32,9 @@ import { providersFromEnv, type ModelProvider } from "./providers";
 import { InProcessQueue, type ConcurrencyLimits, type QueueJob, type RunQueue } from "./queue";
 import { FINISHED, type BrandPick, type Run } from "./run";
 import { jsonFileRunStore, type RunFilter, type RunStore } from "./store";
+import { injectionSignals } from "@/lib/safety/injection";
+import { refusalLines, screen } from "@/lib/safety/screen";
+import type { AiLabelNote } from "./run";
 
 export type SubmitRequest = {
   /** The workspace the run is for. Every record carries it. */
@@ -75,7 +78,9 @@ export type RunErrorCode =
   /** Credits (phase 13): the balance does not cover the estimate. */
   | "not_enough_credits"
   /** Credits (phase 13): a monthly limit would be passed. */
-  | "over_limit";
+  | "over_limit"
+  /** Phase 18: the request asks for something WOVI does not write (fake reviews, impersonation, hate, ...). */
+  | "blocked";
 
 export class RunError extends Error {
   constructor(
@@ -262,6 +267,49 @@ export class RunEngine {
     return this.opts.store.listForAgent(agentWorkspaceId, agentId);
   }
 
+  /**
+   * Phase 18: records the person's note that they will apply each platform's
+   * AI label where it is required, with the output. Finished runs only; a
+   * second note replaces the first.
+   */
+  async noteAiLabel(workspaceId: string, runId: string, note: AiLabelNote | null): Promise<Run> {
+    const run = await this.getRun(workspaceId, runId);
+    if (!run) throw new RunError("not_found", `No run "${runId}" in this workspace.`);
+    if (run.status !== "succeeded") throw new RunError("invalid_request", "Only a finished run has an output to label.");
+    run.aiLabel = note;
+    run.updatedAt = this.cfg.now().toISOString();
+    await this.opts.store.update(run);
+    return run;
+  }
+
+  /**
+   * Phase 18, notice and action: takes a run's output down after a report.
+   * The output stays in the store for disputes; every view hides it. Undo
+   * with `restore`.
+   */
+  async withhold(workspaceId: string, runId: string, info: { reportId: string; reason: string }): Promise<Run> {
+    const run = await this.getRun(workspaceId, runId);
+    if (!run) throw new RunError("not_found", `No run "${runId}" in this workspace.`);
+    run.withheld = { at: this.cfg.now().toISOString(), reportId: info.reportId, reason: info.reason };
+    run.updatedAt = run.withheld.at;
+    await this.opts.store.update(run);
+    return run;
+  }
+
+  async restore(workspaceId: string, runId: string): Promise<Run> {
+    const run = await this.getRun(workspaceId, runId);
+    if (!run) throw new RunError("not_found", `No run "${runId}" in this workspace.`);
+    run.withheld = null;
+    run.updatedAt = this.cfg.now().toISOString();
+    await this.opts.store.update(run);
+    return run;
+  }
+
+  /** Phase 18, notice and action: a run by id in any workspace. */
+  async findRun(runId: string): Promise<Run | null> {
+    return typeof runId === "string" ? this.opts.store.findById(runId) : null;
+  }
+
   /** Resolves when the queue has nothing waiting or running. */
   idle(): Promise<void> {
     return this.queue.idle();
@@ -327,10 +375,29 @@ export class RunEngine {
 
     const pick = this.checkBrandPick(req);
     const brain = await this.loadBrain(req.workspaceId, req.agentWorkspaceId ?? req.workspaceId, spec, inputs, pick);
+    // Phase 18: the content rules read the request before anything is held or queued.
+    const texts = requestTexts(spec, inputs, pick);
+    const screening = screen(texts, { where: "request", extra: spec.safety?.block });
+    if (screening.blocked) throw new RunError("blocked", "WOVI cannot make this.", refusalLines(screening.findings));
+
     const confirmations = req.confirmations ?? {};
     const before = runBeforeChecks({ spec, inputs, confirmations });
+    // Phase 18: files of any kind need the rights confirmation, whatever the agent declares.
+    const files = spec.inputs.some((i) => (i.type === "file" || i.type === "image" || i.type === "video") && Array.isArray(inputs[i.key]) && (inputs[i.key] as unknown[]).length > 0);
+    if (files && !spec.guardrails.includes("rights_confirmed")) {
+      before.push(
+        confirmations.rights === true
+          ? { guardrail: "rights_confirmed", check: "rights_confirmation", status: "pass", message: "The user confirmed they own these files or may use them." }
+          : { guardrail: "rights_confirmed", check: "rights_confirmation", status: "fail", message: "Confirm you own these files or have the rights to use them (confirmations.rights)." },
+      );
+    }
     const missing = before.filter((c) => c.status === "fail");
     if (missing.length) throw new RunError("confirmation_required", "This agent needs a confirmation first.", missing.map((c) => c.message));
+    // Phase 18: text that reads like instructions to the AI runs as material only; the run notes it for a person.
+    const signals = injectionSignals(texts);
+    if (signals.length) {
+      before.push({ guardrail: "prompt_injection", check: "prompt_injection", status: "note", message: "Some text reads like instructions to the AI. It was passed to the agent as material only.", findings: signals.map((g) => `${g.field}: "${g.match}"`) });
+    }
 
     // Refuse up front when even the cheapest route's first call would pass the cap.
     const text = promptText(assemblePrompt(spec, inputs, brain));
@@ -343,6 +410,12 @@ export class RunEngine {
 
     const now = this.cfg.now().toISOString();
     const id = this.cfg.newId();
+    const confirmedAt = before.some((c) => c.check === "rights_confirmation" && c.status === "pass") || before.some((c) => c.check === "voice_consent_confirmation" && c.status === "pass")
+      ? {
+          ...(before.some((c) => c.check === "rights_confirmation" && c.status === "pass") ? { rights: now } : {}),
+          ...(before.some((c) => c.check === "voice_consent_confirmation" && c.status === "pass") ? { voiceConsent: now } : {}),
+        }
+      : null;
     // Credits last, once everything else passed: hold the estimate, or refuse before anything is queued.
     const credits = await this.reserve(req, id, spec);
     const run: Run = {
@@ -363,6 +436,7 @@ export class RunEngine {
       error: null,
       checks: before,
       needsReview: false,
+      ...(confirmedAt ? { confirmedAt } : {}),
       model: null,
       calls: [],
       tokensIn: 0,
@@ -595,6 +669,17 @@ export class RunEngine {
     this.waiters.delete(run.id);
     list.forEach((resolve) => resolve(structuredClone(run)));
   }
+}
+
+/** The free text of a request: every text, long text and link input, and the run's own idea. */
+export function requestTexts(spec: Pick<AgentSpec, "inputs">, inputs: RunInputs, pick: BrandPick | null): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const i of spec.inputs) {
+    const v = inputs[i.key];
+    if ((i.type === "text" || i.type === "long_text" || i.type === "url") && typeof v === "string") out[i.key] = v;
+  }
+  if (pick?.idea) out.brandIdea = pick.idea;
+  return out;
 }
 
 /**
