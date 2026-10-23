@@ -10,8 +10,8 @@ import styles from "./Creators.module.css";
 const STEPS = [
   { n: "01", title: "Describe one job", text: "A plain-language brief, sample work you like, and the rules it must never break. No code." },
   { n: "02", title: "Test it on real briefs", text: "Run it against sample Brand Brains, compare versions side by side, and see the fit before anyone else does." },
-  { n: "03", title: "List it", text: "Your agent goes in the gallery with a verified score from real runs. Reviews come from real users only." },
-  { n: "04", title: "Earn when it runs", text: "Every run pays the creator. Feedback from live runs comes back as suggestions you approve, so it keeps getting better." },
+  { n: "03", title: "List it", text: "Your agent goes in the gallery with a score from real runs. Reviews come from real users only." },
+  { n: "04", title: "Sell it", text: "Selling your agent and earning from its runs come in a later release, with their own terms." },
 ];
 
 export function Creators() {
@@ -26,14 +26,14 @@ export function Creators() {
       <div className="container">
         <div className={home.head}>
           <span className="eyebrow" data-head>
-            For creators
+            Coming for creators
           </span>
           <h2 id="creators-title" className={home.title} data-head>
-            Build an agent. Earn when it runs.
+            Coming: build and sell your own agent.
           </h2>
           <p className={home.lead} data-head>
-            If you can describe one job well, you can build an agent for it, with prompts, mood boards and sample work as the only inputs. WOVI runs it, scores
-            it and pays you.
+            Soon, if you can describe one job well, you can build an agent for it, with prompts, mood boards and sample work as the only inputs. Creator
+            listings and earnings come in a later release.
           </p>
         </div>
 
@@ -49,7 +49,7 @@ export function Creators() {
           </ol>
 
           <div className={[home.panel, home.panelCobalt, styles.card].join(" ")} data-card>
-            <span className={home.panelLabel}>A creator listing</span>
+            <span className={home.panelLabel}>A creator listing, coming soon</span>
             <div className={styles.cardTop}>
               <span className={styles.avatar}>
                 <Logo kind="mark" variant="on-cobalt" height={22} label="" />
@@ -81,7 +81,7 @@ export function Creators() {
             <div className={styles.cheer}>
               <span className={styles.cheerText}>
                 <strong>Job done.</strong>
-                <span>The creator earns.</span>
+                <span>Creator listings are next.</span>
               </span>
               <Mascot pose="done" size={150} ink="cream" label="Wovi, job done" />
             </div>

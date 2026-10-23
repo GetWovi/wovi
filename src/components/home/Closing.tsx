@@ -9,7 +9,7 @@ import { Icon } from "@/components/ui/Icon";
 import { reveal, useScrollScene } from "./scroll";
 import home from "./home.module.css";
 import styles from "./Closing.module.css";
-import { X_URL } from "@/lib/site";
+import { CONTACT_EMAIL, GITHUB_URL, X_URL } from "@/lib/site";
 
 /** The final call on a Blaze panel, then the footer with the wordmark. */
 export function Closing() {
@@ -31,20 +31,20 @@ export function Closing() {
         <div className={[home.panel, home.panelCobalt, styles.cta].join(" ")} data-panel>
           <div className={styles.ctaCopy}>
             <span className={[home.panelLabel, styles.ctaLabel].join(" ")} data-head>
-              Early access
+              Ready when you are
             </span>
             <h2 id="closing-title" className={styles.ctaTitle} data-head>
               Your vision deserves better than average.
             </h2>
             <p className={styles.ctaLead} data-head>
-              WOVI is being built in the open. If you make content for a business, or you want to build agents for people who do, say hello.
+              Sign in with your email, set up your Brand Brain once, and pick the agent for the job. You pay per run with credits, and every result waits for your yes.
             </p>
             <div className={styles.ctaActions} data-head>
-              <ButtonLink href="mailto:hello@wovi.fun?subject=Early%20access" size="lg" className={styles.ctaButton} trailing={<Icon name="arrow-right" />}>
-                Ask for early access
+              <ButtonLink href="/sign-in" size="lg" className={styles.ctaButton} trailing={<Icon name="arrow-right" />}>
+                Get started
               </ButtonLink>
-              <ButtonLink href="/design" size="lg" variant="ghost" className={styles.ctaGhost}>
-                See the design system
+              <ButtonLink href="/app/make" size="lg" variant="ghost" className={styles.ctaGhost}>
+                Browse the agents
               </ButtonLink>
             </div>
           </div>
@@ -58,31 +58,37 @@ export function Closing() {
       <footer className={styles.footer}>
         <div className={["container", styles.footerInner].join(" ")}>
           <div className={styles.big} data-big>
-            <Logo height={160} className={styles.bigLogo} label="WOVI" />
+            {/* The size from .bigLogo, set here because the Logo's own inline height would win over the class: it shrinks on phones instead of widening the page. */}
+            <Logo height={160} className={styles.bigLogo} style={{ height: "clamp(72px, 12vw, 160px)" }} label="WOVI" />
           </div>
           <div className={styles.cols}>
             <div className={styles.col}>
               <span className={styles.colTitle}>Product</span>
-              <a href="#agents">Agents</a>
-              <a href="#pipeline">How a post is made</a>
+              <Link href="/app">Open the app</Link>
+              <Link href="/app/make">Browse the agents</Link>
+              <Link href="/app/credits">Credits</Link>
               <a href="#brand-brain">Brand Brain</a>
-              <a href="#anti-slop">Anti-slop</a>
             </div>
             <div className={styles.col}>
               <span className={styles.colTitle}>Build</span>
               <a href="#plug-in">MCP and API</a>
+              <Link href="/app/settings/api">API keys</Link>
+              <a href="/api/v1/openapi.json">OpenAPI document</a>
               <a href="#creators">For creators</a>
-              <Link href="/design">Design system</Link>
             </div>
             <div className={styles.col}>
               <span className={styles.colTitle}>Company</span>
-              <a href="mailto:hello@wovi.fun">hello@wovi.fun</a>
-              <a href="#">GitHub</a>
+              <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+              {GITHUB_URL && (
+                <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
+                  GitHub
+                </a>
+              )}
               <a href={X_URL} target="_blank" rel="noopener noreferrer">X</a>
             </div>
           </div>
           <div className={styles.fine}>
-            <span>WOVI is pre-launch. This page shows the product being built; sample content and scores are illustrations.</span>
+            <span>Sample content and scores on this page are illustrations. Every result is written by AI and is a draft until you approve it.</span>
             <span>Use at your own risk. Nothing here is financial, legal or professional advice.</span>
           </div>
         </div>

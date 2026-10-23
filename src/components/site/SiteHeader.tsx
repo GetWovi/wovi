@@ -5,11 +5,11 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LegalLinks } from "@/components/safety/LegalLinks";
 import { tokenConfigFromEnv } from "@/lib/token/config";
 import styles from "./Site.module.css";
-import { X_URL } from "@/lib/site";
+import { GITHUB_URL, X_URL } from "@/lib/site";
 
 export type NavLink = { href: string; label: string };
 
-/** Site chrome: logo left, links in the middle, GitHub and X top right. */
+/** Site chrome: logo left, links in the middle, sign in, GitHub (once a repo exists) and X top right. */
 export function SiteHeader({ active, links = [] }: { active?: "home" | "design" | "token"; links?: NavLink[] }) {
   // The $WOVI page (phase 17) is linked only while it is on.
   const token = tokenConfigFromEnv().pageOn;
@@ -30,14 +30,16 @@ export function SiteHeader({ active, links = [] }: { active?: "home" | "design" 
               $WOVI
             </Link>
           )}
-          <Link href="/design" className={styles.navLink} aria-current={active === "design" ? "page" : undefined}>
-            Design
-          </Link>
         </nav>
         <div className={styles.right}>
-          <a href="#" className={styles.iconLink} aria-label="WOVI on GitHub">
-            <BrandIcon name="github" />
-          </a>
+          <Link href="/sign-in" className={styles.navLink}>
+            Sign in
+          </Link>
+          {GITHUB_URL && (
+            <a href={GITHUB_URL} className={styles.iconLink} aria-label="WOVI on GitHub" target="_blank" rel="noopener noreferrer">
+              <BrandIcon name="github" />
+            </a>
+          )}
           <a href={X_URL} className={styles.iconLink} aria-label="WOVI on X" target="_blank" rel="noopener noreferrer">
             <BrandIcon name="x" size={20} />
           </a>
@@ -54,7 +56,7 @@ export function SiteFooter() {
       <div className={["container", styles.footerInner].join(" ")}>
         <Logo height={22} />
         <p className={styles.footerText}>AI agents for content. One agent, one job.</p>
-        <p className={styles.footerFine}>WOVI is in development. Use at your own risk. Nothing here is financial, legal or professional advice.</p>
+        <p className={styles.footerFine}>Use at your own risk. Nothing here is financial, legal or professional advice.</p>
         <LegalLinks />
       </div>
     </footer>

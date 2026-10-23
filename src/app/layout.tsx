@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import { LOGO_FILES } from "@/components/brand/Logo";
 import { ToastProvider } from "@/components/ui/Toast";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -12,7 +13,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("http://localhost:3900"),
+  /* Share previews need absolute image URLs: the live address, never localhost. */
+  metadataBase: new URL(process.env.WOVI_APP_URL || SITE_URL),
   title: {
     default: "WOVI",
     template: "%s | WOVI",

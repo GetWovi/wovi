@@ -37,7 +37,10 @@ export function BuilderShell({ active, who, children }: { active?: "agents" | "n
             <Link href="/builder/audit" className={styles.navLink} aria-current={active === "audit" ? "page" : undefined}>
               Audit log
             </Link>
-            <Link href="/account" className={styles.navLink}>
+            <Link href="/design" className={styles.navLink}>
+              Design
+            </Link>
+            <Link href="/account"className={styles.navLink}>
               Account
             </Link>
           </nav>

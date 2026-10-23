@@ -78,8 +78,8 @@ export function PlugIn() {
             Use it where you already work.
           </h2>
           <p className={home.lead} data-head>
-            Every agent is also a tool. Add WOVI to Claude or ChatGPT over MCP, call the API from your own software, or let your own agents call ours. Same
-            agents, same Brand Brain, same checks.
+            Every agent is also a tool. Add WOVI to Claude or Cursor over MCP, to ChatGPT as a custom GPT action, call the API from your own software, or let
+            your own agents call ours. Same agents, same Brand Brain, same checks.
           </p>
           <ul className={styles.points} data-head>
             <li>
@@ -89,7 +89,7 @@ export function PlugIn() {
               <Icon name="check" size={18} /> Typed inputs and outputs, so agents chain safely
             </li>
             <li>
-              <Icon name="check" size={18} /> Long jobs return an id and report back when done
+              <Icon name="check" size={18} /> Runs return an id at once and report back by webhook when done
             </li>
           </ul>
         </div>

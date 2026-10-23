@@ -16,11 +16,14 @@ import { Icon, ICON_NAMES } from "@/components/ui/Icon";
 import { JobRow } from "@/components/ui/JobRow";
 import { StatTile } from "@/components/ui/StatTile";
 import { Toast } from "@/components/ui/Toast";
+import { requireBuilder } from "@/lib/builder/server";
 import { contrastRatio, formatRatio, wcagLevel } from "@/lib/contrast";
 import { ChipDemo, LoadingButtonDemo, OverlayDemo, TabsDemo, ToastDemo, ToggleDemo } from "./demos";
 import styles from "./design.module.css";
 
-export const metadata: Metadata = { title: "Design system" };
+export const metadata: Metadata = { title: "Design system", robots: { index: false, follow: false } };
+/* Builders only, like the hidden builder: anyone else gets a 404. */
+export const dynamic = "force-dynamic";
 
 const SECTIONS = [
   ["logo", "Logo"],
@@ -112,7 +115,8 @@ function Sub({ title, children, note }: { title: string; note?: string; children
   );
 }
 
-export default function DesignPage() {
+export default async function DesignPage() {
+  await requireBuilder();
   return (
     <>
       <SiteHeader active="design" />
@@ -121,7 +125,7 @@ export default function DesignPage() {
           <span className="eyebrow">WOVI</span>
           <h1>Night is the default</h1>
           <p className={styles.lead}>
-            The brand from Funkai&apos;s boards, built as tokens, components and the mascot. Switch the theme in the header to check every piece on both grounds.
+            The brand, built as tokens, components and the mascot. Switch the theme in the header to check every piece on both grounds.
           </p>
           <nav className={styles.jump} aria-label="Sections">
             {SECTIONS.map(([id, label]) => (

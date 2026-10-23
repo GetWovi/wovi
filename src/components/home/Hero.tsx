@@ -10,7 +10,8 @@ import home from "./home.module.css";
 import styles from "./Hero.module.css";
 
 const LINES = [["One agent."], ["One job."], ["Content that", "sounds like you."]];
-const JOBS = ["Hooks", "Scripts", "Captions", "Storyboards", "Voice", "Repurposing"];
+/* What the live agents do today. Storyboards and voice are later agents, shown as such in the gallery. */
+const JOBS = ["Ideas", "Hooks", "Scripts", "Captions", "Hashtags", "Repurposing"];
 
 export function Hero() {
   const root = useRef<HTMLElement>(null);
@@ -55,15 +56,15 @@ export function Hero() {
             ))}
           </h1>
           <p className={styles.lead} data-rise>
-            A marketplace of AI agents for social content. Each agent does one task, reads your Brand Brain first, and hands you work you can approve or fix in a
+            A lineup of AI agents for social content. Each agent does one task, reads your Brand Brain first, and hands you work you can approve or fix in a
             line. No prompts to write.
           </p>
           <div className={styles.actions} data-rise>
-            <ButtonLink href="#agents" size="lg" trailing={<Icon name="arrow-right" />}>
-              Meet the agents
+            <ButtonLink href="/sign-in" size="lg" trailing={<Icon name="arrow-right" />}>
+              Get started
             </ButtonLink>
-            <ButtonLink href="mailto:hello@wovi.fun?subject=Early%20access" size="lg" variant="ghost">
-              Early access
+            <ButtonLink href="#agents" size="lg" variant="ghost">
+              Meet the agents
             </ButtonLink>
           </div>
         </div>

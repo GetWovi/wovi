@@ -32,7 +32,7 @@ export function BrandBrain() {
               <Icon name="check" size={18} /> Agents execute your direction, they do not invent one
             </li>
             <li>
-              <Icon name="check" size={18} /> Edits you make teach it, with your permission
+              <Icon name="check" size={18} /> Your edits help improve the agents, only with your permission
             </li>
             <li>
               <Icon name="check" size={18} /> One Brand Brain per brand, shared by every agent

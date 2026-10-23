@@ -14,7 +14,7 @@ const ORDER: Phase[] = ["typing", "working", "hooks", "caption", "frames", "done
 
 /**
  * A job, start to finish: an idea is typed, three agents run, and hooks, a
- * caption and a storyboard land one after another. Deterministic and local.
+ * caption and a script land one after another. Deterministic and local.
  */
 export function LiveDemo() {
   const [run, setRun] = useState(0);
@@ -89,7 +89,7 @@ export function LiveDemo() {
   const agents = [
     { name: "Hook Writer", done: at("hooks") },
     { name: "Caption Writer", done: at("caption") },
-    { name: "Storyboarder", done: at("frames") },
+    { name: "Script Writer", done: at("frames") },
   ];
 
   return (
@@ -168,8 +168,8 @@ export function LiveDemo() {
             </div>
             <div className={[styles.card, styles.cardWide, at("frames") ? styles.cardIn : ""].join(" ")}>
               <div className={styles.cardHead}>
-                <span className={styles.cardTitle}>Storyboard</span>
-                <span className={[home.chip, home.chipCobalt].join(" ")}>Next</span>
+                <span className={styles.cardTitle}>Script</span>
+                <span className={[home.chip, home.chipCobalt].join(" ")}>On screen</span>
               </div>
               <div className={styles.frames}>
                 {data.frames.map((f, i) => (

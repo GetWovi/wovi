@@ -5,7 +5,7 @@ import { BrandIcon, Icon } from "@/components/ui/Icon";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import type { ClientSession } from "@/lib/team/team";
 import t from "./Team.module.css";
-import { X_URL } from "@/lib/site";
+import { GITHUB_URL, X_URL } from "@/lib/site";
 
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long" });
 
@@ -27,9 +27,11 @@ export function ClientShell({ session, children }: { session: ClientSession | nu
           </div>
           <div className={styles.right}>
             <span className={styles.headerIcons}>
-              <a href="#" className={styles.iconLink} aria-label="WOVI on GitHub">
-                <BrandIcon name="github" />
-              </a>
+              {GITHUB_URL && (
+                <a href={GITHUB_URL} className={styles.iconLink} aria-label="WOVI on GitHub" target="_blank" rel="noopener noreferrer">
+                  <BrandIcon name="github" />
+                </a>
+              )}
               <a href={X_URL} className={styles.iconLink} aria-label="WOVI on X" target="_blank" rel="noopener noreferrer">
                 <BrandIcon name="x" size={20} />
               </a>
