@@ -40,7 +40,7 @@ export function Closing() {
               WOVI is being built in the open. If you make content for a business, or you want to build agents for people who do, say hello.
             </p>
             <div className={styles.ctaActions} data-head>
-              <ButtonLink href="mailto:hello@wovi.app?subject=Early%20access" size="lg" className={styles.ctaButton} trailing={<Icon name="arrow-right" />}>
+              <ButtonLink href="mailto:hello@wovi.fun?subject=Early%20access" size="lg" className={styles.ctaButton} trailing={<Icon name="arrow-right" />}>
                 Ask for early access
               </ButtonLink>
               <ButtonLink href="/design" size="lg" variant="ghost" className={styles.ctaGhost}>
@@ -76,7 +76,7 @@ export function Closing() {
             </div>
             <div className={styles.col}>
               <span className={styles.colTitle}>Company</span>
-              <a href="mailto:hello@wovi.app">hello@wovi.app</a>
+              <a href="mailto:hello@wovi.fun">hello@wovi.fun</a>
               <a href="#">GitHub</a>
               <a href={X_URL} target="_blank" rel="noopener noreferrer">X</a>
             </div>

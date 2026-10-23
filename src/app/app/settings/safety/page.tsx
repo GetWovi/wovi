@@ -12,7 +12,11 @@ import { priceWords } from "@/lib/credits/config";
 import { REPORT_GROUNDS, REPORT_OUTCOMES, REPORT_OUTCOME_WORDS, REPORT_REASON_WORDS } from "@/lib/safety/reports";
 import { appReports, appSafetyStore } from "@/lib/safety/server";
 import type { ReportRow } from "@/lib/safety/store";
-import { decideReport, markOwedPaid, markReviewing } from "./actions";
+import { processCredits } from "@/lib/credits/local";
+import { appStripe } from "@/lib/credits/stripe-server";
+import { tokenServices } from "@/lib/token/local";
+import { unitsWords } from "@/lib/x402/money";
+import { decideReport, markOwedPaid, markReviewing, refundOwedByCard } from "./actions";
 
 export const metadata: Metadata = { title: "Reports and refunds", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -34,6 +38,15 @@ export default async function SafetyPage() {
   const reports = await appReports().list(me);
   const store = appSafetyStore();
   const owed = (await store.owed.find()).sort((a, b) => (a.status === b.status ? b.createdAt.localeCompare(a.createdAt) : a.status === "owed" ? -1 : 1));
+  // Withdrawals from card purchases can be refunded through Stripe from here.
+  const stripeOn = appStripe() !== null;
+  const byCard = new Set<string>();
+  for (const o of owed) {
+    if (o.status !== "owed" || o.kind !== "withdrawal" || !o.topUpId) continue;
+    const t = await processCredits().topUpById(o.topUpId);
+    if (t?.provider === "stripe" && t.payment?.ref) byCard.add(o.id);
+  }
+  const explorer = tokenServices().config.explorer;
   const deletions = (await store.deletions.find()).length;
   const open = reports.filter((r) => r.status !== "decided").length;
 
@@ -105,7 +118,7 @@ export default async function SafetyPage() {
 
       <section className={styles.stack} aria-label="Money owed back">
         <h2>Money owed back</h2>
-        <p className={styles.muted}>From withdrawals within 14 days and from deleted accounts. Send it through the payment provider, then mark it paid. WOVI sends nothing on its own.</p>
+        <p className={styles.muted}>From withdrawals within 14 days, deleted accounts, and USDC or ETH that came too late or as less than a credit. A card purchase is refunded through Stripe with one button; anything else, send it yourself (USDC and ETH from your own wallet to the address shown), then mark it paid. WOVI never sends money on its own.</p>
         {owed.length === 0 && <p className={styles.muted}>Nothing owed.</p>}
         <div className={s.queue}>
           {owed.map((o) => (
@@ -113,15 +126,36 @@ export default async function SafetyPage() {
               <div className={s.reportHead}>
                 <span className={[s.status, o.status === "owed" ? s.statusNew : ""].join(" ")}>{o.status === "owed" ? "Owed" : "Paid"}</span>
                 <b>
-                  {priceWords(o.credits)} for {o.credits.toLocaleString("en-US")} credits
+                  {o.chain ? `${unitsWords(o.chain.amount, o.chain.decimals)} ${o.chain.symbol}` : priceWords(o.credits)}
+                  {o.credits > 0 ? ` for ${o.credits.toLocaleString("en-US")} credits` : ""}
                 </b>
-                {o.test && <span className={s.status}>Test top-up, nothing to send</span>}
+                {o.test && <span className={s.status}>{byCard.has(o.id) || o.refund ? "Stripe test mode, no real money" : "Test top-up, nothing to send"}</span>}
               </div>
               <div className={s.reportMeta}>
-                <span>{o.kind === "withdrawal" ? "Withdrawal from a purchase" : "Account deleted"}</span>
+                <span>{o.kind === "withdrawal" ? "Withdrawal from a purchase" : o.kind === "chain_payment" ? (o.reason === "late" ? "Paid after its price ran out" : "Less than one credit") : "Account deleted"}</span>
                 <span>{when(o.createdAt)}</span>
                 <span>{o.contact ? `Contact ${o.contact}` : o.paidAt ? `Paid ${when(o.paidAt)}` : "No contact"}</span>
               </div>
+              {o.chain && (
+                <div className={s.reportMeta}>
+                  <span>
+                    Send to <code>{o.chain.to}</code> on Robinhood Chain
+                    {o.chain.symbol === "ETH" ? "" : ` (${o.chain.symbol} ${o.chain.token})`}
+                  </span>
+                  <a href={`${explorer}/tx/${o.chain.tx}`} target="_blank" rel="noreferrer">
+                    The payment
+                  </a>
+                </div>
+              )}
+              {o.refund && <p className={styles.muted}>Refunded through Stripe ({o.refund.ref}).</p>}
+              {o.status === "owed" && byCard.has(o.id) && stripeOn && (
+                <ActionForm action={refundOwedByCard} csrf={csrf} className={s.inlineForm}>
+                  <input type="hidden" name="id" value={o.id} />
+                  <Button type="submit" size="sm">
+                    Refund to the card through Stripe
+                  </Button>
+                </ActionForm>
+              )}
               {o.status === "owed" && (
                 <ActionForm action={markOwedPaid} csrf={csrf} className={s.inlineForm}>
                   <input type="hidden" name="id" value={o.id} />

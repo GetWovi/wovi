@@ -227,6 +227,9 @@ From the product doc's "$WOVI or stablecoin for crypto users". No custody: WOVI 
 A transfer that came too late or too early is refused and stays with the burn pot (it burns); the screen says to
 contact support with the transaction.
 
+USDC and ETH work the same way next to it, sent to WOVI's receiving address instead of the burn pot, with late and
+too-small payments owed back rather than burned ([credits.md](credits.md#usdc-and-eth-top-ups-robinhood-chain)).
+
 ## Wallets on phones
 
 A phone browser has no wallet in it. The wallet buttons then open the same page inside MetaMask's own browser

@@ -17,6 +17,7 @@ import type { RunEngine } from "@/lib/runs/engine";
 import { jsonFileRunStore } from "@/lib/runs/store";
 import { jsonFileTeamStore } from "@/lib/team/store";
 import { jsonFileTokenStore } from "@/lib/token/store";
+import { jsonFileChainPayStore } from "@/lib/chainpay/store";
 import { jsonFileWebhookStore } from "@/lib/webhooks/store";
 import { Reports } from "./reports";
 import { jsonFileSafetyStore, type SafetyStore } from "./store";
@@ -36,6 +37,7 @@ export function localPrivacy(accounts: Accounts, dataDir: string, opts: { credit
     balance: opts.credits ? (ws) => opts.credits!.balance(ws) : undefined,
     pipelines: jsonFilePipelineStore(join(dataDir, "pipelines.json")),
     token: jsonFileTokenStore(join(dataDir, "token.json")),
+    chainpay: jsonFileChainPayStore(join(dataDir, "chainpay.json")),
     webhooks: jsonFileWebhookStore(join(dataDir, "webhooks.json")),
     safety: opts.safety ?? localSafetyStore(dataDir),
     filesDir: join(dataDir, "files"),

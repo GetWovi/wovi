@@ -97,12 +97,15 @@ const sections: LegalSection[] = [
           <li>
             <b>OpenRouter</b> (United States) passes each run to the AI model that writes it. Today those models come from {makers.join(", ")}.
           </li>
+          <li>
+            <b>Stripe</b> takes the card on its own page when you pay by card. We never see the card number; Stripe tells us whether the payment went through, and handles refunds to the card.
+          </li>
           <li>When we start sending email through a provider, it will be named here before it starts.</li>
         </ul>
         <p>
           OpenRouter and the model makers are in the United States. Data goes there under the European Commission&apos;s Standard Contractual Clauses in OpenRouter&apos;s data processing agreement, or under the EU-US Data Privacy Framework for companies certified under it. Ask us at {mail} for a copy of the safeguards.
         </p>
-        <p>Wallet addresses and $WOVI payments are on Robinhood Chain, a public blockchain, where anyone can read them. We only read from it.</p>
+        <p>Wallet addresses and payments in $WOVI, USDC and ETH are on Robinhood Chain, a public blockchain, where anyone can read them. We only read from it.</p>
       </>
     ),
   },

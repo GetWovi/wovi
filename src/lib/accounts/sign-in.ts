@@ -10,6 +10,7 @@
  */
 import { normalizeEmail, type Accounts } from "./accounts";
 import { hmac, newId, randomToken, safeEqual, sha256, sixDigitCode } from "./crypto";
+import { signInHtml } from "./email-html";
 import { AccountError } from "./errors";
 import type { Session, SignInRequest, User } from "./types";
 
@@ -70,9 +71,11 @@ export class SignIn {
 
     const minutes = Math.round(this.a.cfg.signInTtlMs / 60_000);
     const link = `${this.a.cfg.appUrl}/sign-in/verify?token=${token}`;
+    const subject = `Your WOVI sign-in code: ${code}`;
     await this.a.email.send({
       to: email,
-      subject: `Your WOVI sign-in code: ${code}`,
+      subject,
+      html: signInHtml({ subject, link, code, minutes }),
       text: [
         "Sign in to WOVI with this link:",
         link,

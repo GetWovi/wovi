@@ -630,9 +630,103 @@ export class Credits implements RunBilling {
       await this.o.store.topUps.update(failed);
       throw new CreditError("payment_failed", `The payment did not go through: ${result.error}`);
     }
-    const withRef = { ...row, providerRef: result.providerRef };
+    const withRef: TopUp = { ...row, providerRef: result.providerRef, ...(result.status === "pending" ? { checkoutUrl: result.redirectUrl } : {}) };
     await this.o.store.topUps.update(withRef);
     return result.status === "paid" ? this.completeTopUp(withRef) : withRef;
+  }
+
+  /** One top-up by its id, any workspace. For a payment provider's webhook. */
+  async topUpById(topUpId: string): Promise<TopUp | null> {
+    return this.o.store.topUps.get(topUpId);
+  }
+
+  /** Top-ups matching every given field, any workspace. For a payment provider's webhook. */
+  async findTopUps(where: Partial<TopUp>): Promise<TopUp[]> {
+    return this.o.store.topUps.find(where);
+  }
+
+  /**
+   * A pending top-up the provider says is paid, from its verified webhook:
+   * the ledger entry lands once (its key is the top-up), and what was paid is
+   * kept on the row. Calling it again changes nothing.
+   */
+  async markTopUpPaid(topUpId: string, payment: { ref: string; amount: number; currency: string }): Promise<TopUp> {
+    const row = await this.o.store.topUps.get(topUpId);
+    if (!row) throw new CreditError("not_found", "No such top-up.");
+    if (row.status === "paid") {
+      // A replay after a crash between the ledger and the row is finished by the same idempotent write.
+      await this.lock(row.workspaceId, () => this.write(row.workspaceId, [this.topUpDraft(row)]));
+      return row;
+    }
+    return this.completeTopUp({ ...row, payment, checkoutUrl: null, error: null });
+  }
+
+  /**
+   * How many credits of a top-up have already left the balance because its
+   * money went back: a withdrawal (`adjust:withdraw:<id>`) and refunds
+   * through the provider (`adjust:refund:<id>:<share>`, keyed by the refunded
+   * share of the top-up they bring it to), added up. A refund that pays for a
+   * withdrawal takes nothing more, since the withdrawal already took them.
+   */
+  async removedFromTopUp(workspaceId: string, topUpId: string): Promise<number> {
+    let removed = 0;
+    for (const e of await this.entries(workspaceId)) {
+      if (e.kind === "adjustment" && (e.key === `adjust:withdraw:${topUpId}` || e.key.startsWith(`adjust:refund:${topUpId}:`))) removed -= e.amount;
+    }
+    return removed;
+  }
+
+  /** Whether the ledger has this key in this workspace. */
+  async hasKey(workspaceId: string, key: string): Promise<boolean> {
+    return (await this.entries(workspaceId)).some((e) => e.key === key);
+  }
+
+  /** A pending top-up that will not be paid (the checkout expired or failed). A paid one stays paid. */
+  async failTopUp(topUpId: string, error: string): Promise<TopUp | null> {
+    const row = await this.o.store.topUps.get(topUpId);
+    if (!row || row.status !== "pending") return row;
+    const failed: TopUp = { ...row, status: "failed", error, checkoutUrl: null, completedAt: this.iso() };
+    await this.o.store.topUps.update(failed);
+    return failed;
+  }
+
+  /**
+   * A top-up already paid outside a checkout: USDC or ETH sent on Robinhood
+   * Chain and checked there (chainpay). The row and its ledger entry are
+   * written once: the id and the ledger key come from the payment, so the
+   * same payment again returns the first row.
+   */
+  async recordPaidTopUp(workspaceId: string, input: { id: string; provider: string; providerRef: string; credits: number; amountCents: number; by: string; label: string; ledgerKey: string; consent?: { at: string; wording: string } | null; chain?: TopUp["chain"] }): Promise<TopUp> {
+    if (!POSITIVE_INT(input.credits)) throw new CreditError("invalid_request", "A top-up is a whole number of credits.");
+    if (!/^[A-Za-z0-9_.:-]{1,120}$/.test(input.id) || !/^[A-Za-z0-9_.:-]{1,160}$/.test(input.ledgerKey)) throw new CreditError("invalid_request", "The top-up needs an id.");
+    return this.lock(workspaceId, async () => {
+      let row = await this.o.store.topUps.get(input.id);
+      if (row && (row.workspaceId !== workspaceId || row.credits !== input.credits)) throw new CreditError("conflict", "This payment was already recorded with other details.");
+      if (!row) {
+        const at = this.iso();
+        row = {
+          id: input.id,
+          workspaceId,
+          credits: input.credits,
+          amountCents: input.amountCents,
+          currency: "usd",
+          provider: input.provider,
+          providerRef: input.providerRef,
+          test: false,
+          status: "paid",
+          idempotencyKey: null,
+          by: input.by,
+          createdAt: at,
+          completedAt: at,
+          error: null,
+          ...(input.consent ? { consent: input.consent } : {}),
+          ...(input.chain ? { chain: input.chain } : {}),
+        };
+        await this.o.store.topUps.insert(row);
+      }
+      await this.write(workspaceId, [{ key: input.ledgerKey, kind: "top_up", amount: input.credits, ref: { type: "top_up", id: input.id }, by: input.by, label: input.label }]);
+      return row;
+    });
   }
 
   /** For a provider's webhook later: a pending top-up that has been paid lands in the ledger, once. */
@@ -650,10 +744,13 @@ export class Credits implements RunBilling {
     return row;
   }
 
+  private topUpDraft(row: TopUp): Draft {
+    const label = row.provider === "stripe" ? `Paid by card${row.test ? " in Stripe test mode" : ""}, ${creditWords(row.credits)}` : row.test ? `Test top-up, ${creditWords(row.credits)}` : `Top-up, ${creditWords(row.credits)}`;
+    return { key: `topup:${row.id}`, kind: "top_up", amount: row.credits, ref: { type: "top_up", id: row.id }, by: row.by, label, test: row.test };
+  }
+
   private async completeTopUp(row: TopUp): Promise<TopUp> {
-    await this.lock(row.workspaceId, () =>
-      this.write(row.workspaceId, [{ key: `topup:${row.id}`, kind: "top_up", amount: row.credits, ref: { type: "top_up", id: row.id }, by: row.by, label: row.test ? `Test top-up, ${creditWords(row.credits)}` : `Top-up, ${creditWords(row.credits)}`, test: row.test }]),
-    );
+    await this.lock(row.workspaceId, () => this.write(row.workspaceId, [this.topUpDraft(row)]));
     const done = { ...row, status: "paid" as const, completedAt: this.iso() };
     await this.o.store.topUps.update(done);
     return done;

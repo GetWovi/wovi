@@ -17,8 +17,12 @@ function pressKey(pack: number): string {
   return `topup-${pack}-${crypto.randomUUID()}`;
 }
 
-/** The packs. With the test provider every button says so, and nothing is paid. */
-export function TopUpPacks({ csrf, packs, test }: { csrf: string; packs: number[]; test: boolean }) {
+/**
+ * The packs. With the test provider every button says so, and nothing is
+ * paid. With cards (Stripe) a pack opens Stripe's own page to pay on; the
+ * credits land from Stripe's webhook, never from coming back here.
+ */
+export function TopUpPacks({ csrf, packs, test, card = false }: { csrf: string; packs: number[]; test: boolean; card?: boolean }) {
   const router = useRouter();
   const { toast } = useToast();
   const [busy, setBusy] = useState<number | null>(null);
@@ -30,6 +34,11 @@ export function TopUpPacks({ csrf, packs, test }: { csrf: string; packs: number[
     if (!consent) return setNeedConsent(true);
     setBusy(pack);
     const r = await topUp(csrf, pack, pressKey(pack), consent);
+    if (r.ok && r.value.status === "pending" && r.value.checkoutUrl) {
+      // Stripe's hosted page: the card is typed there, never here.
+      window.location.assign(r.value.checkoutUrl);
+      return;
+    }
     setBusy(null);
     if (!r.ok) return toast({ tone: "warning", title: r.error });
     toast({ tone: "success", title: `${creditWords(r.value.credits)} added`, description: r.value.test ? "A test top-up: no money moved." : undefined });
@@ -48,21 +57,21 @@ export function TopUpPacks({ csrf, packs, test }: { csrf: string; packs: number[
     />
     <div className={styles.packs}>
       {packs.map((pack) => (
-        <button key={pack} type="button" className={styles.pack} onClick={() => buy(pack)} disabled={busy !== null} aria-label={`${test ? "Test top-up" : "Top up"}: ${creditWords(pack)} for ${priceWords(pack)}`}>
+        <button key={pack} type="button" className={styles.pack} onClick={() => buy(pack)} disabled={busy !== null} aria-label={`${card ? "Pay by card" : test ? "Test top-up" : "Top up"}: ${creditWords(pack)} for ${priceWords(pack)}`}>
           <span className={styles.packAmount}>
             <Coin size={14} /> {pack.toLocaleString("en-US")}
           </span>
           <span className={styles.packPrice}>
             {priceWords(pack)}
-            {test ? ", test, not charged" : ""}
+            {card ? (test ? " by card, Stripe test mode" : " by card") : test ? ", test, not charged" : ""}
           </span>
           <span className={styles.packCta}>
-            {busy === pack ? "Adding" : test ? "Add as a test" : `Buy and pay ${priceWords(pack)}`} <Icon name="arrow-right" size={14} />
+            {busy === pack ? (card ? "Opening the card page" : "Adding") : card ? `Buy and pay ${priceWords(pack)}` : test ? "Add as a test" : `Buy and pay ${priceWords(pack)}`} <Icon name="arrow-right" size={14} />
           </span>
         </button>
       ))}
     </div>
-    <p className={styles.packNote}>The price shown is the total you pay, taxes included.</p>
+    <p className={styles.packNote}>The price shown is the total you pay, taxes included.{card ? " You pay on Stripe's secure page; WOVI never sees your card." : ""}</p>
     </>
   );
 }

@@ -150,7 +150,36 @@ At each sign-in a builder becomes an owner of `ws_wovi`; anyone else loses any m
 
 ## Email
 
-Accounts only talk to `EmailSender`. In development the dev sender prints each mail to the console and writes it to `.data/mail/`, so links and codes can be read without any email account. A real provider plugs in behind `EMAIL_PROVIDER` (off by default; none is wired yet). Off localhost without a provider, sending refuses, so sign-in links never land in server logs.
+Accounts only talk to `EmailSender`. In development the dev sender prints each mail to the console and writes it to `.data/mail/`, so links and codes can be read without any email account. Off localhost without a provider, sending refuses (so sign-in cannot start), and sign-in links never land in server logs.
+
+The real senders are in `src/lib/accounts/email-providers.ts`, chosen by `EMAIL_PROVIDER`:
+
+- **`resend`**: Resend's HTTP API (`POST https://api.resend.com/emails`) with `RESEND_API_KEY`. A 5xx, a 429 (after its `Retry-After`, at most 30 seconds), a dropped connection and a request over its 10-second timeout are tried again, three times with backoff, all with one `Idempotency-Key` per mail, so a retry never sends it twice. A 4xx other than 429 is not retried.
+- **`smtp`**: any SMTP server through `nodemailer` (10.0.16), as a fallback: `SMTP_URL` (`smtps://user:pass@host:465`), or `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`. Loaded on the first mail only.
+
+Both send every mail as plain text and a simple HTML version (`email-html.ts`): the same words, links that can be tapped, a lone link as a button, "WOVI" and the contact address at the foot, no images, no tracking. The sign-in mail brings its own HTML with the code large. That covers every mail WOVI sends: the sign-in link and code, invites, report receipts and decisions, the statement of reasons to a workspace, withdrawal receipts, the account-deleted mail and review notifications. Errors name the status (and Resend's error name, or the SMTP reply code) and nothing else: never the address, the subject, a code, a link or the key, and nothing is logged on success. A provider with a missing or malformed setting refuses every mail with a message saying which setting, so sign-in stops rather than leaking; an unknown `EMAIL_PROVIDER` stops the server at start.
+
+| Setting | Default | |
+|---|---|---|
+| `EMAIL_PROVIDER` | empty | `resend` or `smtp`. Empty: the dev sender locally, refusal in production. |
+| `RESEND_API_KEY` | empty | `re_...`, a key with sending access for the domain. |
+| `EMAIL_FROM` | `WOVI <hello@wovi.fun>` | The sender. Must be on a verified domain. |
+| `REPLY_TO` | empty | Where replies go, if not the sender. |
+| `SMTP_URL` or `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE` | empty | For `smtp`. |
+
+### The domain's DNS for Resend (once wovi.fun exists)
+
+1. In Resend: Domains, Add domain, `wovi.fun`, and pick the sending region closest to the server.
+2. Add the records Resend shows at the domain's DNS host, exactly as shown (the values are per account):
+   - **DKIM**: a TXT record `resend._domainkey` with the public key `p=MIGf...`.
+   - **SPF** for the bounce address, on the `send` subdomain: an MX record `send` (priority 10) and a TXT record `send` starting `v=spf1 include:`. The root domain's own SPF is not touched.
+   - **DMARC** (recommended): a TXT record `_dmarc` with `v=DMARC1; p=none; rua=mailto:hello@wovi.fun`, tightened to `p=quarantine` once reports look clean.
+3. Press Verify in Resend and wait for all records to show verified.
+4. Resend, API Keys, Create: sending access, domain `wovi.fun`. Put it in `RESEND_API_KEY`, set `EMAIL_PROVIDER=resend`, restart.
+5. `hello@wovi.fun` is the contact address everywhere and must reach a person: it needs its own inbox or forwarding (MX records on the root domain from the mailbox host). Resend only sends.
+6. Name the provider in the privacy notice ("Who helps us run WOVI") the same day.
+
+Sign in once with a real address to check: the mail arrives with a code, the link works, and the HTML shows the code large.
 
 ## Settings and secrets
 
@@ -159,7 +188,7 @@ Accounts only talk to `EmailSender`. In development the dev sender prints each m
 | `WOVI_APP_URL` | `http://localhost:3900` | Links in emails, the passkey origin, the wallet message domain. |
 | `WOVI_SECRET` | generated into `.data/secret` on a local app | Server secret for code hashes and CSRF tokens. Required off localhost. |
 | `WOVI_BUILDER_EMAILS` | empty | The optional builder email allowlist. Builder codes are the usual way in. |
-| `EMAIL_PROVIDER` | off | A wired email provider. |
+| `EMAIL_PROVIDER` | off | `resend` or `smtp` (above, with their settings). |
 | `WOVI_DATA_DIR` | `.data` | Where the JSON stores, mail and the dev secret live. |
 
 Rate limits use the first `X-Forwarded-For` hop, which is only trustworthy behind our own proxy; that is set at deploy.

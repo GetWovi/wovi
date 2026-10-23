@@ -95,6 +95,8 @@ export type X402Options = {
   appUrl: string;
   /** A Chainlink feed's price, scaled to 8 decimals. Only for assets priced by a feed. */
   readFeed?: (feed: string, maxAgeSec: number) => Promise<bigint | null>;
+  /** Whether a transaction already counted elsewhere (a USDC or ETH top-up to the same address). Such a transaction never pays a call. */
+  usedElsewhere?: (paymentId: string) => Promise<boolean>;
   now?: () => number;
   log?: (line: string) => void;
 };
@@ -328,6 +330,7 @@ export class X402 {
 
       const paymentId = fakeTxId(this.cfg.chainId, pl.txHash);
       if (await this.o.store.payments.get(paymentId)) throw new X402Error("payment_used", "That transaction already paid for a call. Each transfer pays once.");
+      if (await this.o.usedElsewhere?.(paymentId)) throw new X402Error("payment_used", "That transaction already paid for credits. Each transfer pays once.");
       const accept = quote.accepts.find((a) => sameAddress(a.asset, pl.asset));
       if (!accept) throw new X402Error("payment_wrong_asset", "The quote does not take that asset.", { quote });
 
