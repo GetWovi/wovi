@@ -12,6 +12,8 @@ import { PayError, type ClaimResult, type PayQuote } from "@/lib/token/pay";
 import { PURCHASE_CONSENT } from "@/lib/legal/operator";
 import { WithdrawalError } from "@/lib/legal/withdrawals";
 import { appWithdrawals } from "@/lib/safety/server";
+import { chainPay } from "@/lib/chainpay/local";
+import { ChainPayError, type ChainClaimResult, type ChainQuote } from "@/lib/chainpay/pay";
 
 /** Credit errors in the app's words, so the screen shows the message. */
 async function credits<T>(fn: () => Promise<T>): Promise<T> {
@@ -92,6 +94,43 @@ export async function woviClaim(csrf: string, quoteId: string, tx: string): Prom
     csrf,
     async ({ me, workspaceId }) => {
       const pay = await woviPay(me, workspaceId);
+      return pay.claim(me.userId, quoteId, tx);
+    },
+    { refresh: "/app" },
+  );
+}
+
+/* ---------- Paying with a stablecoin (USDG by default) or ETH on Robinhood Chain ---------- */
+
+/** Owners and admins of the current workspace only, like every top-up; and only while it is open. */
+async function chainPayFor(me: Principal, workspaceId: string) {
+  await accounts().authorize(me, workspaceId, "manage_credits");
+  const pay = chainPay();
+  if (!pay || !pay.status().on) throw new AppError("invalid_request", "Paying with a stablecoin or ETH is not open.");
+  return pay;
+}
+
+/** A price for a pack in the stablecoin or ETH: what to send to WOVI's address, valid for ten minutes. Stores the purchase consent. */
+export async function chainQuote(csrf: string, pack: number, asset: string, consent = false): Promise<Result<ChainQuote>> {
+  return appCall(csrf, async ({ me, workspaceId }) => {
+    // Phase 18: the same request and acceptance as a card purchase, kept with the price.
+    if (consent !== true) throw new AppError("invalid_request", "Tick the box about starting your credits now first.");
+    const pay = await chainPayFor(me, workspaceId);
+    try {
+      return await pay.quote(me.userId, workspaceId, { credits: pack, asset, consent: { at: new Date().toISOString(), wording: PURCHASE_CONSENT } });
+    } catch (err) {
+      if (err instanceof ChainPayError) throw new AppError("invalid_request", err.message);
+      throw err;
+    }
+  });
+}
+
+/** Counts a stablecoin or ETH payment for a price by its transaction hash, read on chain. `pending`: ask again in a moment. */
+export async function chainClaim(csrf: string, quoteId: string, tx: string): Promise<Result<ChainClaimResult>> {
+  return appCall(
+    csrf,
+    async ({ me, workspaceId }) => {
+      const pay = await chainPayFor(me, workspaceId);
       return pay.claim(me.userId, quoteId, tx);
     },
     { refresh: "/app" },

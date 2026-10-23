@@ -62,7 +62,7 @@ export function Hero() {
             <ButtonLink href="#agents" size="lg" trailing={<Icon name="arrow-right" />}>
               Meet the agents
             </ButtonLink>
-            <ButtonLink href="mailto:hello@wovi.app?subject=Early%20access" size="lg" variant="ghost">
+            <ButtonLink href="mailto:hello@wovi.fun?subject=Early%20access" size="lg" variant="ghost">
               Early access
             </ButtonLink>
           </div>

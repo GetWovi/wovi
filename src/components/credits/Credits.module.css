@@ -560,3 +560,80 @@
   font-size: var(--fs-sm);
   color: var(--text-muted);
 }
+
+/* A stablecoin and ETH: the asset choice and the paid state. */
+.assetPick {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+.assetChoice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  border: var(--stroke) solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.assetChoice b {
+  font-size: var(--fs-lg);
+}
+.assetChoice span {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+.assetChoice:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.assetOn {
+  border-color: var(--blaze);
+  background: var(--blaze-tint);
+}
+.chainPaid {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+  padding: var(--s-4) var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--cobalt-tint);
+}
+.chainPaidIcon {
+  flex: none;
+  color: var(--cobalt-glow);
+}
+.chainPaidText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--fs-sm);
+  min-width: 0;
+}
+.chainPaidText b {
+  font-size: var(--fs-xl);
+}
+.chainPaidText a {
+  color: inherit;
+}
+
+/* Back from Stripe's page: a note while the webhook lands the credits. */
+.backNote {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--blaze-tint);
+  font-size: var(--fs-sm);
+}
+.backNote svg {
+  flex: none;
+  margin-top: 2px;
+}

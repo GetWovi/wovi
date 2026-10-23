@@ -17,7 +17,7 @@ import { fakeVerifier, type PaymentVerifier } from "./verifier";
 
 export const PAY_TO = "0x4020000000000000000000000000000000000402";
 
-export async function testX402(opts: { cfg?: Partial<X402Config>; verifier?: "fake" | "none"; local?: boolean; fake?: FakeOptions } = {}) {
+export async function testX402(opts: { cfg?: Partial<X402Config>; verifier?: "fake" | "none"; local?: boolean; fake?: FakeOptions; usedElsewhere?: (paymentId: string) => Promise<boolean> } = {}) {
   const t = await testApi({ ...(opts.fake ? { fake: opts.fake } : {}) });
   const store = memoryX402Store();
   const cfg: X402Config = {
@@ -28,7 +28,7 @@ export async function testX402(opts: { cfg?: Partial<X402Config>; verifier?: "fa
     ...opts.cfg,
   };
   const verifier: PaymentVerifier | null = opts.verifier === "none" ? null : fakeVerifier(store.fakeTransfers);
-  const x402 = new X402({ cfg, local: opts.local ?? true, verifier, store, accounts: t.accounts, api: t.api, credits: t.credits!, engine: t.engine, pipelines: t.pipelineEngine, appUrl: "http://localhost:3900", now: () => t.clock.t, log: () => undefined });
+  const x402 = new X402({ cfg, local: opts.local ?? true, verifier, store, accounts: t.accounts, api: t.api, credits: t.credits!, engine: t.engine, pipelines: t.pipelineEngine, appUrl: "http://localhost:3900", now: () => t.clock.t, log: () => undefined, ...(opts.usedElsewhere ? { usedElsewhere: opts.usedElsewhere } : {}) });
   const off = x402.wire();
   const http = new X402Http(x402, { appUrl: "http://localhost:3900", maxBodyBytes: t.limits.maxBodyBytes, log: () => undefined });
   const rest = new RestApi({ api: t.api, accounts: t.accounts, appUrl: "http://localhost:3900", now: () => t.clock.t, log: () => undefined, x402: http });

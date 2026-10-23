@@ -14,6 +14,7 @@ import { appCredits } from "@/lib/credits/server";
 import { appPipelines } from "@/lib/pipelines/server";
 import { appQuality } from "@/lib/quality/server";
 import { processCredits } from "@/lib/credits/local";
+import { usedForTopUp } from "@/lib/chainpay/local";
 import { x402ConfigFromEnv } from "@/lib/x402/config";
 import { X402Http } from "@/lib/x402/http";
 import { onchainVerifier, readFeed, rpcReader } from "@/lib/x402/onchain";
@@ -80,6 +81,7 @@ export function appX402(): X402 {
       engine: appEngine(),
       pipelines: appPipelines().engine,
       appUrl: appUrl(),
+      usedElsewhere: usedForTopUp,
       ...(reader ? { readFeed: (feed: string, maxAgeSec: number) => readFeed(reader, feed, maxAgeSec, Math.floor(Date.now() / 1000)) } : {}),
     });
     cache.x402 = x402;

@@ -106,7 +106,23 @@ export type TopUp = {
    * the exact words they ticked. Missing on top-ups from before phase 18.
    */
   consent?: { at: string; wording: string } | null;
+  /** Card top-ups: Stripe's hosted page to pay on, while the top-up is pending. Missing on older rows. */
+  checkoutUrl?: string | null;
+  /**
+   * What the provider says was paid, once it is paid: Stripe's payment intent,
+   * the amount in the smallest unit and the currency it was charged in (with
+   * Stripe's local currencies it can differ from `currency`). Missing on older rows.
+   */
+  payment?: { ref: string; amount: number; currency: string } | null;
+  /**
+   * A stablecoin (USDG by default) or ETH sent on Robinhood Chain (chainpay): the asset and its symbol, the exact amount
+   * in its smallest unit, the linked wallet it came from and the transaction.
+   * Missing on every other top-up.
+   */
+  chain?: TopUpChain | null;
 };
+
+export type TopUpChain = { asset: "stable" | "eth"; symbol: string; token: string; decimals: number; amount: string; payer: string; tx: string; chainId: number };
 
 /** Monthly limits in credits. Null means no limit. */
 export type CreditLimits = {

@@ -66,6 +66,9 @@ const sections: LegalSection[] = [
             Running an agent costs credits. One credit is always <b>$0.01</b>. Credits come in packs from {creditWords(CREDITS.minTopUpCredits)} ({priceWords(CREDITS.minTopUpCredits)}): {CREDITS.packs.map((p) => `${p.toLocaleString("en-US")} for ${priceWords(p)}`).join(", ")}.
           </li>
           <li>The price shown on a pack is the total you pay, taxes included.</li>
+          <li>
+            You pay by card on Stripe&apos;s own page, where we offer it, or with a stablecoin such as USDG, ETH or $WOVI sent on Robinhood Chain from a wallet linked to your account. Credits bought by card are added once Stripe confirms the payment to us. A payment in a stablecoin or ETH that arrives after its price ran out, or that is worth less than one credit, adds no credits and is sent back to the wallet it came from; one that is less than the price adds the credits it pays for.
+          </li>
           <li>Before a run starts you see its estimate. The run never costs more than that. A run that fails or that you stop costs nothing; the credits go back.</li>
           <li>
             Credits are only for running agents on WOVI. They have no cash value, cannot be moved to someone else, cannot be turned into $WOVI or money, and are not an investment. See <Link href="/own-risk">Own risk and $WOVI</Link>.
@@ -89,7 +92,7 @@ const sections: LegalSection[] = [
           </p>
         </div>
         <ul>
-          <li>If you withdraw, the credits from that purchase you have not used leave your balance and we pay them back to the way you paid, within 14 days.</li>
+          <li>If you withdraw, the credits from that purchase you have not used leave your balance and we pay them back to the way you paid, within 14 days: to your card, or in the same stablecoin or ETH to the wallet it came from.</li>
           <li>Credits you already used are paid for.</li>
           <li>Once every credit from a purchase is used, you can no longer withdraw from it.</li>
           <li>

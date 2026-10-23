@@ -182,6 +182,21 @@ describe("x402: paying", () => {
     expect((await t.engine.listRuns(X402_WORKSPACE_ID)).length).toBe(1);
   });
 
+  it("refuses a transaction that already topped up credits (a stablecoin or ETH to the same address), and takes the next one", async () => {
+    const toppedUp = new Set<string>();
+    const t = await testX402({ usedElsewhere: async (id) => toppedUp.has(id) });
+    const { req } = await quoted(t);
+    const { header, txHash } = await t.pay(req);
+    toppedUp.add(`4663:${txHash.toLowerCase()}`);
+    const r = await t.call("POST", START, { body: { inputs: HOOK }, headers: { "x-payment": header } });
+    expect(r.status).toBe(402);
+    expect(r.json.code).toBe("payment_used");
+    expect(await t.store.payments.find()).toEqual([]);
+    const { req: req2 } = await quoted(t);
+    const ok = await t.pay(req2);
+    expect((await t.call("POST", START, { body: { inputs: HOOK }, headers: { "x-payment": ok.header } })).status).toBe(202);
+  });
+
   it("refuses the wrong amount, recipient, chain, asset, payer, signature, body or network", async () => {
     const t = await testX402();
     const send = (header: string, body: unknown = { inputs: HOOK }) => t.call("POST", START, { body, headers: { "x-payment": header } });

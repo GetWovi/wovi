@@ -79,7 +79,8 @@ export type RightsRow = {
 /** Money WOVI owes back to a buyer, for the owner to send through the payment provider. Never sent by the app. */
 export type OwedRow = {
   id: string;
-  kind: "withdrawal" | "account_deleted";
+  /** chain_payment: a stablecoin or ETH that reached WOVI too late or as less than one credit (chainpay), owed back as sent. */
+  kind: "withdrawal" | "account_deleted" | "chain_payment";
   workspaceId: string;
   topUpId: string | null;
   credits: number;
@@ -93,7 +94,18 @@ export type OwedRow = {
   createdAt: string;
   paidAt: string | null;
   paidBy: string | null;
+  /**
+   * Owed in a stablecoin or ETH rather than by card: what to send back, exactly, and
+   * to which wallet (the one it came from). Missing on rows from before.
+   */
+  chain?: OwedChain | null;
+  /** Why a chain payment is owed back. */
+  reason?: "late" | "too_little" | null;
+  /** Paid back through the provider from here: Stripe's refund id. Missing when marked paid by hand. */
+  refund?: { provider: "stripe"; ref: string } | null;
 };
+
+export type OwedChain = { symbol: string; token: string; decimals: number; amount: string; to: string; tx: string; chainId: number };
 
 /** That an account was deleted, and what it left. No personal data. */
 export type DeletionRow = {

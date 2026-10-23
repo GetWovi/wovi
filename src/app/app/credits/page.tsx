@@ -15,6 +15,9 @@ import { appPage } from "@/lib/app/server";
 import { CREDITS, creditWords, priceWords } from "@/lib/credits/config";
 import { appCredits } from "@/lib/credits/server";
 import { PayWithWovi } from "@/components/credits/PayWithWovi";
+import { PayWithChain } from "@/components/credits/PayWithChain";
+import { BackFromCard } from "@/components/credits/BackFromCard";
+import { chainPay } from "@/lib/chainpay/local";
 import { HolderBadge } from "@/components/token/HolderBadge";
 import { tokenServices } from "@/lib/token/local";
 import { utcWords } from "@/lib/token/words";
@@ -22,8 +25,10 @@ import { utcWords } from "@/lib/token/words";
 export const metadata: Metadata = { title: "Credits", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-export default async function CreditsPage() {
+export default async function CreditsPage({ searchParams }: PageProps<"/app/credits">) {
   const { info, me, workspaceId, csrf } = await appPage("/app/credits");
+  const sp = await searchParams;
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
   const g = appCredits();
   const summary = await g.summary(me, workspaceId);
   const { balance, mine, limits, payments, packs } = summary;
@@ -37,7 +42,20 @@ export default async function CreditsPage() {
   const holderView = ts.config.holder.on ? await ts.holders.view(info.user.id) : null;
   const showHolder = balance.holder.available > 0 || Boolean(holderView?.creditsOn);
   const pay = ts.pay?.status().on ? ts.pay.status() : null;
-  const myWallets = pay ? (await accounts().wallets.list(info.user.id)).map((w) => w.address) : [];
+  // A stablecoin (USDG by default) and ETH on Robinhood Chain: off unless a receiving address is set.
+  const cp = chainPay();
+  const chain = cp?.status().on ? await cp.view() : null;
+  const usable = chain?.assets.filter((a) => a.available).map((a) => a.symbol) ?? [];
+  const chainTitle = `Pay with ${usable.length ? usable.join(" or ") : "a stablecoin or ETH"}`;
+  const myWallets = pay || chain ? (await accounts().wallets.list(info.user.id)).map((w) => w.address) : [];
+  const card = payments?.id === "stripe";
+  // Back from Stripe's page (?paid=<session>, ?cancelled=1): what happened, read from the top-up, never from the link.
+  const session = one(sp.paid);
+  let back: { state: "landed" | "waiting" | "cancelled" | "failed"; credits: number | null } | null = null;
+  if (summary.canManage && session && /^cs_[A-Za-z0-9_]{6,200}$/.test(session)) {
+    const t = (await g.topUps(me, workspaceId)).find((x) => x.provider === "stripe" && x.providerRef === session);
+    if (t) back = { state: t.status === "paid" ? "landed" : t.status === "failed" ? "failed" : "waiting", credits: t.credits };
+  } else if (summary.canManage && one(sp.cancelled) === "1") back = { state: "cancelled", credits: null };
   // Phase 18: purchases still inside their 14 days to withdraw, for people who top up.
   const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   const withdrawable: WithdrawRow[] = summary.canManage
@@ -52,7 +70,7 @@ export default async function CreditsPage() {
           <h1 className={styles.h1}>What runs cost, and what is left</h1>
           <p className={styles.lead}>One credit is one cent. A run holds its estimate while it works, then costs what it really used, never more than the estimate you saw.</p>
         </div>
-        {summary.canManage && payments && (
+        {summary.canManage && (payments || chain) && (
           <ButtonLink href="#top-up" leading={<Icon name="plus" size={18} />}>
             Top up
           </ButtonLink>
@@ -83,17 +101,18 @@ export default async function CreditsPage() {
                 </span>
               )}
             </div>
+            {back && <BackFromCard state={back.state} credits={back.credits} />}
             {!payments ? (
-              <p className={styles.muted}>Top-ups are not open yet.</p>
+              <p className={styles.muted}>{chain ? `Card payments are not open yet. ${chainTitle} below.` : "Top-ups are not open yet."}</p>
             ) : summary.canManage ? (
               <>
                 {payments.test && (
                   <div className={c.testNote}>
                     <Icon name="info" size={18} />
-                    <span>Test mode. No card, no real money: a test top-up adds credits at once so the whole flow can be tried here. Real payments plug in later.</span>
+                    <span>{card ? "Stripe test mode. Use Stripe's test card 4242 4242 4242 4242; no real money moves." : "Test mode. No card, no real money: a test top-up adds credits at once so the whole flow can be tried here. Real payments plug in later."}</span>
                   </div>
                 )}
-                <TopUpPacks csrf={csrf} packs={packs} test={payments.test} />
+                <TopUpPacks csrf={csrf} packs={packs} test={payments.test} card={card} />
               </>
             ) : (
               <div className={[styles.panelAlt, styles.panelTight, styles.wovi, styles.panel].join(" ")}>
@@ -117,6 +136,24 @@ export default async function CreditsPage() {
               ) : (
                 <p className={styles.muted}>
                   Link a wallet on <a href="/account#wovi">your account</a> first: the $WOVI has to come from a wallet linked to you.
+                </p>
+              )}
+            </section>
+          )}
+
+          {chain && summary.canManage && (
+            <section id="pay-chain" className={[styles.panel, styles.stack].join(" ")} aria-label="Pay with a stablecoin or ETH">
+              <div className={c.panelHead}>
+                <div>
+                  <h2>{chainTitle}</h2>
+                  <p>Send it from a linked wallet on Robinhood Chain. It is checked on chain and the credits land here.</p>
+                </div>
+              </div>
+              {myWallets.length ? (
+                <PayWithChain csrf={csrf} packs={chain.packs} wallets={myWallets} assets={chain.assets.map((a) => ({ asset: a.asset, symbol: a.symbol, available: a.available, note: a.note }))} explorer={ts.config.explorer} />
+              ) : (
+                <p className={styles.muted}>
+                  Link a wallet on <a href="/account">your account</a> first: the payment has to come from a wallet linked to you.
                 </p>
               )}
             </section>

@@ -26,7 +26,7 @@ export type CreditSummary = {
   /** The workspace's limits, for people who manage them. */
   limits: CreditLimits | null;
   /** The provider for top-ups, or null when top-ups are closed. */
-  payments: { label: string; test: boolean } | null;
+  payments: { id: string; label: string; test: boolean } | null;
   packs: number[];
   /** The smallest top-up, in credits. */
   minTopUp: number;
@@ -53,7 +53,7 @@ export class GuardedCredits {
       seesCosts: seesCosts(caller, role),
       mine: { limit: limits.members[caller.userId] ?? null, used },
       limits: manage ? limits : null,
-      payments: p ? { label: p.label, test: p.test } : null,
+      payments: p ? { id: p.id, label: p.label, test: p.test } : null,
       packs: this.credits.cfg.packs.filter((p) => p >= this.credits.cfg.minTopUpCredits),
       minTopUp: this.credits.cfg.minTopUpCredits,
     };

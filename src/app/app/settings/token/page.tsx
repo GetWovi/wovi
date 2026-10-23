@@ -18,6 +18,10 @@ import { keeperStatus, payStatus } from "@/lib/token/config";
 import { keeperRecord } from "@/lib/token/keeper";
 import { tokenServices } from "@/lib/token/local";
 import { ethWords, shortAddress, utcWords, wholeWords } from "@/lib/token/words";
+import { chainPayConfigFromEnv, chainPayStatus } from "@/lib/chainpay/config";
+import { chainPay } from "@/lib/chainpay/local";
+import { stripeSettingsFromEnv } from "@/lib/credits/stripe";
+import { unitsWords } from "@/lib/x402/money";
 import { checkHoldersNow, runKeeperNow } from "./actions";
 
 export const metadata: Metadata = { title: "$WOVI", robots: { index: false, follow: false } };
@@ -55,6 +59,17 @@ export default async function TokenOwnerPage() {
   const gas = k.gasBalanceWei === null ? null : BigInt(k.gasBalanceWei);
   const lowGas = gas !== null && gas < c.keeper.minGasWei;
   const txLink = (tx: string) => `${c.explorer}/tx/${tx}`;
+  // The other ways to pay for credits: card (Stripe) and a stablecoin (USDG by default) or ETH on Robinhood Chain.
+  const stripe = stripeSettingsFromEnv();
+  const cpc = chainPayConfigFromEnv();
+  const cps = chainPayStatus(cpc);
+  const cp = chainPay();
+  const cpSum = cps.on && cp ? await cp.summary() : null;
+  // The stablecoin as it answered on chain at start: its real symbol and decimals, or why it is not offered.
+  const st = cp && cpc.stable.token ? await cp.stablecoin() : null;
+  const stSymbol = st?.ok ? st.symbol : "Stablecoin";
+  const names = `${stSymbol} and ETH`;
+  const webhookUrl = `${(process.env.WOVI_APP_URL ?? "http://localhost:3900").replace(/\/$/, "")}/api/stripe/webhook`;
 
   return (
     <AppShell info={info} active="settings">
@@ -64,7 +79,7 @@ export default async function TokenOwnerPage() {
             <Icon name="arrow-left" size={16} /> Settings
           </Link>
           <h1 className={styles.h1}>$WOVI</h1>
-          <p className={styles.lead}>The keeper that sweeps fees and burns $WOVI on a schedule, the holder checks, and $WOVI paid for credits. Only you see this page.</p>
+          <p className={styles.lead}>The keeper that sweeps fees and burns $WOVI on a schedule, the holder checks, $WOVI paid for credits, and card, stablecoin and ETH payments. Only you see this page.</p>
         </div>
         <div className={styles.actions}>
           {c.pageOn && (
@@ -270,6 +285,106 @@ export default async function TokenOwnerPage() {
             <div className={x.row}>
               <span>Reads through</span>
               <span>{c.publicRpc ? "The public Robinhood Chain node (set WOVI_TOKEN_RPC_URL for a paid one)" : "Your RPC"}</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className={x.bottom}>
+        <section className={[styles.panel, styles.stack].join(" ")} aria-label="Card payments">
+          <div className={x.status}>
+            <span className={[x.light, stripe.on ? x.on : ""].join(" ")}>{stripe.on ? (stripe.test ? "Test" : "On") : "Off"}</span>
+            <span className={x.statusText}>
+              <b>{stripe.on ? (stripe.test ? "Cards through Stripe, in test mode" : "Cards through Stripe") : "Card payments are off"}</b>
+              <span>{stripe.on ? "Stripe's own page takes the card. Credits land only from Stripe's signed webhook." : "No card button shows. Set the two Stripe settings to switch it on (docs/credits.md)."}</span>
+            </span>
+          </div>
+          {!stripe.on && (
+            <ul className={x.missing} aria-label="What it needs">
+              {stripe.missing.map((m) => (
+                <li key={m}>
+                  <Icon name="x-circle" size={18} />
+                  <span>{m}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className={x.rows}>
+            <div className={x.row}>
+              <span>Webhook</span>
+              <span className={x.mono}>{webhookUrl}</span>
+            </div>
+            <div className={x.row}>
+              <span>Events</span>
+              <span>checkout.session.completed, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed, checkout.session.expired, charge.refunded</span>
+            </div>
+            <div className={x.row}>
+              <span>On the statement</span>
+              <span>Your shortened descriptor, then {stripe.descriptor}</span>
+            </div>
+            <div className={x.row}>
+              <span>Refunds</span>
+              <span>
+                Withdrawals from card purchases have a refund button in <Link href="/app/settings/safety">Reports and refunds</Link>.
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section className={[styles.panel, styles.stack].join(" ")} aria-label="Stablecoin and ETH payments">
+          <div className={x.status}>
+            <span className={[x.light, cps.on ? x.on : ""].join(" ")}>{cps.on ? "On" : "Off"}</span>
+            <span className={x.statusText}>
+              <b>{cps.on ? `${names} on Robinhood Chain` : `${names} are off`}</b>
+              <span>{cps.on ? "Sent from a linked wallet to your address, checked on chain read only, once per transaction." : "Set a receiving address to switch it on."}</span>
+            </span>
+          </div>
+          {!cps.on && (
+            <ul className={x.missing} aria-label="What it needs">
+              {cps.missing.map((m) => (
+                <li key={m}>
+                  <Icon name="x-circle" size={18} />
+                  <span>{m}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className={x.rows}>
+            <div className={x.row}>
+              <span>Receiving address</span>
+              <span className={x.mono}>{cpc.payTo ? `${cpc.payTo} (${cpc.payToFrom})` : "Not set"}</span>
+            </div>
+            <div className={x.row}>
+              <span>Stablecoin</span>
+              <span>
+                {!cpc.stable.token ? (
+                  cpc.stable.badSetting ?? "Switched off (WOVI_STABLECOIN_ADDRESS=off)"
+                ) : (
+                  <>
+                    {st?.ok ? `${st.symbol}, ${st.decimals} decimals as read on chain, one to one with the dollar (${cpc.stable.from === "default" ? "the default" : cpc.stable.from})` : `Not offered: ${st && !st.ok ? st.reason : "not read yet"}`}
+                    <br />
+                    <span className={x.mono}>{cpc.stable.token}</span>
+                  </>
+                )}
+              </span>
+            </div>
+            <div className={x.row}>
+              <span>ETH</span>
+              <span>{cpc.eth.available ? "On, priced from Chainlink's ETH/USD" : "Switched off (WOVI_PAY_ETH=off)"}</span>
+            </div>
+            <div className={x.row}>
+              <span>Paid so far</span>
+              <span>
+                {cpSum
+                  ? `${cpSum.payments} ${cpSum.payments === 1 ? "payment" : "payments"}, ${creditWords(cpSum.credits)}: ${unitsWords(cpSum.byAsset.stable, st?.ok ? st.decimals : 6)} ${stSymbol} and ${unitsWords(cpSum.byAsset.eth, 18)} ETH. ${cpSum.owed} owed back.`
+                  : "Nothing yet"}
+              </span>
+            </div>
+            <div className={x.row}>
+              <span>Checks</span>
+              <span>
+                {cpc.minConfirmations} confirmations, through {cpc.publicRpc ? "the public node (set WOVI_PAY_RPC_URL for a paid one)" : "your RPC"}
+              </span>
             </div>
           </div>
         </section>

@@ -37,6 +37,7 @@ import type { RunStore } from "@/lib/runs/store";
 import type { ConsentRow, SafetyStore } from "@/lib/safety/store";
 import type { TeamStore } from "@/lib/team/store";
 import type { TokenStore } from "@/lib/token/store";
+import type { ChainPayStore } from "@/lib/chainpay/store";
 import type { WebhookStore } from "@/lib/webhooks/store";
 import type { StatsStore } from "@/lib/stats/store";
 
@@ -62,6 +63,8 @@ export type PrivacyOptions = {
   balance?: (workspaceId: string) => Promise<Balance>;
   pipelines: PipelineStore;
   token: TokenStore;
+  /** Stablecoin and ETH top-ups. Optional: missing, there are none to export or anonymise. */
+  chainpay?: ChainPayStore;
   webhooks: WebhookStore;
   safety: SafetyStore;
   /**
@@ -186,6 +189,7 @@ export class Privacy {
       wallets: (await s.wallets.find({ userId })).map((w) => ({ address: w.address, chainId: w.chainId, linkedAt: w.linkedAt })),
       holder: await this.o.token.holders.get(userId),
       woviPayments: await this.o.token.payments.find({ userId }),
+      chainPayments: this.o.chainpay ? await this.o.chainpay.payments.find({ userId }) : [],
       workspaces,
       onboarding: await this.o.app.onboarding.find({ userId }),
       notifications: await this.o.team.notifications.find({ userId }),
@@ -317,6 +321,10 @@ export class Privacy {
     await this.o.token.holders.delete(userId);
     for (const q of await this.o.token.quotes.find({ userId })) await this.o.token.quotes.delete(q.id);
     for (const p of await this.o.token.payments.find({ userId })) await this.o.token.payments.update({ ...p, userId: anon });
+    if (this.o.chainpay) {
+      for (const q of await this.o.chainpay.quotes.find({ userId })) await this.o.chainpay.quotes.delete(q.id);
+      for (const p of await this.o.chainpay.payments.find({ userId })) await this.o.chainpay.payments.update({ ...p, userId: anon });
+    }
     for (const o of await this.o.app.onboarding.find({ userId })) await this.o.app.onboarding.delete(o.id);
     for (const n of await this.o.team.notifications.find({ userId })) await this.o.team.notifications.delete(n.id);
     await this.anonymiseStats(userId, anon);

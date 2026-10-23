@@ -5,6 +5,9 @@ import type { ActionState } from "@/components/account/ActionForm";
 import { actionSession } from "@/lib/accounts/server";
 import { ReportError } from "@/lib/safety/reports";
 import { appReports, appSafetyStore } from "@/lib/safety/server";
+import { processCredits } from "@/lib/credits/local";
+import { moneyWords, refundOwedByStripe, StripeRefundError } from "@/lib/credits/stripe";
+import { appStripe } from "@/lib/credits/stripe-server";
 
 const PAGE = "/app/settings/safety";
 
@@ -55,6 +58,26 @@ export async function markOwedPaid(_prev: ActionState, fd: FormData): Promise<Ac
     revalidatePath(PAGE);
     return { ok: "Marked as paid." };
   } catch (err) {
+    return answer(err);
+  }
+}
+
+/**
+ * Pays back a withdrawal from a card purchase through Stripe's refund API:
+ * the share the buyer paid for the credits they gave back, to their card.
+ * Stripe's charge.refunded webhook then lands, and takes nothing more, since
+ * the withdrawal already took those credits.
+ */
+export async function refundOwedByCard(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const me = await owner(fd);
+    const stripe = appStripe();
+    if (!stripe) return { error: "Card payments are not set up on this server." };
+    const r = await refundOwedByStripe({ client: stripe.client, credits: processCredits(), safety: appSafetyStore(), owedId: String(fd.get("id") ?? ""), by: me.userId });
+    revalidatePath(PAGE);
+    return { ok: `Refunded ${moneyWords(r.amount, r.currency)} to the card through Stripe.` };
+  } catch (err) {
+    if (err instanceof StripeRefundError) return { error: err.message };
     return answer(err);
   }
 }
