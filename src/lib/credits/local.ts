@@ -11,6 +11,7 @@ import { Credits } from "./credits";
 import { paymentProviderFromEnv, type PaymentProvider } from "./payments";
 import { localStripeApiBase, stripeClient, stripePaymentProvider, stripeSettingsFromEnv } from "./stripe";
 import { jsonFileCreditStore } from "./store";
+import { appUrlFromEnv } from "@/lib/runtime";
 
 /** Whether this process bills runs: on unless the config or WOVI_CREDITS=off turns it off. */
 export function creditsEnabled(env: Record<string, string | undefined> = process.env): boolean {
@@ -23,7 +24,7 @@ export function creditsEnabled(env: Record<string, string | undefined> = process
  */
 export function providerFromEnv(env: Record<string, string | undefined> = process.env): PaymentProvider | null {
   const s = stripeSettingsFromEnv(env);
-  if (s.on) return stripePaymentProvider(s, stripeClient(s.secretKey!, localStripeApiBase(env)), (env.WOVI_APP_URL ?? "http://localhost:3900").replace(/\/$/, ""));
+  if (s.on) return stripePaymentProvider(s, stripeClient(s.secretKey!, localStripeApiBase(env)), appUrlFromEnv(env));
   return paymentProviderFromEnv(env);
 }
 

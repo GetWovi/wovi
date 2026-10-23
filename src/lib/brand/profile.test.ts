@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { rejectsCode } from "@/lib/accounts/test-helpers";
 import { analyzePosts, heuristicProfile, openingKind } from "./profile";
 import { as, bakery, testBrands } from "./test-helpers";
+import { Credits } from "@/lib/credits/credits";
+import { testPaymentProvider } from "@/lib/credits/payments";
+import { memoryCreditStore } from "@/lib/credits/store";
 
 /** Lowercase, short, emoji, no hashtags, talks to "you". */
 const CASUAL = [
@@ -177,5 +180,78 @@ describe("the profile flow", () => {
     expect(q.profile).toEqual(heuristicProfile(CASUAL).profile);
     expect(bad.fake.requests).toHaveLength(2);
     expect(q.notes.join(" ")).toMatch(/repair/);
+  });
+});
+
+describe("the AI read of past posts costs credits (no general free trial)", () => {
+  const better = { voice: { description: "Sleepy baker energy.", tone: ["warm"], use: ["loaf"], avoid: ["artisanal"], samples: ["you ever wake up at 4 and smell butter?"] }, topics: ["bread"], dos: ["Talk at 5 a.m."], donts: ["No hashtags"] };
+
+  async function paid(opts: { respond?: () => string | Error; topUp?: number; holder?: number } = {}) {
+    const credits = new Credits({ store: memoryCreditStore(), payments: testPaymentProvider() });
+    const t = await testBrands({ fake: { id: "model", respond: opts.respond ?? (() => JSON.stringify(better)) }, billing: credits, freeModelReads: false });
+    if (opts.topUp) await credits.topUp(t.team.id, { credits: opts.topUp, by: t.ada.id });
+    if (opts.holder) await credits.grantHolder(t.team.id, { credits: opts.holder, period: new Date().toISOString().slice(0, 7), sourceId: "snap_1", by: "system" });
+    return { ...t, credits };
+  }
+
+  it("shows the cost first, and reads with plain counts for free unless the person asks for the AI", async () => {
+    const t = await paid({ topUp: 500 });
+    const quote = await t.brands.readQuote(as(t.ada.id), t.team.id);
+    expect(quote).toMatchObject({ mode: "credits", available: 500 });
+    expect(quote.mode === "credits" && quote.credits).toBeGreaterThan(0);
+    const p = await t.brands.propose(as(t.ada.id), t.team.id, { posts: CASUAL });
+    expect(p.source).toBe("heuristics");
+    expect(p.charge).toBeUndefined();
+    expect(t.fake.requests).toHaveLength(0);
+    expect((await t.credits.balance(t.team.id)).available).toBe(500);
+  });
+
+  it("charges the real cost of an AI read, never more than the estimate shown, from paid credits", async () => {
+    const t = await paid({ topUp: 500 });
+    const quote = await t.brands.readQuote(as(t.ada.id), t.team.id, CASUAL);
+    const credits = quote.mode === "credits" ? quote.credits : 0;
+    const p = await t.brands.propose(as(t.ada.id), t.team.id, { posts: CASUAL, useModel: true, quotedCredits: credits });
+    expect(p.source).toBe("model");
+    expect(p.charge).toMatchObject({ estimate: credits, state: "charged" });
+    expect(p.charge!.charged).toBeGreaterThan(0);
+    expect(p.charge!.charged).toBeLessThanOrEqual(credits);
+    expect((await t.credits.balance(t.team.id)).available).toBe(500 - p.charge!.charged);
+    const charge = (await t.credits.ledger(t.team.id)).find((e) => e.kind === "charge")!;
+    expect(charge).toMatchObject({ ref: { type: "job", id: p.id }, label: "Read past posts for a Brand Brain" });
+    expect(charge.costMicroUsd).toBe(p.costMicroUsd);
+  });
+
+  it("without enough paid credits reads with plain counts and calls no model; holder credits never pay for it", async () => {
+    const t = await paid({ holder: 500 });
+    expect(await t.brands.readQuote(as(t.ada.id), t.team.id)).toMatchObject({ mode: "credits", available: 0 });
+    const p = await t.brands.propose(as(t.ada.id), t.team.id, { posts: CASUAL, useModel: true });
+    expect(p.source).toBe("heuristics");
+    expect(p.notes.join(" ")).toMatch(/holder credits are for agent runs only/);
+    expect(t.fake.requests).toHaveLength(0);
+    expect((await t.credits.balance(t.team.id)).available).toBe(500);
+  });
+
+  it("gives the hold back when the model never answers in shape", async () => {
+    const t = await paid({ topUp: 500, respond: () => "not json" });
+    const p = await t.brands.propose(as(t.ada.id), t.team.id, { posts: CASUAL, useModel: true });
+    expect(p.source).toBe("heuristics");
+    expect(p.charge).toMatchObject({ charged: 0, state: "refunded" });
+    expect((await t.credits.balance(t.team.id)).available).toBe(500);
+  });
+
+  it("limits AI reads per person, even with credits", async () => {
+    const t = await paid({ topUp: 5_000 });
+    for (let i = 0; i < 10; i++) await t.brands.propose(as(t.ada.id), t.team.id, { posts: CASUAL, useModel: true });
+    await rejectsCode(t.brands.propose(as(t.ada.id), t.team.id, { posts: CASUAL, useModel: true }), "limit");
+    // Plain counts stay free and unlimited.
+    expect((await t.brands.propose(as(t.ada.id), t.team.id, { posts: CASUAL })).source).toBe("heuristics");
+  });
+
+  it("on a server without billing, no model reads for free: plain counts only", async () => {
+    const t = await testBrands({ fake: { id: "model", respond: () => JSON.stringify(better) }, freeModelReads: false });
+    expect(await t.brands.readQuote(as(t.ada.id), t.team.id)).toEqual({ mode: "off" });
+    const p = await t.brands.propose(as(t.ada.id), t.team.id, { posts: CASUAL, useModel: true });
+    expect(p.source).toBe("heuristics");
+    expect(t.fake.requests).toHaveLength(0);
   });
 });

@@ -15,6 +15,7 @@ import { PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
 import type { ReviewRow } from "@/lib/app/types";
 import type { Rating, Sample } from "@/lib/builder/types";
 import type { ReferenceSource } from "@/lib/runs/engine";
+import type { ExampleSample, ExampleSource } from "@/lib/runs/examples";
 import type { Run } from "@/lib/runs/run";
 import type { ActivityRow, ItemRow } from "@/lib/team/types";
 import type { QualityReferences } from "./checks";
@@ -121,11 +122,22 @@ export function sampleLines(idealOutput: string): string[] {
     .filter((l) => l.length >= 12);
 }
 
-/** The engine's reference source on the builder's samples: an agent's golden and bad samples, as lines. */
+/** The engine's example source on the builder's samples (tuning level 2): an agent's gold and bad samples as they are stored. */
+export function sampleExamples(samples: Pick<Collection<Sample>, "find">): ExampleSource {
+  return {
+    async get(agent): Promise<ExampleSample[]> {
+      const rows = await samples.find({ workspaceId: agent.workspaceId, agentId: agent.id });
+      return rows.map((s) => ({ id: s.id, title: s.title, label: s.label, inputs: s.inputs, idealOutput: s.idealOutput, note: s.note, createdAt: s.updatedAt ?? s.createdAt }));
+    },
+  };
+}
+
+/** The engine's reference source on the builder's samples: an agent's golden and bad samples, as lines. `exclude` leaves samples out (a bench run's own). */
 export function sampleReferences(samples: Pick<Collection<Sample>, "find">): ReferenceSource {
   return {
-    async get(agent): Promise<QualityReferences> {
-      const rows = await samples.find({ workspaceId: agent.workspaceId, agentId: agent.id });
+    async get(agent, opts = {}): Promise<QualityReferences> {
+      const skip = new Set(opts.exclude ?? []);
+      const rows = (await samples.find({ workspaceId: agent.workspaceId, agentId: agent.id })).filter((s) => !skip.has(s.id));
       return {
         gold: rows.filter((s) => s.label === "gold").flatMap((s) => sampleLines(s.idealOutput)).slice(0, 80),
         bad: rows.filter((s) => s.label === "bad").flatMap((s) => sampleLines(s.idealOutput)).slice(0, 40),

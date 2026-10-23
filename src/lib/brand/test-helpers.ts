@@ -3,21 +3,21 @@ import type { Principal } from "@/lib/accounts/accounts";
 import { testAccounts } from "@/lib/accounts/test-helpers";
 import { memoryFileStorage } from "@/lib/builder/storage";
 import { fakeProvider, type FakeOptions } from "@/lib/runs/providers/fake";
-import { BrandBrains } from "./brains";
+import { BrandBrains, type ReadBilling } from "./brains";
 import { ProfileProposer, type LinkFetcher } from "./profile";
 import { memoryBrandStore } from "./store";
 import type { BrainBody } from "./types";
 
 export const as = (userId: string): Principal => ({ kind: "user", userId });
 
-export async function testBrands(opts: { fake?: FakeOptions; fetcher?: LinkFetcher } = {}) {
+export async function testBrands(opts: { fake?: FakeOptions; fetcher?: LinkFetcher; billing?: ReadBilling | null; freeModelReads?: boolean } = {}) {
   const t = testAccounts();
   let tick = 0;
   const now = () => new Date(t.clock.t + tick++ * 1000);
   const fake = fakeProvider(opts.fake);
   const store = memoryBrandStore();
   const files = memoryFileStorage();
-  const brands = new BrandBrains({ accounts: t.accounts, store, files, proposer: new ProfileProposer({ providers: { fake }, providerOverride: "fake" }), fetcher: opts.fetcher, now });
+  const brands = new BrandBrains({ accounts: t.accounts, store, files, proposer: new ProfileProposer({ providers: { fake }, providerOverride: "fake" }), fetcher: opts.fetcher, now, billing: opts.billing ?? null, freeModelReads: opts.freeModelReads ?? true });
 
   const ada = (await t.signUp("ada@example.com")).user;
   const eve = (await t.signUp("eve@example.com")).user;

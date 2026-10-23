@@ -150,6 +150,30 @@ export function BenchResultCard({ csrf, agentId, result, onRated }: { csrf: stri
               ))}
             </ul>
           )}
+          {(r.examples || r.sources.length > 0) && (
+            <ul className={styles.checkList}>
+              {r.examples && (
+                <li>
+                  Examples given: {r.examples.gold.length ? `${r.examples.gold.length} strong (${r.examples.gold.join(", ")})` : "no strong ones"}
+                  {r.examples.bad.length ? `, 1 to avoid (${r.examples.bad.join(", ")})` : ""}.{r.examples.ownKeptOut ? " This sample was kept out of its own run." : ""}
+                </li>
+              )}
+              {r.sources.length > 0 && (
+                <li>
+                  Sources the lookup found:{" "}
+                  {r.sources.map((src, i) => (
+                    <span key={src.url}>
+                      {i ? ", " : ""}
+                      <a href={src.url} target="_blank" rel="noreferrer noopener">
+                        {src.title}
+                      </a>
+                      {src.published ? ` (${src.published})` : ""}
+                    </span>
+                  ))}
+                </li>
+              )}
+            </ul>
+          )}
           {r.status === "failed" && r.error && (
             <p className={styles.fieldError}>
               <Icon name="warning" size={16} /> {r.error}

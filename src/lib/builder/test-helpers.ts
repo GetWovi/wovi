@@ -7,6 +7,7 @@ import { seedPlatformAgents } from "@/lib/agents/seeds";
 import { memoryStore } from "@/lib/agents/store";
 import { stubBrandBrains } from "@/lib/runs/brand-brain";
 import { RunEngine, type EngineOptions } from "@/lib/runs/engine";
+import { sampleExamples } from "@/lib/quality/service";
 import { fakeProvider, type FakeOptions } from "@/lib/runs/providers/fake";
 import { memoryRunStore } from "@/lib/runs/store";
 import { boardBrandBrains } from "./board-brain";
@@ -39,6 +40,8 @@ export async function testBuilder(opts: { seeds?: boolean; fake?: FakeOptions; e
     providerOverride: "fake",
     backoff: { baseMs: 5, maxMs: 20 },
     now,
+    // Tuning level 2, as in the app: the agent's samples go to the model as examples, never a bench run's own.
+    examples: sampleExamples(store.samples),
     // Canary releases only when a test asks for them, so the tests before them run as they always did.
     // With WOVI_CANARY off the app builds its engine without a router; the tests do the same.
     ...(opts.stats && opts.canary !== false ? { router: storeRouter(opts.stats) } : {}),

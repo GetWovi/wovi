@@ -185,11 +185,11 @@ describe("the form from a spec", () => {
 });
 
 describe("the lineup", () => {
-  it("shows the doc's six live agents in order, Trend Scout as coming, and nothing hidden", async () => {
+  it("shows the doc's seven live agents in order, Trend Scout live with its lookup, and nothing hidden", async () => {
     const { api, ada, team } = await testApp();
     const lineup = await api.lineup(as(ada.id), team.id);
     expect(lineup.map((a) => [a.id, a.status])).toEqual([
-      ["trend-scout", "coming"],
+      ["trend-scout", "live"],
       ["idea-generator", "live"],
       ["hook-writer", "live"],
       ["script-writer", "live"],
@@ -204,7 +204,7 @@ describe("the lineup", () => {
       ["Write the post", ["hook-writer", "script-writer", "caption-writer"]],
       ["Make it travel", ["hashtag-picker", "repurposer"]],
     ]);
-    expect(await api.agent(as(ada.id), team.id, "trend-scout")).toBeNull();
+    expect((await api.agent(as(ada.id), team.id, "trend-scout"))?.agentWorkspaceId).toBe(PLATFORM_WORKSPACE_ID);
     expect((await api.agent(as(ada.id), team.id, "hook-writer"))?.agentWorkspaceId).toBe(PLATFORM_WORKSPACE_ID);
     expect(orderLineup([])).toHaveLength(1);
   });
@@ -236,7 +236,22 @@ describe("runs through the API on the fake provider", () => {
     await rejectsCode(api.startRun(as(ada.id), team.id, { agentId: "repurposer", inputs: sample.inputs }), "invalid_request");
     const ok = await api.startRun(as(ada.id), team.id, { agentId: "repurposer", inputs: sample.inputs, confirmations: { rights: true } });
     expect(ok.status).toBe("queued");
-    await rejectsCode(api.startRun(as(ada.id), team.id, { agentId: "trend-scout", inputs: { niche: "bakery", platform: "x" } }), "not_found");
+    await rejectsCode(api.startRun(as(ada.id), team.id, { agentId: "trend-scout", inputs: { niche: "b", platform: "x" } }), "invalid_request");
+  });
+
+  it("runs Trend Scout with the trend lookup: the run carries the sources, and every trend cites one", async () => {
+    const t = await testApp();
+    await t.seedTeamBrains();
+    const run = await t.api.startRun(as(t.ada.id), t.team.id, { agentId: "trend-scout", inputs: { niche: "small bakery", platform: "tiktok" } });
+    await t.engine.waitForRun(t.team.id, run.id);
+    const view = (await t.api.run(as(t.ada.id), t.team.id, run.id))!;
+    expect(view.run.status).toBe("succeeded");
+    expect(view.run.sources.length).toBeGreaterThanOrEqual(5);
+    expect(view.run.sources[0]).toMatchObject({ url: expect.stringMatching(/^https:\/\/example\.com\//), published: expect.any(String), searchedAt: expect.any(String) });
+    const urls = view.run.sources.map((x) => x.url);
+    const items = (view.run.output as { items: Record<string, string>[] }).items;
+    for (const it of items) expect(urls).toContain(it.source);
+    expect(view.run.checks.find((c) => c.check === "tool_sources")).toMatchObject({ status: "pass" });
   });
 
   it("runs again with a quick edit's note on the main input, and the view shows the note", async () => {

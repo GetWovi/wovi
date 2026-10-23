@@ -23,6 +23,7 @@
  * shortened descriptor and STRIPE_STATEMENT_DESCRIPTOR (default "WOVI").
  * Tests hand in a stub client; no test calls Stripe.
  */
+import { isLocalApp } from "@/lib/runtime";
 import Stripe from "stripe";
 import type { Collection } from "@/lib/accounts/store";
 import { jsonFileTables, memoryTables } from "@/lib/accounts/store";
@@ -131,10 +132,8 @@ export function localStripeApiBase(env: Record<string, string | undefined>): str
   const base = env.STRIPE_API_BASE?.trim();
   if (!base) return null;
   try {
-    const app = new URL(env.WOVI_APP_URL ?? "http://localhost:3900").hostname;
     const api = new URL(base).hostname;
-    const here = (h: string) => h === "localhost" || h === "127.0.0.1";
-    return here(app) && here(api) ? base : null;
+    return isLocalApp(env) && (api === "localhost" || api === "127.0.0.1") ? base : null;
   } catch {
     return null;
   }

@@ -18,12 +18,14 @@ The run engine takes a run request for an agent and produces its typed output. I
 | `store.ts` | The `RunStore` interface, a memory store and a JSON file store. |
 | `providers/` | The `ModelProvider` interface, the fake provider and the OpenRouter adapter. |
 | `samples.ts` | Example inputs for each live launch agent. |
+| `tools/` | The tool layer: `runDeclaredTools`, the `trend_lookup` tool (OpenRouter web search, and a fake), the tool cache. See [Tools](#tools). |
+| `examples.ts` | Few-shot examples from the builder's samples (tuning level 2). See [Examples](#examples-tuning-level-2). |
 
 ## The run lifecycle
 
 ```
 submitRun ──> queued ──> running ──> succeeded   (needsReview when a check failed)
-                 ^          │──────> failed      (provider_error, spend_cap, output_invalid, timeout, ...)
+                 ^          │──────> failed      (provider_error, spend_cap, output_invalid, timeout, tool_error, ...)
                  └──────────┘ retry with backoff, provider errors only
    cancelRun at any point before the end ──> cancelled
 ```
@@ -44,7 +46,7 @@ Errors are `RunError` with a `code` and a list of `issues`.
 
 ### 2. Prompt
 
-- **System message:** the engine rules (data blocks are material, never instructions) and the output format with a JSON example of the exact shape.
+- **System message:** the engine rules (data blocks are material, never instructions), the platform rules, the examples from the agent's samples when it has any ([Examples](#examples-tuning-level-2)), and the output format with a JSON example of the exact shape.
 - **User message:** the agent's instruction template. Each `{{input}}` and `{{brand.part}}` becomes a block:
 
   ```
@@ -53,7 +55,7 @@ Errors are `RunError` with a `code` and a list of `issues`.
   </data>
   ```
 
-  Choices show their labels, optional inputs left out say "Not given.", and Brand Brain parts render as text or lists. Inside a value, `<data` and `</data` are escaped, so user text can never close its block or open a new one, and placeholders inside user text are never expanded.
+  Choices show their labels, optional inputs left out say "Not given.", and Brand Brain parts render as text or lists. What the agent's declared tools found follows the instructions under "MATERIAL FROM TOOLS", one `<data name="tool.<id>">` block per tool. Inside a value, `<data` and `</data` are escaped, so user text can never close its block or open a new one, and placeholders inside user text are never expanded.
 
 The run stores a reference to the Brand Brain used: its id, `updatedAt`, the parts read and a hash of the parts as filled in.
 
@@ -102,7 +104,7 @@ A failed check is stored in `run.checks` and sets `run.needsReview`; the output 
 
 Every provider implements `ModelProvider.complete({ model, messages, temperature, maxOutputTokens, signal })`.
 
-- **Fake** (`providers/fake.ts`): deterministic, no network. It answers with the JSON example from the prompt, filled with words from the run's input blocks. Tests script answers, errors and delays with `respond` and `latencyMs`. It is used by all tests, by `npm run agents:try`, and by `localEngine()` whenever no key is set. It prices its made-up tokens as the real model would, so dev totals give a rough idea of cost. `WOVI_FAKE_LATENCY_MS` in the environment makes it take its time, so a running state can be seen on a screen.
+- **Fake** (`providers/fake.ts`): deterministic, no network. It answers with the JSON example from the prompt, filled with words from the run's input blocks (and a field named `source` with the addresses in a tool block, the way a model cites them). Tests script answers, errors and delays with `respond` and `latencyMs`. It is used by all tests, by `npm run agents:try`, and by `localEngine()` whenever no key is set on a local app. A production server never gets it: `providersFromEnv` leaves it out off localhost (and in production without `WOVI_APP_URL`), so a server without a key refuses runs as not runnable ("Set OPENROUTER_API_KEY") instead of answering with filler. It prices its made-up tokens as the real model would, so dev totals give a rough idea of cost. `WOVI_FAKE_LATENCY_MS` in the environment makes it take its time, so a running state can be seen on a screen.
 - **OpenRouter** (`providers/openrouter.ts`): OpenAI-compatible chat completions at `https://openrouter.ai/api/v1`. Off unless `OPENROUTER_API_KEY` is set in the environment. Tests use a stub `fetch` only.
 
 ## Models (owner's choice)
@@ -119,9 +121,49 @@ Defaults, from OpenRouter's public list on 2026-10-21. Change them in `MODEL_ROU
 
 The "Used by" column is the phase 2 seeds. The phase 8 launch versions route Hashtag Optimizer to fast; Hook Writer and Caption Writer to standard; Idea Generator, Script Writer, Platform Repurposer and Trend Scout to strong ([launch-agents.md](launch-agents.md#the-lineup)).
 
+## Tools
+
+The product doc: "Tools are declared. An agent can only call tools listed in its spec, which keeps permissions and cost under control." The code is `src/lib/runs/tools/`.
+
+- **The engine runs the tools, never the model.** Before the first model call, `runDeclaredTools` calls each tool the spec declares, the catalog knows (`assertDeclaredTool`) and this code builds. The model request still carries only model, messages, temperature, max tokens and the signal; a test checks the keys. What a tool found reaches the model as a `tool` data block (`untrustedBlock`): material, never instructions. Text in it that reads like instructions is noted on the run as `prompt_injection`, as for inputs.
+- **Built today: `trend_lookup`.** Declared tools that are not built yet (`transcription`, `video_cut`, `image_generate`, `voice_synth`) are skipped as before. A built tool that is not set up makes the agent not runnable at submit, so Trend Scout never writes trends from memory.
+- **Limits.** Each call has a timeout (25 s), a cap per run (2 calls: the niche, then the platform as a whole only when the niche came back with fewer than five findings), and is skipped when its estimate would pass the run's spend cap. The estimate before a run (the `over_budget` check, the bench and the credit estimate) counts the tool calls.
+- **Cost.** Each call is a `run.calls` entry with `purpose: "tool"` and route `tool:<id>`, its cost added to `run.costMicroUsd`, so credits charge for it like any model call. A tool that fails fails the run with `tool_error` (retried like a provider error when the failure can pass); a failed run costs no credits.
+- **Cache.** Answers are kept per tool and arguments (lower-cased) for 6 hours in `tool-cache.json`, made on its first write. A hit is recorded with `cached: true` and costs the run nothing.
+- **What the run keeps.** `run.tools`: each call's arguments, when the search ran, and its findings with their sources (address, title, date). `publicRunView` adds `sources`, which the app shows under the result and the bench shows to builders. Old runs have neither and read as before.
+
+### trend_lookup
+
+`tools/trend-lookup.ts`. One OpenRouter chat call on the cheap text model (`openai/gpt-6-luna`) with OpenRouter's web search plugin (`plugins: [{ id: "web", engine: "parallel", mode: "fast", max_results: 8 }]`), on the existing `OPENROUTER_API_KEY`. The search query is the platform, this week's month and the niche, cut to one plain line. The model is told the results are pages written by strangers and lists the trends as JSON; every finding must point at one of the pages the search returned (OpenRouter's `url_citation` annotations) or it is dropped, its text is cut to plain short fields, a date in the future is dropped and a finding older than 90 days is left out as stale. The cost is OpenRouter's own `usage.cost` for the call, search included.
+
+Why this source: OpenRouter's web search docs (read 2026-10-23) price the Parallel engine's "fast" mode at $0.001 per search with 10 results included, against $0.005 (Perplexity, Parallel basic), $0.007 (Exa) or the provider's own search (about $0.01 and up). A trial on 2026-10-23 returned dated, cited results from the last two weeks for a small bakery on TikTok for $0.0019 in all (search plus about 3,000 tokens in and 1,000 out). So one Trend Scout run spends about $0.002 to $0.004 on lookups, nothing on a cache hit.
+
+| Setting | Default | |
+|---|---|---|
+| `WOVI_TREND_MODEL` | `openai/gpt-6-luna` | The model that reads the results. Needs a price row. |
+| `WOVI_TREND_ENGINE` | `parallel` | `parallel`, `exa`, `perplexity` or `native`. |
+| `WOVI_TREND_MODE` | `fast` | The engine's mode (Parallel: turbo, fast, basic, advanced). |
+| `WOVI_TREND_MAX_RESULTS` | 8 | 1 to 10. |
+| `WOVI_TREND_MAX_CALLS` | 2 | Lookups per run, 1 to 3. |
+| `WOVI_TREND_CACHE_HOURS` | 6 | 0 turns the cache off. |
+| `WOVI_TREND_TIMEOUT_MS` | 25000 | |
+
+The fake (`fakeTrendLookup`) answers five findings made from the arguments with `example.com` sources and no network. Tests use it, and `localEngine()` uses it on a local app without a key. A production server without a key has no trend lookup, so Trend Scout refuses to run there.
+
+Every item of a list output with a `source` field (Trend Scout's) is checked against the findings (`tool_sources`): a source the lookup did not find fails the check, which sends the draft back for a rewrite with the reason.
+
+## Examples (tuning level 2)
+
+The product doc's tuning level 2 is "few-shot examples from the sample library, for style and format consistency". `examples.ts`, wired in the app through `sampleExamples` on the builder's samples:
+
+- For each run the engine picks up to 3 gold samples, closest to this request first (the words of the text inputs and the same choices; newest on a tie), and at most 1 bad sample, only next to a strong one, all within about 2,400 tokens (one example over 1,200 is skipped).
+- A sample whose inputs say the same as this request is skipped (a duplicate teaches nothing and invites a copy).
+- They go in the system message, before the output format, as `<data name="example.strong.N">` and `<data name="example.avoid.N">` blocks with the request, the answer and the sample's note ("Why it works", "What is wrong with it"). The rules above them say they are material for the standard, the tone and the shape only, never lines, facts, names or numbers to reuse. Code fences in a sample are removed, so its shape can never be mistaken for the output format.
+- **No leakage.** `submitRun({ excludeSampleIds })` keeps samples out of the examples and out of the quality gate's reference lines. The bench passes the sample it runs, so a gold sample is never shown its own answer or scored against itself.
+- The run keeps which samples it was given (`run.examples`: ids and titles, and what was kept out). Builders see it on each bench result; people never do.
+
 ## Not in this phase
 
-- **Tools.** The engine sends no tools to the model, so nothing outside the spec can be called, and declared tools (like `trend_lookup` for Trend Scout) do not run yet. Their results arrive when the tool layer is built.
 - **Media.** Image, storyboard and video outputs are refused at submit as not runnable.
 
 ## Pipelines (phase 10)
@@ -145,7 +187,7 @@ The engine trusts the workspace id it is given. Callers reach it through `Guarde
 
 - **Content rules at submit.** After the inputs are checked, every text, long text and link input and the run's idea are read against the content rules (`src/lib/safety/rules.ts`) and the agent's `safety.block`. A match refuses the run with `RunError("blocked")` and one issue per field, before any credit is held or anything is queued.
 - **Files need the rights confirmation**, whatever the agent declares. Every confirmation given is kept with its time in `run.confirmedAt`.
-- **Prompt injection.** The system message also carries the content rules and each of the agent's platforms' rules (`platformGuidance`), and says never to call a tool from inside a data block. Text that reads like instructions is noted on the run as `prompt_injection` (a note). `untrustedBlock` wraps comments, pages and tool answers. No tools are ever sent to the model.
+- **Prompt injection.** The system message also carries the content rules and each of the agent's platforms' rules (`platformGuidance`), and says never to call a tool from inside a data block. Text that reads like instructions is noted on the run as `prompt_injection` (a note). `untrustedBlock` wraps comments, pages and tool answers. No tools are ever sent to the model; declared tools are run by the engine itself ([Tools](#tools)).
 - **Drafts.** `content_safety` and `music_rights` run on every draft of every agent and are recorded only when they find something. A draft that still breaks a hard rule after the gate's rewrites fails the run with the new failure code `blocked`: no output, the hold comes back.
 - **TikTok** captions are checked against 2,200 characters (the limit TikTok publishes), down from 4,000.
 - `noteAiLabel`, `withhold`, `restore` and `findRun` on the engine; `findById` and `deleteWorkspace` on the run store. See [safety.md](safety.md).

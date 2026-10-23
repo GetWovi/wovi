@@ -49,7 +49,7 @@ async function main() {
   for (const a of report.agents) {
     console.log(`  ${a.name.padEnd(20)} ${a.id.padEnd(15)} ${a.version.padEnd(7)} ${a.status.padEnd(6)} ${a.action}${a.reason ? `: ${a.reason}` : ""}`);
   }
-  console.log(`Samples added: ${report.samples.added}, already there: ${report.samples.existing}`);
+  console.log(`Samples added: ${report.samples.added}, refreshed to a new launch shape: ${report.samples.refreshed}, already there: ${report.samples.existing}`);
   for (const u of report.samples.unfit) console.log(`  not added, ${u.agentId} / ${u.title}: ${u.reason}`);
 
   const author = { kind: "user" as const, userId: LAUNCH_AUTHOR_ID };

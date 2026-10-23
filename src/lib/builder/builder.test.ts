@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DRAFT_LIMITS } from "./builder";
 import { rejectsCode } from "@/lib/accounts/test-helpers";
 import { PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
 import { stubBrandBrains } from "@/lib/runs/brand-brain";
@@ -48,6 +49,13 @@ describe("drafting and saving agents", () => {
     expect(await t.registry.get("ws_other", "hook-writer-2")).toBeNull();
     expect((await t.builder.listAgents(me))[0]).toMatchObject({ id: "hook-writer-2", status: "draft", version: "1.0.0", versions: 1 });
     await rejectsCode(t.builder.draft(me, "  "), "invalid_request");
+  });
+
+  it("limits drafts per builder, since each one may call the strong model", async () => {
+    const t = await testBuilder();
+    const { me } = await t.joinBuilder();
+    for (let i = 0; i < DRAFT_LIMITS.perHour.max; i++) await t.builder.draft(me, `writes captions number ${i}`);
+    await rejectsCode(t.builder.draft(me, "one more"), "rate_limited");
   });
 
   it("saves edits as a new version through the guarded registry", async () => {

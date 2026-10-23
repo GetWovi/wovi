@@ -7,9 +7,13 @@
  * a restart are picked up again; off with WOVI_CLIP_SAMPLES=off.
  * Stablecoin top-ups: the stablecoin's symbol and decimals read on chain and
  * checked once a receiving address is set (src/lib/chainpay/local.ts).
+ * Production: the settings a server is missing, logged once (src/lib/runtime.ts).
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // Production fails closed: say once, at start, which parts refuse to run and why (src/lib/runtime.ts).
+  const { productionProblems } = await import("./lib/runtime");
+  for (const problem of productionProblems()) console.error(`[wovi] ${problem}`);
   if ((process.env.WOVI_CLIP_SAMPLES ?? "on").trim().toLowerCase() !== "off") {
     const { startClipQueue } = await import("./lib/clips/local");
     void startClipQueue().catch((err) => console.error("Could not start the clip queue:", err));

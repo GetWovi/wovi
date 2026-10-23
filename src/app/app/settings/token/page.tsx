@@ -1,3 +1,4 @@
+import { appUrlFromEnv } from "@/lib/runtime";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -69,7 +70,7 @@ export default async function TokenOwnerPage() {
   const st = cp && cpc.stable.token ? await cp.stablecoin() : null;
   const stSymbol = st?.ok ? st.symbol : "Stablecoin";
   const names = `${stSymbol} and ETH`;
-  const webhookUrl = `${(process.env.WOVI_APP_URL ?? "http://localhost:3900").replace(/\/$/, "")}/api/stripe/webhook`;
+  const webhookUrl = `${process.env.WOVI_APP_URL?.trim() ? appUrlFromEnv() : "(set WOVI_APP_URL)"}/api/stripe/webhook`;
 
   return (
     <AppShell info={info} active="settings">

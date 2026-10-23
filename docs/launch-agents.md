@@ -19,7 +19,7 @@ The code lives in `src/lib/launch/`.
 
 | # | Name | Id | Job | Status | Version | Model slot (fallback) | Cap per run |
 |---|---|---|---|---|---|---|---|
-| 1 | Trend Scout | `trend-scout` | Finds the formats rising in your niche this week and how you could use them. | **draft** | 2.0.0 | strong (standard) | $0.20 |
+| 1 | Trend Scout | `trend-scout` | Finds the formats rising in your niche this week and how you could use them. | live | 3.0.0 | strong (standard) | $0.20 |
 | 2 | Idea Generator | `idea-generator` | Gives you a week of post ideas that only your business could post. | live | 1.0.0 (new) | strong (standard) | $0.12 |
 | 3 | Hook Writer | `hook-writer` | Opens a post or a short with one line people stop for. | live | 1.1.0 | standard (fast) | $0.05 |
 | 4 | Script Writer | `script-writer` | Turns one idea into beats with a beginning, a turn and an end. | live | 2.0.0 | strong (standard) | $0.15 |
@@ -35,13 +35,13 @@ Storyboarder and Voice and Cut are not text agents and are not part of this set.
 - **Renamed: Hashtag Picker is now Hashtag Optimizer**, and **Repurposer is now Platform Repurposer**, the doc's names. Their ids (`hashtag-picker`, `repurposer`) stay, because ids never change and pipelines pin them.
 - **Changed job: Platform Repurposer.** The seed cut a long piece into a thread, a carousel and three shorts, with an optional video and transcription. The doc's Platform Repurposer takes one post and makes a version per platform; long video belongs to the Long-to-Short Clipper (P1) and threads and carousels to the Thread and Carousel Writer (P1). The video input and the transcription tool are gone.
 - **Changed job: Hashtag Optimizer** now returns hashtags and search words with where each goes, as the doc's "tag and SEO set" asks, instead of five bare tags.
-- **Back to draft: Trend Scout.** It needs `trend_lookup`, which does not exist yet; the engine sends no tools. A Trend Scout without live data would invent trends, which is the opposite of the product. It stays a draft until the tool is built.
+- **Back to draft: Trend Scout (2.0.0), then live (3.0.0).** It needs `trend_lookup`. Without live data it would invent trends, so it stayed a draft until the tool layer was built. Since 3.0.0 the engine runs a live web search before the model writes ([engine.md](engine.md#tools)), every trend cites the page it came from in a new `source` field, and Trend Scout is live.
 - **Tools removed** from Hook Writer and Hashtag Picker (`trend_lookup`). The engine runs no tools yet, and telling a model to call a tool it does not have invites made-up results.
 - The phase 2 seeds in `src/lib/agents/seeds.ts` are unchanged on purpose: a test ties them to the homepage cards. The launch specs are saved as new versions on top of them.
 
 ### The homepage and the seeds
 
-The homepage agent cards (`src/components/home/demo-data.ts`) show this lineup since phase 9: Idea Generator, the two new names and jobs, Trend Scout as coming, the video agents as next. The seeds test ties the cards to the launch specs over the seeds, so the two cannot drift. `SEED_AGENTS` stays the phase 2 base on purpose: the launch specs are saved as new versions on top of it, and the install tests depend on that.
+The homepage agent cards (`src/components/home/demo-data.ts`) show this lineup since phase 9: Idea Generator, the two new names and jobs, Trend Scout as coming, the video agents as next. The seeds test ties the cards to the launch specs over the seeds, so the two cannot drift; a card may still say "coming" for an agent the launch set has made live (Trend Scout until the homepage reveals it), never "live" for a draft. In the app, Trend Scout shows as coming wherever it is not live (a data dir where a builder kept it a draft). `SEED_AGENTS` stays the phase 2 base on purpose: the launch specs are saved as new versions on top of it, and the install tests depend on that.
 
 ## How the instructions are written, and why
 
@@ -69,13 +69,13 @@ Three choices run through all of them:
 
 ## The seven, one by one
 
-### 1. Trend Scout (draft)
+### 1. Trend Scout (live since 3.0.0)
 
 - **Inputs:** What you do (text, 3 to 120), Platform, Brand Brain.
-- **Output:** 5 items with `trend`, `what_it_looks_like`, `evidence`, `how_you_could_use_it` (at most 60 words each).
-- **Brand Brain:** voice, references, dos and don'ts. **Tools:** `trend_lookup`. **Guardrails:** no misleading claims, banned phrases, specificity.
-- **Why:** every trend must carry evidence from the lookup, and the instructions forbid trends from memory. "Format, not theme" is the core rule ("one ingredient, one close-up, one line of text", not "behind the scenes content"), and every trend ends in one post this business could shoot this week.
-- **Tuning focus:** nothing until the tool exists. Then: does it report only what the lookup shows, does it drop trends that break a don't or need a budget, and is the evidence honest when the signal is weak.
+- **Output:** 5 items with `trend`, `what_it_looks_like`, `evidence`, `source`, `how_you_could_use_it` (at most 60 words each). `source` is the address of the lookup finding the trend comes from.
+- **Brand Brain:** voice, references, dos and don'ts. **Tools:** `trend_lookup`, run by the engine before the model writes. **Guardrails:** no misleading claims, banned phrases, specificity, and the tool's own check that every source is a page the lookup found.
+- **Why:** every trend comes from one numbered finding of a live web search, with its date; the instructions forbid trends from memory and numbers the finding does not give. "Format, not theme" is the core rule ("one ingredient, one close-up, one line of text", not "behind the scenes content"), and every trend ends in one post this business could shoot this week. A sound is described without naming music the business would need a licence for.
+- **Tuning focus:** does it report only what the lookup shows, does it drop trends that break a don't or need a budget, is the evidence honest when the signal is weak or old, and is the cheap lookup model good enough at listing what the pages say.
 
 ### 2. Idea Generator (new)
 
@@ -147,7 +147,7 @@ All seven are made up.
 
 - **Gold** samples are written to the standard of a top social writer: every line names something real from the inputs, no fact appears that the inputs or the Brand Brain do not give, every brand rule is kept. The note on each says why it works.
 - **Bad** samples show the common failures: generic advice, stock phrases, banned brand words, a guarantee, a made-up review, a hashtag wall, a copy-paste with added claims. The note says what is wrong, so the bench shows the contrast.
-- Trend Scout's evidence lines show the shape the tool must return; their numbers are placeholders until `trend_lookup` exists.
+- Trend Scout's samples cite example addresses (`https://example.com/...`) to show the shape; a real run cites the pages its own lookup found, and the `tool_sources` check holds it to them.
 
 Ideal outputs are written as typed outputs, so the tests parse them with the engine's own parser and run the agent's guardrails on them. With the deterministic checks of phases 3 and 7:
 
@@ -169,12 +169,12 @@ What it does, in order:
 1. Makes sure `ws_wovi`, `creator_wovi` and the **launch author** exist. The launch author (`usr_wovi_launch`, "WOVI launch set") is a builder account with no email and no passkey, so nobody can sign in as it. It owns `ws_wovi` so that every save goes through the Builder and `GuardedAgents` like a person's would, and the versions name it as their author.
 2. Seeds the phase 2 agents as the base (`seedPlatformAgents`), so history reads "1.0.0 Launch seed", then the launch version.
 3. Adds the seven Brand Brains, skipping names already there.
-4. For each launch agent: creates it if missing; saves the launch version if it is newer than every version and **nobody but the seeds and the launch author has ever saved the agent**; otherwise leaves it alone and says why. A version Funkai saved in the builder always wins. Status (live, or draft for Trend Scout) is applied only when the launch version is saved.
-5. Adds the samples, skipping titles the agent already has. A sample that no longer fits a changed form is reported, not forced in.
+4. For each launch agent: creates it if missing; saves the launch version if it is newer than every version and **nobody but the seeds and the launch author has ever saved the agent**; otherwise leaves it alone and says why. A version Funkai saved in the builder always wins (a Trend Scout he saved stays as he left it, a draft). Status is applied only when the launch version is saved.
+5. Adds the samples, skipping titles the agent already has. A sample that no longer fits a changed form is reported, not forced in. A launch sample whose shape a newer launch version changed (Trend Scout's five gained a source in 3.0.0) is rewritten in place, keeping its id, but only while the agent is on that launch version and the stored sample still holds exactly the text the launch set wrote (`SUPERSEDED_SAMPLES` keeps a hash of it). A sample anyone edited stays as it is.
 
 6. Installs the pipeline templates (phase 10, [pipelines.md](pipelines.md#templates)): "Idea to ready post", "Repurpose a post that worked" and "Caption and tags for a clip", skipping any a builder has saved over.
 
-Running it again changes nothing. `--bench` always uses the fake provider, even with `OPENROUTER_API_KEY` set. On a fresh data dir it printed: 35 runs, 35 done, 35 clean, 0 refused (a real model would cost about $1.15 for the whole set, capped at $4.15). The fake provider writes filler from the inputs, so this proves the plumbing only: shapes parse first time, every declared guardrail runs, brand fit is read, each sample uses its own Brand Brain.
+Running it again changes nothing. On a data dir from before the tool layer (the phase 17 fixture) it updates Trend Scout to 3.0.0 and live, refreshes its five samples, and leaves every other agent, version and sample byte for byte as it was (`src/lib/safety/phase17-compat.test.ts`). `--bench` always uses the fake provider, even with `OPENROUTER_API_KEY` set. On a fresh data dir it printed: 35 runs, 35 done, 35 clean, 0 refused (a real model would cost about $1.15 for the whole set, capped at $4.15). The fake provider writes filler from the inputs, so this proves the plumbing only: shapes parse first time, every declared guardrail runs, brand fit is read, each sample uses its own Brand Brain.
 
 `npm run agents:try -- <id>` now falls back to the first golden launch sample when the old example inputs no longer fit the current version, and knows Idea Generator.
 
@@ -186,16 +186,16 @@ The specificity check (`specificity_check`) used to compare every piece of text 
 
 `src/lib/launch/launch.test.ts`:
 
-- the lineup is the doc's seven in the doc's order, keeps the seed ids, and is live except Trend Scout;
+- the lineup is the doc's seven in the doc's order, keeps the seed ids, and is all live;
 - every launch spec validates; versions go above the seeds, with a major bump wherever the output changed;
-- every guardrail listed exists and has a check; only Trend Scout declares a tool; the voice-writing agents check brand fit;
+- every guardrail listed exists and has a check; only Trend Scout declares a tool and cites a source per trend; the voice-writing agents check brand fit;
 - every free-text input has help, and every agent has an optional Brand Brain picker;
 - no em dash anywhere in specs, notes, samples or Brand Brains;
 - at least four samples per agent, exactly one bad, across at least four businesses, seven in all;
 - every sample fits its agent's form, its ideal output parses as the agent's output, and fits the builder's limits;
 - gold samples pass every guardrail with their Brand Brain, bad ones fail at least one;
 - every template fills with a real Brand Brain: no placeholder left, every declared part filled, every input present;
-- the installer saves through the builder as the launch author with the right notes, versions and statuses; is idempotent; never saves over a person's version; and a batch of all 35 samples on the fake provider succeeds, parses first time, runs every declared guardrail, reads brand fit and uses each sample's own Brand Brain.
+- the installer saves through the builder as the launch author with the right notes, versions and statuses; is idempotent; never saves over a person's version; and a batch of all 35 samples on the fake provider succeeds, parses first time, runs every declared guardrail, reads brand fit, uses each sample's own Brand Brain, gives every run the other samples as examples but never its own, and returns Trend Scout's lookup sources.
 
 ## Open questions
 
@@ -203,7 +203,7 @@ For the owner:
 
 1. **Homepage:** done in phase 9. The cards show this lineup and the seeds test checks it.
 2. **Hashtag Optimizer's name:** the doc says "Hashtag and Keyword Optimizer" in the catalog and "Hashtag Optimizer" in the MVP list. The shorter one is used; the longer one says more about the search words.
-3. **Trend Scout at launch:** which data source for `trend_lookup` (official platform APIs, a third-party trend service), and does the MVP launch with six live text agents and Trend Scout in a later drop?
+3. **Trend Scout at launch:** answered. `trend_lookup` is a live web search through OpenRouter (Parallel, fast), about $0.002 a lookup, cached for 6 hours per niche and platform ([engine.md](engine.md#trend_lookup)). Official platform APIs (TikTok Research API, the Instagram Graph API's hashtag search) could add real post counts later; both need app review.
 4. **Languages:** every sample is British English. The doc leaves launch markets and languages open. Should agents write in the Brand Brain's language when its posts are in another one?
 5. **Model cost:** Idea Generator, Script Writer and Platform Repurposer use the strong slot. One pass over all 35 samples would cost about $1.15 at the estimate. Worth checking whether the standard slot is good enough for Idea Generator and the Repurposer.
 

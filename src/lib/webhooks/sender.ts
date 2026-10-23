@@ -124,11 +124,13 @@ export function httpWebhookSender(opts: { timeoutMs?: number; local: boolean; fe
 
 /**
  * The dev sender while the app runs on this machine, the HTTP sender
- * anywhere else. WOVI_WEBHOOK_SENDER=dev or http picks one by hand.
+ * anywhere else. WOVI_WEBHOOK_SENDER=http picks the real one on a local app
+ * too; the dev sender is never used on a server.
  */
 export function webhookSenderFromEnv(dataDir: string, local: boolean, env: NodeJS.ProcessEnv = process.env): WebhookSender {
   const pick = env.WOVI_WEBHOOK_SENDER?.trim();
   if (pick === "http") return httpWebhookSender({ local });
-  if (pick === "dev" || local) return devWebhookSender(join(dataDir, "webhooks"));
+  // The dev sender delivers nothing; a server never uses it, whatever WOVI_WEBHOOK_SENDER says.
+  if (local) return devWebhookSender(join(dataDir, "webhooks"));
   return httpWebhookSender({ local });
 }

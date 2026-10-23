@@ -28,13 +28,17 @@ import { validateRunInputs, type RunInputs } from "./inputs";
 import { isRunnableOutput } from "./output";
 import { DEFAULT_MAX_OUTPUT_TOKENS, estimateCallMicroUsd, priceOf, toMicroUsd, toUsd } from "./prices";
 import { assemblePrompt, promptText } from "./prompt";
-import { providersFromEnv, type ModelProvider } from "./providers";
+import { fakeProvider, providersFromEnv, type ModelProvider } from "./providers";
 import { InProcessQueue, type ConcurrencyLimits, type QueueJob, type RunQueue } from "./queue";
 import { FINISHED, type BrandPick, type Run, type RunRelease } from "./run";
 import { jsonFileRunStore, type RunFilter, type RunStore } from "./store";
 import { injectionSignals } from "@/lib/safety/injection";
 import { refusalLines, screen } from "@/lib/safety/screen";
 import type { AiLabelNote } from "./run";
+import { examplesRecord, pickExamples, renderExamples, type ExampleSource } from "./examples";
+import { DEFAULT_TOOL_LIMITS, fakeTrendLookup, requiredTools, toolEstimateMicroUsd, toolsFromEnv, TREND_LOOKUP_ID, type ToolCache, type ToolLimits, type ToolSet } from "./tools";
+import { jsonFileToolCache } from "./tools/cache";
+import { isLocalApp } from "@/lib/runtime";
 
 export type SubmitRequest = {
   /** The workspace the run is for. Every record carries it. */
@@ -70,6 +74,12 @@ export type SubmitRequest = {
    * of the idempotency hash.
    */
   release?: RunRelease;
+  /**
+   * Samples this run must not be given as examples, nor compared with: the
+   * bench passes the sample it runs, so the gold eval never sees its own
+   * answer. Not part of the idempotency hash.
+   */
+  excludeSampleIds?: string[];
 };
 
 export type RunErrorCode =
@@ -141,6 +151,20 @@ export type EngineOptions = {
    * routed. Left out, every such run gets the current version, as before.
    */
   router?: VersionRouter | null;
+  /**
+   * The tools this engine can run (the tool layer). Only tools a spec
+   * declares are ever called. Left out: the fake trend lookup when the
+   * engine runs on the fake provider, else none.
+   */
+  tools?: ToolSet;
+  /** Where tool answers are cached for a few hours. Left out: no cache. */
+  toolCache?: ToolCache | null;
+  toolLimits?: ToolLimits;
+  /**
+   * The builder's samples, given to the model as few-shot examples (tuning
+   * level 2). Left out: no examples, as before.
+   */
+  examples?: ExampleSource | null;
 };
 
 /** Which version a run that follows "latest stable" gets, and the release it is part of. Null: the current version. */
@@ -150,7 +174,8 @@ export interface VersionRouter {
 
 /** Where the quality gate finds an agent's golden and bad samples. */
 export interface ReferenceSource {
-  get(agent: { workspaceId: string; id: string; version: string }): Promise<QualityReferences>;
+  /** `exclude`: sample ids to leave out, like the one a bench run is scored against. */
+  get(agent: { workspaceId: string; id: string; version: string }, opts?: { exclude?: readonly string[] }): Promise<QualityReferences>;
 }
 
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9_.:-]{1,128}$/;
@@ -177,8 +202,10 @@ export class RunEngine {
   private readonly keyLocks = new Map<string, Promise<unknown>>();
   private readonly waiters = new Map<string, ((run: Run) => void)[]>();
   private readonly listeners = new Set<(run: Run) => void>();
+  private readonly tools: ToolSet;
 
   constructor(private readonly opts: EngineOptions) {
+    this.tools = opts.tools ?? (opts.providerOverride === "fake" ? { [TREND_LOOKUP_ID]: fakeTrendLookup() } : {});
     this.cfg = {
       maxAttempts: opts.maxAttempts ?? 3,
       backoff: opts.backoff ?? { baseMs: 1000, maxMs: 30_000 },
@@ -427,11 +454,11 @@ export class RunEngine {
       before.push({ guardrail: "prompt_injection", check: "prompt_injection", status: "note", message: "Some text reads like instructions to the AI. It was passed to the agent as material only.", findings: signals.map((g) => `${g.field}: "${g.match}"`) });
     }
 
-    // Refuse up front when even the cheapest route's first call would pass the cap.
+    // Refuse up front when even the cheapest route's first call, with the declared tools, would pass the cap.
     const text = promptText(assemblePrompt(spec, inputs, brain));
     const maxOut = spec.routing.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
     const estimates = [spec.routing.model, spec.routing.fallback].map((id) => estimateCallMicroUsd(findModelRoute(id)!.model!, text, maxOut));
-    const cheapest = Math.min(...estimates);
+    const cheapest = Math.min(...estimates) + toolEstimateMicroUsd(spec, this.tools, this.opts.toolLimits ?? DEFAULT_TOOL_LIMITS);
     if (cheapest > capMicroUsd) {
       throw new RunError("over_budget", `This run would cost up to $${toUsd(cheapest)}, above its cap of $${toUsd(capMicroUsd)}. Shorten the inputs.`);
     }
@@ -444,6 +471,7 @@ export class RunEngine {
           ...(before.some((c) => c.check === "voice_consent_confirmation" && c.status === "pass") ? { voiceConsent: now } : {}),
         }
       : null;
+    const exclude = cleanIds(req.excludeSampleIds);
     // Credits last, once everything else passed: hold the estimate, or refuse before anything is queued.
     const credits = await this.reserve(req, id, spec);
     const run: Run = {
@@ -474,6 +502,7 @@ export class RunEngine {
       costUsd: 0,
       ...(credits ? { credits } : {}),
       ...(release ? { release } : {}),
+      ...(exclude.length ? { examples: { gold: [], bad: [], excluded: exclude } } : {}),
       timings: { queuedAt: now, startedAt: null, finishedAt: null, queueMs: null, runMs: null },
       createdAt: now,
       updatedAt: now,
@@ -563,7 +592,10 @@ export class RunEngine {
       const route = findModelRoute(id);
       if (!route || route.modality !== "text") problems.push(`Route ${id} is not a text route; only text runs for now.`);
       else if (!route.model || !priceOf(route.model)) problems.push(`Route ${id} has no priced model.`);
-      else if (!this.providerFor(route)) problems.push(`No provider is set up for route ${id}.`);
+      else if (!this.providerFor(route)) problems.push(`No provider is set up for route ${id}.${Object.keys(this.opts.providers).length ? "" : " Set OPENROUTER_API_KEY."}`);
+    }
+    for (const tool of requiredTools(spec)) {
+      if (!this.tools[tool]) problems.push(`The ${tool} tool it declares is not set up on this server. Set OPENROUTER_API_KEY.`);
     }
     if (problems.length) throw new RunError("not_runnable", `Agent "${spec.id}" cannot run yet.`, problems);
   }
@@ -633,7 +665,16 @@ export class RunEngine {
     let result: ExecResult;
     try {
       const brain = await this.loadBrain(run.workspaceId, run.agent.workspaceId, spec, run.inputs, run.brandPick).catch(() => null);
-      const references = this.opts.references ? await this.opts.references.get(run.agent).catch(() => NO_REFERENCES) : NO_REFERENCES;
+      const exclude = run.examples?.excluded ?? [];
+      const references = this.opts.references ? await this.opts.references.get(run.agent, { exclude }).catch(() => NO_REFERENCES) : NO_REFERENCES;
+      // Tuning level 2: a few of the builder's samples as examples. Picked again on a retry, recorded on the run.
+      let examples = "";
+      if (this.opts.examples) {
+        const samples = await this.opts.examples.get(run.agent).catch(() => []);
+        const picked = pickExamples(samples, { inputs: run.inputs, fields: spec.inputs, exclude });
+        examples = renderExamples(picked, spec.inputs);
+        run.examples = picked.gold.length || picked.bad.length || exclude.length ? examplesRecord(picked, exclude) : null;
+      }
       result = await executeRun({
         spec,
         run,
@@ -644,6 +685,10 @@ export class RunEngine {
         now: this.cfg.now,
         references,
         judge: this.opts.judge ?? null,
+        tools: this.tools,
+        toolCache: this.opts.toolCache ?? null,
+        toolLimits: this.opts.toolLimits,
+        examples,
       });
     } catch (err) {
       if (!(err instanceof RunAborted)) {
@@ -730,6 +775,12 @@ export class RunEngine {
   }
 }
 
+/** Sample ids from a request: short id-like strings only, at most 50. */
+function cleanIds(ids: unknown): string[] {
+  if (!Array.isArray(ids)) return [];
+  return [...new Set(ids.filter((v): v is string => typeof v === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(v)))].slice(0, 50);
+}
+
 /** The free text of a request: every text, long text and link input, and the run's own idea. */
 export function requestTexts(spec: Pick<AgentSpec, "inputs">, inputs: RunInputs, pick: BrandPick | null): Record<string, string> {
   const out: Record<string, string> = {};
@@ -747,18 +798,30 @@ export function requestTexts(spec: Pick<AgentSpec, "inputs">, inputs: RunInputs,
  * is given. Uses the fake provider
  * unless OPENROUTER_API_KEY is set, and always when `fake` is true.
  */
-export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource; references?: ReferenceSource; billing?: RunBilling | null; router?: VersionRouter | null } = {}): RunEngine {
+export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource; references?: ReferenceSource; examples?: ExampleSource | null; billing?: RunBilling | null; router?: VersionRouter | null } = {}): RunEngine {
   const dataDir = opts.dataDir ?? process.env.WOVI_DATA_DIR ?? join(process.cwd(), ".data");
   const providers = providersFromEnv();
-  const fake = opts.fake ?? !providers.openrouter;
+  // The fake provider only ever runs on a local app (or when a caller asks for it, as tests do); a server without a key runs nothing.
+  const fake = opts.fake ?? (!providers.openrouter && isLocalApp());
+  const tools = toolsFromEnv(process.env, { fake });
   return new RunEngine({
     registry: localRegistry(dataDir),
     store: jsonFileRunStore(join(dataDir, "runs.json")),
     brandBrains: opts.brandBrains ?? storeBrainSource(jsonFileBrandStore(join(dataDir, "brand-brains.json"))),
-    providers: fake ? { fake: providers.fake } : providers,
+    providers: fake ? { fake: providers.fake ?? fakeProvider() } : withoutFake(providers),
     providerOverride: fake ? "fake" : undefined,
     references: opts.references,
+    examples: opts.examples ?? null,
+    tools: tools.tools,
+    toolLimits: tools.limits,
+    toolCache: jsonFileToolCache(join(dataDir, "tool-cache.json")),
     billing: opts.billing ?? null,
     router: opts.router ?? null,
   });
+}
+
+/** Every provider but the fake: a server never answers with filler. */
+function withoutFake(providers: Record<string, ModelProvider>): Record<string, ModelProvider> {
+  const { fake: _fake, ...rest } = providers; // eslint-disable-line @typescript-eslint/no-unused-vars
+  return rest;
 }

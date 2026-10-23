@@ -118,6 +118,8 @@ Owners and admins can buy a pack with $WOVI sent from a linked wallet to the bur
 
 The quality gate's rewrites (phase 12) are calls inside the same run, so they are inside the same hold. Change requests (phase 11) start new runs, charged to the person who asked (a client's goes to the workspace). Quick edits are new runs like any other.
 
+**Other paid jobs.** Reading past posts with the AI ([brand-brain.md](brand-brain.md)) is billed the same way through `estimateJob`, `reserveJob` and `settleJob`: the estimate is held (with `ref: { type: "job" }`), the real cost charged after, nothing when it did not finish. A job takes paid credits only, never holder credits. A job hold left open by a crash for 15 minutes is given back on the next job. Trend Scout's web search is part of its run's cost ([engine.md](engine.md#tools)), so it is charged with the run and counted in its estimate.
+
 **Builder bench runs never cost credits.** The bench submits with `billing: { free: "bench" }`; only the bench sets it, and `GuardedRuns` drops whatever billing a caller passes except the quoted estimate.
 
 ## Pipelines
@@ -142,7 +144,7 @@ Use this month is charges minus refunds this month, plus whatever is held right 
 
 `PaymentProvider` has two methods: `checkout` (paid now, pending with a redirect, or failed) and `confirm` (for a webhook later). A top-up row records the pack, the price in cents, the provider, its reference, whether it is a test, and its status; the ledger entry lands once, when it is paid.
 
-- **The test provider** says paid at once and moves no money. It is on for a local app (`WOVI_APP_URL` on localhost, the default), or with `WOVI_TEST_PAYMENTS=on` on a server that is not running in production, and off with `WOVI_TEST_PAYMENTS=off`. A production server off localhost never gets it, whatever the switch says. With no real provider there, top-ups are closed ("Top-ups are not open yet."), so a deployed site never hands out credits for nothing.
+- **The test provider** says paid at once and moves no money. It is on for a local app (`WOVI_APP_URL` on localhost, or left out outside production), or with `WOVI_TEST_PAYMENTS=on` on a server that is not running in production, and off with `WOVI_TEST_PAYMENTS=off`. A production server off localhost never gets it, whatever the switch says, and production without `WOVI_APP_URL` counts as off localhost ([accounts.md](accounts.md#production-fails-closed)). With no real provider there, top-ups are closed ("Top-ups are not open yet."), so a deployed site never hands out credits for nothing.
 - Every test top-up says so: the "Test payments" badge, the test-mode note, "test, not charged" on each pack, "Test" in the history and "no money moved" in the toast.
 - Packs only, from 500 credits. With an idempotency key (one per button press), a second call returns the first top-up.
 - **Stripe** (card) is the real provider behind the same interface once it is set up; then the test provider is gone. A stablecoin (USDG by default) and ETH on Robinhood Chain are checked on chain instead (below).

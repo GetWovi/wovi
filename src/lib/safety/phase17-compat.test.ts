@@ -9,7 +9,7 @@
  * reading. The test works on a copy, so the fixture never changes.
  */
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -194,5 +194,78 @@ describe("a phase 17 data dir", () => {
     const after = (await registry.get(PLATFORM_WORKSPACE_ID, "hook-writer"))!;
     expect(after.version).toBe(before!.version);
     expect(after.instructions).toContain(FUNKAI_EDIT);
+  });
+
+  it("installing the launch set again makes Trend Scout live with its lookup, refreshes only its own untouched samples, and leaves every other agent as it was", async () => {
+    const dir = copy();
+    const accounts = localAccounts(dir, ENV);
+    const registry = localRegistry(dir);
+    const others = async () => {
+      const out: Record<string, string> = {};
+      for (const a of await registry.list(PLATFORM_WORKSPACE_ID)) {
+        if (a.id === "trend-scout") continue;
+        out[a.id] = JSON.stringify([a.status, await registry.versions(PLATFORM_WORKSPACE_ID, a.id), await registry.get(PLATFORM_WORKSPACE_ID, a.id)]);
+      }
+      return out;
+    };
+    const otherBefore = await others();
+    expect((await registry.get(PLATFORM_WORKSPACE_ID, "trend-scout"))!).toMatchObject({ version: "2.0.0", status: "draft" });
+    const builderFile = () => JSON.parse(readFileSync(join(dir, "builder.json"), "utf8")) as { samples: { id: string; agentId: string; title: string; idealOutput: string; createdAt: string; updatedAt?: string }[] };
+    const otherSamples = builderFile().samples.filter((s) => s.agentId !== "trend-scout");
+    const scoutIds = builderFile().samples.filter((s) => s.agentId === "trend-scout").map((s) => s.id).sort();
+
+    const engine = localEngine({ dataDir: dir, fake: true, brandBrains: localBrandBrains(dir) });
+    const install = () => installLaunchSet({ accounts, registry, builder: localBuilder(accounts, dir, engine), brands: jsonFileBrandStore(join(dir, "brand-brains.json")), files: localFileStorage(join(dir, "files")), images: exampleImages() });
+    const report = await install();
+    expect(report.agents.find((a) => a.id === "trend-scout")).toMatchObject({ action: "updated", version: "3.0.0", status: "live" });
+    expect(report.agents.find((a) => a.id === "hook-writer")).toMatchObject({ action: "kept" });
+    expect(report.samples.refreshed).toBe(5);
+    expect(await others()).toEqual(otherBefore);
+    // Trend Scout's samples keep their ids (benches point at them) and now cite a source; every other sample is byte for byte the same.
+    const after = builderFile();
+    expect(after.samples.filter((s) => s.agentId === "trend-scout").map((s) => s.id).sort()).toEqual(scoutIds);
+    for (const s of after.samples.filter((x) => x.agentId === "trend-scout")) expect(s.idealOutput).toContain("Source: ");
+    expect(after.samples.filter((s) => s.agentId !== "trend-scout")).toEqual(otherSamples);
+
+    // Running it again changes nothing.
+    const again = await install();
+    expect(again.agents.every((a) => a.action === "unchanged" || a.action === "kept")).toBe(true);
+    expect(again.samples).toMatchObject({ added: 0, refreshed: 0 });
+    expect(builderFile()).toEqual(after);
+
+    // Trend Scout now runs on old data: the lookup's sources come back with the run.
+    const run = await engine.submitRun({ workspaceId: MAYA_WS, agentId: "trend-scout", agentWorkspaceId: PLATFORM_WORKSPACE_ID, inputs: { niche: "design studio", platform: "reels" } });
+    const done = await engine.waitForRun(MAYA_WS, run.id);
+    expect(done.status).toBe("succeeded");
+    expect(publicRunView(done).sources.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("keeps a Trend Scout sample someone edited, and a Trend Scout a builder saved, as they are", async () => {
+    const dir = copy();
+    const file = join(dir, "builder.json");
+    const data = JSON.parse(readFileSync(file, "utf8")) as { samples: { agentId: string; title: string; idealOutput: string }[] };
+    const edited = data.samples.find((s) => s.agentId === "trend-scout" && s.title === "Local plumber on Reels")!;
+    edited.idealOutput += "\nFunkai: keep the van shot.";
+    writeFileSync(file, JSON.stringify(data, null, 2));
+    const accounts = localAccounts(dir, ENV);
+    const registry = localRegistry(dir);
+    const engine = localEngine({ dataDir: dir, fake: true, brandBrains: localBrandBrains(dir) });
+    const builder = localBuilder(accounts, dir, engine);
+    const report = await installLaunchSet({ accounts, registry, builder, brands: jsonFileBrandStore(join(dir, "brand-brains.json")), files: localFileStorage(join(dir, "files")), images: exampleImages() });
+    expect(report.samples.refreshed).toBe(4);
+    const kept = (await builder.listSamples({ kind: "user", userId: FUNKAI }, "trend-scout")).find((s) => s.title === "Local plumber on Reels")!;
+    expect(kept.idealOutput).toContain("Funkai: keep the van shot.");
+
+    // A Trend Scout Funkai saved in the builder is never replaced, and stays where he left it.
+    const dir2 = copy();
+    const accounts2 = localAccounts(dir2, ENV);
+    const registry2 = localRegistry(dir2);
+    const engine2 = localEngine({ dataDir: dir2, fake: true, brandBrains: localBrandBrains(dir2) });
+    const builder2 = localBuilder(accounts2, dir2, engine2);
+    await builder2.saveAgent({ kind: "user", userId: FUNKAI }, "trend-scout", { job: "Funkai's own Trend Scout." }, { note: "Funkai's edit" });
+    const r2 = await installLaunchSet({ accounts: accounts2, registry: registry2, builder: builder2, brands: jsonFileBrandStore(join(dir2, "brand-brains.json")), files: localFileStorage(join(dir2, "files")), images: exampleImages() });
+    expect(r2.agents.find((a) => a.id === "trend-scout")).toMatchObject({ action: "kept", status: "draft" });
+    expect(r2.samples.refreshed).toBe(0);
+    expect((await registry2.get(PLATFORM_WORKSPACE_ID, "trend-scout"))!.job).toBe("Funkai's own Trend Scout.");
   });
 });

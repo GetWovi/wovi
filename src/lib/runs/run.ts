@@ -9,6 +9,7 @@ import type { RunInputs } from "./inputs";
 import type { RunOutput } from "./output";
 import { publicQuality, type QualityReport } from "@/lib/quality/types";
 import { chargeView, type RunCredits } from "@/lib/credits/types";
+import type { ToolUse } from "./tools/types";
 
 export const RUN_STATUSES = ["queued", "running", "succeeded", "failed", "cancelled"] as const;
 export type RunStatus = (typeof RUN_STATUSES)[number];
@@ -28,17 +29,21 @@ export type RunFailureCode =
   /** A bug in the engine. Logged. */
   | "internal_error"
   /** Phase 18: every draft broke a hard content rule (hate, harassment, sexual content, unsafe advice), so it was withheld. */
-  | "blocked";
+  | "blocked"
+  /** A tool the agent declares (trend_lookup) did not answer, so the model was not asked to write without it. */
+  | "tool_error";
 
 export type ModelCall = {
-  /** The first answer, a format repair, a quality-gate rewrite (phase 12), or the optional judge. */
-  purpose: "answer" | "repair" | "rewrite" | "judge";
+  /** The first answer, a format repair, a quality-gate rewrite (phase 12), the optional judge, or a declared tool (route "tool:<id>"). */
+  purpose: "answer" | "repair" | "rewrite" | "judge" | "tool";
   route: string;
   provider: string;
   model: string;
   ok: boolean;
   /** Why it failed or was skipped. */
   error?: string;
+  /** A tool answer reused from the cache: nothing was paid for it on this run. */
+  cached?: boolean;
   tokensIn: number;
   tokensOut: number;
   costMicroUsd: number;
@@ -112,11 +117,44 @@ export type Run = {
    * before, on pinned runs and on runs with no canary. Never shown to users.
    */
   release?: RunRelease | null;
+  /**
+   * The declared tools the run used (trend_lookup), with what each found and
+   * its sources. Missing on runs from before the tool layer and on agents
+   * that declare none.
+   */
+  tools?: ToolUse[] | null;
+  /**
+   * The builder's samples given to the model as examples (tuning level 2),
+   * by id and title, and the samples kept out of this run (a bench run of a
+   * sample never sees itself). Missing on runs from before, and when the
+   * agent has no samples. Builders only.
+   */
+  examples?: RunExamples | null;
 
   timings: { queuedAt: string; startedAt: string | null; finishedAt: string | null; queueMs: number | null; runMs: number | null };
   createdAt: string;
   updatedAt: string;
 };
+
+/** The samples a run was given as examples. */
+export type RunExamples = { gold: { id: string; title: string }[]; bad: { id: string; title: string }[]; excluded: string[] };
+
+/** The sources a run's tools found, for every viewer: the page, its title and date, and when the search ran. */
+export type RunSource = { url: string; title: string; published: string | null; searchedAt: string | null };
+
+export function runSources(run: Pick<Run, "tools">): RunSource[] {
+  const seen = new Set<string>();
+  const out: RunSource[] = [];
+  for (const u of run.tools ?? []) {
+    if (!u.ok) continue;
+    for (const f of u.findings) {
+      if (seen.has(f.url)) continue;
+      seen.add(f.url);
+      out.push({ url: f.url, title: f.title, published: f.published, searchedAt: u.searchedAt });
+    }
+  }
+  return out;
+}
 
 /** The release a run took part in, and its side: the stable version or the canary. */
 export type RunRelease = { id: string; arm: "stable" | "canary" };
@@ -150,5 +188,7 @@ export function publicRunView(run: Run) {
     aiLabel: run.aiLabel ?? null,
     /** Phase 18: set when the output was taken down after a report. */
     withheld: withheld ? { at: withheld.at, reason: withheld.reason } : null,
+    /** The web sources a declared tool (trend_lookup) found for this run. Empty for agents without tools. */
+    sources: withheld ? [] : runSources(run),
   };
 }

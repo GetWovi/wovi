@@ -10,7 +10,8 @@
  * Ids never change (pipelines pin them), so two agents keep their phase 2 ids
  * under the doc's names: hashtag-picker is the Hashtag Optimizer and
  * repurposer is the Platform Repurposer. Idea Generator is new. Trend Scout
- * stays a draft until the trend_lookup tool exists.
+ * is live since the trend_lookup tool exists (3.0.0): the engine runs a web
+ * search before the model writes, and every trend cites a page it found.
  *
  * Each spec is saved as a new version over the phase 2 seed (which still
  * matches the homepage) by `npm run agents:launch`. See docs/launch-agents.md.
@@ -86,7 +87,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 1. Research */
   {
     id: "trend-scout",
-    version: "2.0.0",
+    version: "3.0.0",
     name: "Trend Scout",
     job: "Finds the formats rising in your niche this week and how you could use them.",
     category: "research",
@@ -103,11 +104,11 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       platformInput("platform", "Platform", "Where you want to post this week."),
       brandInput,
     ],
-    output: { kind: "list", count: 5, maxWordsPerItem: 60, fields: ["trend", "what_it_looks_like", "evidence", "how_you_could_use_it"] },
+    output: { kind: "list", count: 5, maxWordsPerItem: 60, fields: ["trend", "what_it_looks_like", "evidence", "source", "how_you_could_use_it"] },
     brandBrain: ["voice", "references", "dos_donts"],
     tools: ["trend_lookup"],
     guardrails: ["no_misleading_claims", "banned_phrases", "specificity_check"],
-    routing: { model: "text-strong", fallback: "text-standard", temperature: 0.3, maxCostUsd: 0.2, maxOutputTokens: 1800 },
+    routing: { model: "text-strong", fallback: "text-standard", temperature: 0.3, maxCostUsd: 0.2, maxOutputTokens: 2000 },
     instructions: lines(
       "ROLE",
       "You are a trend researcher for one small business. You find what is rising on {{platform}} right now and say plainly how this business could use it.",
@@ -119,10 +120,11 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       "Dos and don'ts: {{brand.dos_donts}}",
       "",
       "HOW TO WORK",
-      "1. Call trend_lookup for this platform and niche, then for the wider category if the niche is small.",
-      "2. Report only what the lookup returns. Every trend needs evidence from it: how many posts, since when, and one example account, sound or search term. Never report a trend from memory.",
+      "1. Before you were asked, WOVI ran a live web search for this platform and niche (and for the platform as a whole when the niche was thin). Its numbered findings are in the trend_lookup block at the end, each with its source address and date.",
+      "2. Report only what the findings say. Every trend comes from one finding: its evidence says what that source shows, with its numbers and its date, and its source is that finding's address, copied exactly. Never report a trend from memory, and never add numbers the finding does not give.",
       "3. Keep the five that this business could make this week with a phone and the people it has. Drop anything that breaks a don't, needs a big budget, or rides on tragedy, politics or another brand's drama.",
-      "4. If fewer than five trends fit well, keep the strongest ones from the lookup and say in the evidence how weak the signal is.",
+      "4. A trend can be a format, a sound or a topic. When a finding is a sound, say how to use it without naming music the business would need a licence for.",
+      "5. If fewer than five findings fit well, use the strongest remaining ones and say plainly in the evidence that the signal is weak or older. Two items may come from the same source when it names two trends.",
       "",
       "HOW TO USE THE BRAND BRAIN",
       BRAND_USE.voice,
@@ -137,10 +139,10 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       NO_SLOP,
       "",
       "WHAT TO RETURN",
-      "Five items, strongest first. trend: the format's name in a few words. what_it_looks_like: what a viewer sees and hears, in one or two sentences. evidence: what the lookup showed, with its numbers and dates. how_you_could_use_it: one post idea for this business, in one or two sentences.",
+      "Five items, strongest first. trend: the format's name in a few words. what_it_looks_like: what a viewer sees and hears, in one or two sentences. evidence: what the source says, with its numbers and its date, in one or two sentences. source: the finding's address, exactly as given, and nothing else. how_you_could_use_it: one post idea for this business, in one or two sentences.",
     ),
     owner,
-    status: "draft",
+    status: "live",
     visibility: "public",
   },
 
@@ -720,7 +722,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
 /** The change note each launch version is saved with. */
 export const LAUNCH_NOTES: Record<string, string> = {
   "trend-scout":
-    "Launch draft: evidence from the trend tool on every trend, five formats a small team can shoot this week. Stays a draft until trend_lookup exists.",
+    "Live with the trend lookup: a web search runs before the model writes, every trend cites the page it came from (new source field), five formats a small team can shoot this week.",
   "idea-generator": "Launch draft: new agent from the doc's MVP set. Seven ideas for a week, with a goal, a format mix and the Brand Brain topics.",
   "hook-writer": "Launch draft: ten hooks across ten named angles, spoken versus first-line rules per platform, an optional audience, no unused tool.",
   "script-writer":

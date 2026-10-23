@@ -50,6 +50,9 @@ export type BuilderAgentRow = {
 
 export type BuilderAgent = { spec: AgentSpec; row: AgentRow; versions: VersionInfo[]; samples: number; board: number };
 
+/** Drafts per builder: each one is up to two calls on the strong model, so they are counted (about $0.30 at most each). */
+export const DRAFT_LIMITS = { perHour: { max: 15, windowMs: 3_600_000 }, perDay: { max: 40, windowMs: 86_400_000 } } as const;
+
 export type SampleInput = {
   label?: SampleLabel;
   title?: string;
@@ -202,11 +205,13 @@ export class Builder implements BoardSource {
     return { spec: shown, row, versions, samples, board };
   }
 
-  /** A full spec drafted from a plain description. Nothing is saved. */
+  /** A full spec drafted from a plain description. Nothing is saved. Limited per builder, since a real model drafts it. */
   async draft(caller: Principal, description: string): Promise<DraftResult> {
-    await this.requireBuilder(caller);
+    const user = await this.requireBuilder(caller);
     const text = cleanText(description, DESCRIPTION_MAX);
     if (text.length < 3) throw new AccountError("invalid_request", "Describe the agent in a sentence or two first.");
+    await this.opts.accounts.limiter.hit(`draft:hour:${user.id}`, DRAFT_LIMITS.perHour, "You drafted many agents this hour. Wait a little and try again.");
+    await this.opts.accounts.limiter.hit(`draft:day:${user.id}`, DRAFT_LIMITS.perDay, "You drafted many agents today. Try again tomorrow.");
     const existingIds = (await this.opts.agents.rows(caller, this.workspaceId)).map((r) => r.id);
     return this.opts.drafter.draft({ description: text, existingIds });
   }
@@ -375,6 +380,22 @@ export class Builder implements BoardSource {
     if (!s || s.workspaceId !== this.workspaceId || s.agentId !== agentId || !s.clip) throw new AccountError("not_found", NOT_FOUND);
     const spec = await this.requireAgent(caller, agentId);
     const next: Sample = { ...s, ...(await this.checkSample(spec, { ...input, clip: input.clip ?? s.clip }, 0)), updatedAt: this.iso() };
+    await this.opts.store.samples.update(next);
+    return next;
+  }
+
+  /**
+   * Rewrites a hand-made sample in place (the launch installer refreshes its
+   * own samples when a launch version changes their shape). The id, the
+   * author and the creation time stay; `updatedAt` is set. Clip samples
+   * follow their clip instead.
+   */
+  async rewriteSample(caller: Principal, agentId: string, sampleId: string, input: SampleInput): Promise<Sample> {
+    await this.requireBuilder(caller);
+    const s = await this.opts.store.samples.get(sampleId);
+    if (!s || s.workspaceId !== this.workspaceId || s.agentId !== agentId || s.clip) throw new AccountError("not_found", NOT_FOUND);
+    const spec = await this.requireAgent(caller, agentId);
+    const next: Sample = { ...s, ...(await this.checkSample(spec, input, 0)), updatedAt: this.iso() };
     await this.opts.store.samples.update(next);
     return next;
   }

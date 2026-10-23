@@ -18,7 +18,7 @@ import type { CreateInput } from "@/lib/agents/registry";
 import { PLATFORM_CREATOR_ID } from "@/lib/agents/seeds";
 import { validateAgentSpec, type AgentInput, type AgentOutput, type AgentSpec } from "@/lib/agents/spec";
 import { extractJson } from "@/lib/runs/output";
-import { costMicroUsd } from "@/lib/runs/prices";
+import { costMicroUsd, estimateCallMicroUsd, toMicroUsd } from "@/lib/runs/prices";
 import { dataBlock } from "@/lib/runs/prompt";
 import type { ChatMessage, ModelProvider } from "@/lib/runs/providers/types";
 
@@ -615,6 +615,8 @@ export type DrafterOptions = {
   /** The text route the drafter uses. */
   route?: string;
   callTimeoutMs?: number;
+  /** Hard cap for one draft, both calls together. Default $0.40. */
+  maxCostUsd?: number;
 };
 
 export class SpecDrafter {
@@ -635,7 +637,9 @@ export class SpecDrafter {
       { role: "user", content: `${dataBlock("description", req.description.slice(0, DESCRIPTION_MAX))}\n\nDraft the spec for this agent.` },
     ];
     const usage = { ...empty };
+    const cap = toMicroUsd(this.opts.maxCostUsd ?? 0.4);
     const call = async (msgs: ChatMessage[]) => {
+      if (usage.costMicroUsd + estimateCallMicroUsd(route.model!, msgs.map((m) => m.content).join("\n"), 6000) > cap) throw new Error("the call would pass the spend cap");
       const signal = AbortSignal.timeout(this.opts.callTimeoutMs ?? 45_000);
       const r = await provider.complete({ model: route.model!, messages: msgs, temperature: 0.3, maxOutputTokens: 6000, signal });
       usage.tokensIn += r.tokensIn;

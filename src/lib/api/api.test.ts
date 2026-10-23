@@ -104,7 +104,8 @@ describe("api: agents are their public view only", () => {
     expect(list.status).toBe(200);
     const agents = listOf(AgentSchema).parse(list.json).data;
     expect(agents.map((a) => a.id)).toContain("hook-writer");
-    expect(agents.map((a) => a.id)).not.toContain("trend-scout");
+    // Trend Scout is live since the trend lookup exists.
+    expect(agents.map((a) => a.id)).toContain("trend-scout");
     const hook = agents.find((a) => a.id === "hook-writer")!;
     expect(hook.inputs.map((i) => i.key)).toEqual(["idea", "platform", "who_for", "brand"]);
     expect(hook.inputSchema).toMatchObject({ type: "object", required: ["idea", "platform"], properties: { idea: { type: "string", minLength: 10, maxLength: 600 }, platform: { enum: expect.arrayContaining(["tiktok", "x"]) } } });
@@ -117,7 +118,7 @@ describe("api: agents are their public view only", () => {
     const one = await t.call("GET", "/agents/hook-writer", { key });
     expect(AgentSchema.parse(one.json).id).toBe("hook-writer");
     expectNoSecrets(one.json);
-    expect((await t.call("GET", "/agents/trend-scout", { key })).status).toBe(404);
+    expect((await t.call("GET", "/agents/trend-scout", { key })).status).toBe(200);
     expect((await t.call("GET", "/agents/nope", { key })).status).toBe(404);
   });
 });

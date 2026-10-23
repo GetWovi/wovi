@@ -61,8 +61,8 @@ describe("the launch lineup", () => {
     expect(seedIds.filter((id) => !launchIds.includes(id))).toEqual([...NOT_IN_LAUNCH]);
   });
 
-  it("is live except Trend Scout, a draft until the trend tool exists", () => {
-    for (const s of LAUNCH_AGENTS) expect([s.id, s.status]).toEqual([s.id, s.id === "trend-scout" ? "draft" : "live"]);
+  it("is all live: Trend Scout too, now that the trend lookup exists", () => {
+    for (const s of LAUNCH_AGENTS) expect([s.id, s.status]).toEqual([s.id, "live"]);
   });
 
   it.each(LAUNCH_AGENTS.map((s) => [s.id, s] as const))("%s validates", (_id, s) => {
@@ -77,7 +77,8 @@ describe("the launch lineup", () => {
       if (!seed) continue;
       expect(compareSemver(s.version, seed.version)).toBeGreaterThan(0);
       const outputChanged = JSON.stringify(seed.output) !== JSON.stringify(s.output);
-      expect([s.id, s.version.split(".")[0]]).toEqual([s.id, outputChanged ? "2" : "1"]);
+      // Trend Scout's output changed twice: the launch fields (2.0.0), then the source of every trend (3.0.0).
+      expect([s.id, s.version.split(".")[0]]).toEqual([s.id, s.id === "trend-scout" ? "3" : outputChanged ? "2" : "1"]);
     }
   });
 
@@ -94,9 +95,10 @@ describe("the launch lineup", () => {
     }
   });
 
-  it("declares no tool on a live agent, since the engine runs none yet", () => {
-    for (const s of specs.values()) if (s.status === "live") expect([s.id, s.tools]).toEqual([s.id, []]);
-    expect(spec("trend-scout").tools).toEqual(["trend_lookup"]);
+  it("declares a tool only on Trend Scout, which cites a lookup source on every trend", () => {
+    for (const s of specs.values()) expect([s.id, s.tools]).toEqual([s.id, s.id === "trend-scout" ? ["trend_lookup"] : []]);
+    expect(spec("trend-scout").output).toMatchObject({ kind: "list", count: 5, fields: ["trend", "what_it_looks_like", "evidence", "source", "how_you_could_use_it"] });
+    expect(spec("trend-scout").instructions).not.toContain("Call trend_lookup");
   });
 
   it("checks brand fit on every agent that writes in the brand's voice", () => {
@@ -203,7 +205,7 @@ describe("installing the launch set", () => {
     const t = await setup();
     const report = await t.install();
     expect(report.agents.map((a) => [a.id, a.action, a.version, a.status])).toEqual([
-      ["trend-scout", "updated", "2.0.0", "draft"],
+      ["trend-scout", "updated", "3.0.0", "live"],
       ["idea-generator", "created", "1.0.0", "live"],
       ["hook-writer", "updated", "1.1.0", "live"],
       ["script-writer", "updated", "2.0.0", "live"],
@@ -219,7 +221,7 @@ describe("installing the launch set", () => {
     expect((await t.registry.get(PLATFORM_WORKSPACE_ID, "hashtag-picker"))!.name).toBe("Hashtag Optimizer");
     expect((await t.registry.get(PLATFORM_WORKSPACE_ID, "storyboarder"))!.status).toBe("hidden");
     expect(report.brains.added).toEqual(LAUNCH_BRAIN_NAMES);
-    expect(report.samples).toEqual({ added: allSamples.length, existing: 0, unfit: [] });
+    expect(report.samples).toEqual({ added: allSamples.length, existing: 0, refreshed: 0, unfit: [] });
 
     // Each sample runs against its own Brand Brain.
     const ids = new Map((await t.brands.brains.find({ workspaceId: PLATFORM_WORKSPACE_ID })).map((b) => [b.id, b.name]));
@@ -238,7 +240,7 @@ describe("installing the launch set", () => {
     const again = await t.install();
     expect(again.agents.every((a) => a.action === "unchanged")).toBe(true);
     expect(again.brains.added).toEqual([]);
-    expect(again.samples).toEqual({ added: 0, existing: allSamples.length, unfit: [] });
+    expect(again.samples).toEqual({ added: 0, existing: allSamples.length, refreshed: 0, unfit: [] });
     expect(again.base.created).toEqual([]);
     expect(JSON.stringify(await Promise.all(LAUNCH_AGENTS.map((s) => t.registry.versions(PLATFORM_WORKSPACE_ID, s.id))))).toBe(before);
     expect((await t.brands.brains.find({ workspaceId: PLATFORM_WORKSPACE_ID })).length).toBe(brainsBefore);
@@ -278,7 +280,13 @@ describe("installing the launch set", () => {
       const s = spec(a.agentId);
       for (const r of bench.results) {
         expect([a.agentId, r.title, r.status, r.parsed]).toEqual([a.agentId, r.title, "succeeded", "first"]);
-        expect(new Set(r.checks.map((c) => c.guardrail))).toEqual(new Set(s.guardrails));
+        // Trend Scout also checks that every trend cites a page the lookup found.
+        expect(new Set(r.checks.map((c) => c.guardrail))).toEqual(new Set([...s.guardrails, ...(s.tools.length ? ["trend_lookup"] : [])]));
+        // A sample never sees itself: it is kept out of its own examples, and the others are given.
+        expect(r.examples).toMatchObject({ ownKeptOut: true });
+        expect(r.examples!.gold).not.toContain(r.title);
+        expect(r.examples!.gold.length).toBeGreaterThan(0);
+        if (s.tools.length) expect(r.sources.length).toBeGreaterThanOrEqual(5);
         if (s.guardrails.includes("brand_voice_check")) expect(r.checks.find((c) => c.check === "brand_fit")?.score).toEqual(expect.any(Number));
         const run = (await t.engine.getRun(PLATFORM_WORKSPACE_ID, r.runId!))!;
         expect(run.brandBrain?.name).toBe(samplesOf(a.agentId).find((x) => x.title === r.title)!.brain);

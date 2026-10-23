@@ -8,6 +8,7 @@
 import { join } from "node:path";
 import { accounts, appEngine } from "@/lib/accounts/server";
 import { dataDirFromEnv, isLocalApp } from "@/lib/accounts/local";
+import { appUrlFromEnv } from "@/lib/runtime";
 import { localRegistry } from "@/lib/agents/registry";
 import { appApi } from "@/lib/app/server";
 import { appCredits } from "@/lib/credits/server";
@@ -32,7 +33,7 @@ const g = globalThis as { __woviApi?: { webhooks?: Webhooks; api?: PublicApi; re
 const cache = (g.__woviApi ??= {});
 
 export function appUrl(): string {
-  return (process.env.WOVI_APP_URL ?? "http://localhost:3900").replace(/\/$/, "");
+  return appUrlFromEnv();
 }
 
 export function appWebhooks(): Webhooks {

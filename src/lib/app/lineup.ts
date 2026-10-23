@@ -1,7 +1,8 @@
 /**
  * The agents the app shows: the launch lineup from the registry, in the
- * product doc's order, live ones only, plus Trend Scout as coming until the
- * trend tool exists. Grouped by what a person wants to do.
+ * product doc's order, live ones only, plus Trend Scout as coming wherever it
+ * is not live yet (a data dir where a builder kept it a draft). Grouped by
+ * what a person wants to do.
  */
 import type { PublicAgent } from "@/lib/accounts/guard";
 import { LAUNCH_AGENTS } from "@/lib/launch/specs";
@@ -19,8 +20,8 @@ export type LineupAgent = {
 /** Doc order: research, ideation, writing, writing, writing, optimization, optimization. */
 export const LINEUP_IDS: readonly string[] = LAUNCH_AGENTS.map((a) => a.id);
 
-/** Agents shown as coming: in the lineup, not live yet. */
-export const COMING: readonly { id: string; name: string; job: string; category: string }[] = LAUNCH_AGENTS.filter((a) => a.status === "draft").map((a) => ({ id: a.id, name: a.name, job: a.job, category: a.category }));
+/** Agents shown as coming while they are not live: Trend Scout, live since the trend lookup exists, and any launch agent still a draft. */
+export const COMING: readonly { id: string; name: string; job: string; category: string }[] = LAUNCH_AGENTS.filter((a) => a.status === "draft" || a.id === "trend-scout").map((a) => ({ id: a.id, name: a.name, job: a.job, category: a.category }));
 
 export const STAGES: readonly { id: string; title: string; lead: string; ids: readonly string[] }[] = [
   { id: "ideas", title: "Get ideas", lead: "Start from nothing but your business.", ids: ["idea-generator", "trend-scout"] },
