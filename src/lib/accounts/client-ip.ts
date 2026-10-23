@@ -21,6 +21,21 @@ type Env = Record<string, string | undefined>;
 /** Addresses only: IPv4, IPv6, optionally with a port in brackets or after a colon. Anything else is not trusted. */
 const ADDRESS = /^[0-9A-Fa-f:.[\]]{2,47}$/;
 
+/**
+ * The address without a port, so one client is one address however many connections it opens:
+ * "[2001:db8::1]:443" and "2001:db8::1" are the same, "203.0.113.7:51234" is "203.0.113.7", and an IPv6-mapped
+ * IPv4 "::ffff:203.0.113.7" is "203.0.113.7". A bare IPv6 keeps its colons.
+ */
+export function withoutPort(address: string): string {
+  let a = address.trim();
+  const bracketed = /^\[([0-9A-Fa-f:.]+)\](?::\d{1,5})?$/.exec(a);
+  if (bracketed) a = bracketed[1];
+  else if (/^\d{1,3}(?:\.\d{1,3}){3}:\d{1,5}$/.test(a)) a = a.slice(0, a.lastIndexOf(":"));
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(a);
+  if (mapped) a = mapped[1];
+  return a.toLowerCase();
+}
+
 export function trustedHops(env: Env = process.env): number {
   const raw = env.WOVI_TRUSTED_PROXY_HOPS?.trim();
   if (!raw) return 1;
@@ -31,7 +46,7 @@ export function trustedHops(env: Env = process.env): number {
 export function clientIpFrom(headers: HeaderBag, env: Env = process.env): string {
   const clean = (v: string | null | undefined) => {
     const s = (v ?? "").trim();
-    return s && ADDRESS.test(s) ? s : null;
+    return s && ADDRESS.test(s) ? withoutPort(s) : null;
   };
   const one = env.WOVI_CLIENT_IP_HEADER?.trim().toLowerCase();
   if (one) return clean(headers.get(one)) ?? "unknown";

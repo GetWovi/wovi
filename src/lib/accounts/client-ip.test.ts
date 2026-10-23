@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clientIp } from "@/lib/api/rest";
-import { clientIpFrom, trustedHops } from "./client-ip";
+import { clientIpFrom, trustedHops, withoutPort } from "./client-ip";
 
 const h = (xff?: string, extra: Record<string, string> = {}) => new Headers({ ...(xff === undefined ? {} : { "x-forwarded-for": xff }), ...extra });
 
@@ -28,5 +28,21 @@ describe("the client address behind Railway's proxy", () => {
     expect(clientIpFrom(h("1.2.3.4, <script>"), {})).toBe("unknown");
     expect(clientIpFrom(h(), {})).toBe("local");
     expect(clientIpFrom(h(" , "), {})).toBe("local");
+  });
+});
+
+describe("one client is one address, whatever its port", () => {
+  it("drops the port from IPv4, bracketed IPv6 and mapped addresses", () => {
+    expect(withoutPort("203.0.113.7:51234")).toBe("203.0.113.7");
+    expect(withoutPort("203.0.113.7")).toBe("203.0.113.7");
+    expect(withoutPort("[2001:DB8::1]:443")).toBe("2001:db8::1");
+    expect(withoutPort("2001:db8::1")).toBe("2001:db8::1");
+    expect(withoutPort("::ffff:203.0.113.7")).toBe("203.0.113.7");
+  });
+  it("counts new connections from the same client as one address", () => {
+    const a = clientIpFrom(h("9.9.9.9, 203.0.113.7:51234"), {});
+    const b = clientIpFrom(h("8.8.8.8, 203.0.113.7:60001"), {});
+    expect(a).toBe("203.0.113.7");
+    expect(b).toBe(a);
   });
 });
