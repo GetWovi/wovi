@@ -170,7 +170,7 @@ From the product doc: "card or other fiat rails for owners with no wallet" and "
 
 ### Setting Stripe up (the owner, once)
 
-1. **Public details** (Settings, Business, Public details): public business name `WOVI`, statement descriptor `WOVI`, shortened descriptor `WOVI`, support email `hello@wovi.fun`, website `https://wovi.fun`. Leave the optional support phone and address empty where Stripe allows it: Stripe prints public details on its page and receipts, and WOVI shows no name but WOVI. Card statements then read `WOVI* WOVI`; set `STRIPE_STATEMENT_DESCRIPTOR=CREDITS` for `WOVI* CREDITS`.
+1. **Public details** (Settings, Business, Public details): public business name `WOVI`, statement descriptor `WOVI`, shortened descriptor `WOVI`, support email `getwovi@gmail.com`, website `https://wovi.fun`. Leave the optional support phone and address empty where Stripe allows it: Stripe prints public details on its page and receipts, and WOVI shows no name but WOVI. Card statements then read `WOVI* WOVI`; set `STRIPE_STATEMENT_DESCRIPTOR=CREDITS` for `WOVI* CREDITS`.
 2. **Branding** (Settings, Branding): WOVI's icon and colours for Stripe's page.
 3. **Payment methods** (Settings, Payments, Payment methods): cards on (Apple Pay and Google Pay ride on cards). Methods that confirm later also work (the async events), but cards are enough.
 4. **Optional, euros and other currencies:** Settings, Payments, Adaptive Pricing on. Buyers see and pay their own currency; WOVI still prices and checks in USD.

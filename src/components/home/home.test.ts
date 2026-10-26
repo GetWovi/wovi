@@ -71,7 +71,7 @@ describe("the homepage links", () => {
           expect(sub === "/openapi.json" || !!matchRoute("GET", sub), href).toBe(true);
         }
       } else if (href.startsWith("mailto:")) {
-        expect(href).toBe("mailto:hello@wovi.fun");
+        expect(href).toBe("mailto:getwovi@gmail.com");
       } else {
         expect(href, href).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}(\/|$)/);
       }

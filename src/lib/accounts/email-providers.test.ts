@@ -124,13 +124,13 @@ describe("the switch", () => {
 
 describe("the HTML of every mail", () => {
   it("escapes the text, makes links tappable, turns a lone link into a button, and ends with WOVI and the contact address only", () => {
-    const html = htmlFromText("A <b>test</b>", "Hello <script>alert(1)</script> & you.\n\nAccept here:\nhttps://wovi.fun/invite?token=abc\n\nMore at https://wovi.fun/terms.\n\nWOVI. hello@wovi.fun");
+    const html = htmlFromText("A <b>test</b>", "Hello <script>alert(1)</script> & you.\n\nAccept here:\nhttps://wovi.fun/invite?token=abc\n\nMore at https://wovi.fun/terms.\n\nWOVI. getwovi@gmail.com");
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt; &amp; you.");
     expect(html).not.toContain("<script>");
     expect(html).toContain('<a href="https://wovi.fun/invite?token=abc" style="display:inline-block');
     expect(html).toContain('<a href="https://wovi.fun/terms" style="color:#0B1230;text-decoration:underline">https://wovi.fun/terms</a>.');
     expect(html).toContain("<title>A &lt;b&gt;test&lt;/b&gt;</title>");
-    expect(html.match(/hello@wovi\.fun/g)).toHaveLength(2); // the footer's mailto and its text, not the body's copy
+    expect(html.match(/getwovi@gmail\.com/g)).toHaveLength(2); // the footer's mailto and its text, not the body's copy
     expect(html).not.toMatch(/hello@wovi\.app/);
     const sign = signInHtml({ subject: "s", link: "https://wovi.fun/sign-in/verify?token=t", code: "123456", minutes: 15 });
     expect(sign).toContain(">123456</p>");

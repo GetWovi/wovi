@@ -9,7 +9,7 @@
 export const OPERATOR = { name: "WOVI" };
 
 /** One address for everything: support, privacy requests, reports, authorities. Answered by a person. */
-export const CONTACT_EMAIL = "hello@wovi.fun";
+export const CONTACT_EMAIL = "getwovi@gmail.com";
 
 /** When the current terms, privacy notice and own-risk notice took effect (ISO date). */
 export const EFFECTIVE_DATE = "2026-10-23";

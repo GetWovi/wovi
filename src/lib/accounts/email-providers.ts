@@ -8,15 +8,16 @@
  *           SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE). A fallback.
  *
  * Both send the plain text and a simple HTML version (email-html.ts) of every
- * mail, from EMAIL_FROM (default "WOVI <hello@wovi.fun>") with an optional
+ * mail, from EMAIL_FROM (default "WOVI <noreply@wovi.fun>") with an optional
  * REPLY_TO. Neither ever logs a mail's body, so sign-in codes and links stay
  * out of the logs; an error names the status and nothing from the mail.
  */
 import { randomUUID } from "node:crypto";
 import type { EmailMessage, EmailSender } from "./email";
 import { htmlFromText } from "./email-html";
+import { CONTACT_EMAIL } from "../legal/operator";
 
-export const DEFAULT_FROM = "WOVI <hello@wovi.fun>";
+export const DEFAULT_FROM = "WOVI <noreply@wovi.fun>";
 
 /** "WOVI <hello@wovi.fun>" or "hello@wovi.fun": a plain address with an optional display name. */
 export function cleanFrom(v: string | undefined): string | null {
@@ -184,9 +185,10 @@ export function smtpSender(o: SmtpOptions): EmailSender {
 export function providerFromEnv(name: string, env: NodeJS.ProcessEnv): EmailSender | { missing: string } | null {
   const from = cleanFrom(env.EMAIL_FROM) ?? DEFAULT_FROM;
   const rawReply = env.REPLY_TO?.trim();
-  const replyTo = rawReply ? cleanFrom(rawReply) : null;
+  // Mail goes out from the domain; answers go to the one contact address unless REPLY_TO says otherwise.
+  const replyTo = rawReply ? cleanFrom(rawReply) : CONTACT_EMAIL;
   if (rawReply && !replyTo) return { missing: "REPLY_TO is not an email address." };
-  if (env.EMAIL_FROM?.trim() && !cleanFrom(env.EMAIL_FROM)) return { missing: 'EMAIL_FROM is not an address like "WOVI <hello@wovi.fun>".' };
+  if (env.EMAIL_FROM?.trim() && !cleanFrom(env.EMAIL_FROM)) return { missing: 'EMAIL_FROM is not an address like "WOVI <noreply@wovi.fun>".' };
   if (name === "resend") {
     const apiKey = env.RESEND_API_KEY?.trim();
     if (!apiKey || !/^re_[A-Za-z0-9_]{8,}$/.test(apiKey)) return { missing: "EMAIL_PROVIDER=resend needs RESEND_API_KEY (it starts with re_)." };
