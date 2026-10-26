@@ -12,6 +12,7 @@ import { appUrlFromEnv } from "@/lib/runtime";
 import { localRegistry } from "@/lib/agents/registry";
 import { appApi } from "@/lib/app/server";
 import { appCredits } from "@/lib/credits/server";
+import { creditsEnabled } from "@/lib/credits/local";
 import { appPipelines } from "@/lib/pipelines/server";
 import { appQuality } from "@/lib/quality/server";
 import { processCredits } from "@/lib/credits/local";
@@ -53,7 +54,7 @@ export function appPublicApi(): PublicApi {
     accounts: accounts(),
     app: appApi(),
     pipelines: appPipelines(),
-    credits: appCredits(),
+    credits: creditsEnabled() ? appCredits() : undefined,
     quality: appQuality(),
     webhooks: appWebhooks(),
   }));

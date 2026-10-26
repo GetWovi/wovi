@@ -11,6 +11,7 @@ import { appApi } from "@/lib/app/server";
 import { readClientFilter } from "@/lib/team/client-filter";
 import { appTeam } from "@/lib/team/server";
 import { appCredits } from "@/lib/credits/server";
+import { creditsEnabled } from "@/lib/credits/local";
 import { CreditPill } from "@/components/ui/CreditPill";
 import { Sparkle } from "@/components/brand/Accents";
 import { holderBadgeFor } from "@/lib/token/local";
@@ -55,10 +56,12 @@ export async function AppShell({ info, active, children }: { info: SessionInfo; 
     team.clients(me, workspaceId).catch(() => []),
     readClientFilter(workspaceId),
   ]);
-  // Credits (phase 13): the balance everyone in the workspace sees. Null when billing is off.
-  const balance = await appCredits()
-    .balance(me, workspaceId)
-    .catch(() => null);
+  // Credits (phase 13): the balance everyone in the workspace sees. Null when billing is off (WOVI_CREDITS=off too).
+  const balance = creditsEnabled()
+    ? await appCredits()
+        .balance(me, workspaceId)
+        .catch(() => null)
+    : null;
   // $WOVI (phase 17): the holder mark on the avatar, from the stored status. False while holders are off.
   const holder = await holderBadgeFor(info.user.id);
 
