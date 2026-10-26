@@ -19,13 +19,13 @@ The code lives in `src/lib/launch/`.
 
 | # | Name | Id | Job | Status | Version | Model slot (fallback) | Cap per run |
 |---|---|---|---|---|---|---|---|
-| 1 | Trend Scout | `trend-scout` | Finds the formats rising in your niche this week and how you could use them. | live | 3.0.0 | strong (standard) | $0.20 |
-| 2 | Idea Generator | `idea-generator` | Gives you a week of post ideas that only your business could post. | live | 1.0.0 (new) | strong (standard) | $0.12 |
-| 3 | Hook Writer | `hook-writer` | Opens a post or a short with one line people stop for. | live | 1.1.0 | standard (fast) | $0.05 |
-| 4 | Script Writer | `script-writer` | Turns one idea into beats with a beginning, a turn and an end. | live | 2.0.0 | strong (standard) | $0.15 |
-| 5 | Caption Writer | `caption-writer` | Writes the caption to match the clip, the format and your voice. | live | 1.1.0 | standard (fast) | $0.08 |
-| 6 | Hashtag Optimizer | `hashtag-picker` | Picks the few tags and search words that help the right people find the post. | live | 2.0.0 | fast (standard) | $0.03 |
-| 7 | Platform Repurposer | `repurposer` | Turns one post that worked into a native version for each of your other platforms. | live | 2.0.0 | strong (standard) | $0.20 |
+| 1 | Trend Scout | `trend-scout` | Finds the formats rising in your niche this week and how you could use them. | live | 3.0.1 | strong (standard) | $0.20 |
+| 2 | Idea Generator | `idea-generator` | Gives you a week of post ideas that only your business could post. | live | 1.0.1 | strong (standard) | $0.12 |
+| 3 | Hook Writer | `hook-writer` | Opens a post or a short with one line people stop for. | live | 1.1.1 | standard (fast) | $0.05 |
+| 4 | Script Writer | `script-writer` | Turns one idea into beats with a beginning, a turn and an end. | live | 2.0.1 | strong (standard) | $0.15 |
+| 5 | Caption Writer | `caption-writer` | Writes the caption to match the clip, the format and your voice. | live | 1.1.1 | standard (fast) | $0.08 |
+| 6 | Hashtag Optimizer | `hashtag-picker` | Picks the few tags and search words that help the right people find the post. | live | 2.0.1 | fast (standard) | $0.03 |
+| 7 | Platform Repurposer | `repurposer` | Turns one post that worked into a native version for each of your other platforms. | live | 2.0.1 | strong (standard) | $0.20 |
 
 Storyboarder and Voice and Cut are not text agents and are not part of this set. They stay hidden at 1.0.0 until their drop.
 
@@ -181,6 +181,20 @@ Running it again changes nothing. On a data dir from before the tool layer (the 
 ## The first real run (2026-10-23)
 
 All 35 samples and four extra Trend Scout runs ran on the real models through OpenRouter, for $2.95 in all (OpenRouter's own counter, including a rerun). After the fixes it found (reasoning kept low on every route, billed failures counted, an empty trend search failing before the model, short niches in the specificity check), every agent parsed every sample and scored 83 to 97 on the quality gate. Trend Scout is the slowest (about a minute) and dearest (up to $0.20 on the strong model); web trend data for X is thin, so those runs now stop with "nothing current found" and cost nothing. Hook Writer often needs its repair call for the 12-word limit.
+
+## Tuning round 1 (2026-10-26)
+
+The doc's loop at levels 1 and 2 (instruction edits, checked against the samples): read every output of the 23 October run against the gold samples, change the instructions, rerun the same inputs on the real models, keep only what holds up. 30 runs plus two Hook Writer reruns, $0.99 on OpenRouter.
+
+| Agent | What the outputs showed | The change | Result |
+|---|---|---|---|
+| All | Whole sentences copied from past posts and sample lines | Learn the shape, never reuse a whole sentence; at most one item may echo the best-known line, reworded | Copied sentences 26 to 12 across the same inputs (the rest are mostly Repurposer keeping the post it was given, which is its job) |
+| Idea Generator | `why_it_fits` read like a brief ("as the dos ask") | Tell the owner why their audience will watch, share or act, in plain words | Scores 92 to 95, same as before; the reasons now read as advice |
+| Hashtag Optimizer | Near-duplicate terms, ungrammatical search words, empty reasons | At most one broad tag, no two terms on the same main words, search words as people type them, each why names who searches | Clearer terms ("where is my stopcock"); the gate scores two posts lower (85, 89) because the words overlap the input less, still above the bar |
+| Script Writer | A sales brief named the product in every line | Name it at most twice spoken, once on screen, show it in use | Same scores; the sales sample no longer reads as an ad |
+| Hook Writer | Hooks ran past the 12-word check | Ask for at most 10 words; quoted phrases count in full | 4 of 5 samples pass; one sample full of quoted invoice wording still fails at times (format, not length), as it did on 23 October |
+
+Versions: trend-scout 3.0.1, idea-generator 1.0.1, hook-writer 1.1.1, script-writer 2.0.1, caption-writer 1.1.1, hashtag-picker 2.0.1, repurposer 2.0.1. The installer saves them on the next start unless a person has edited that agent in the builder; an edit that took the same patch number now reports "kept" too.
 
 ## One engine change
 

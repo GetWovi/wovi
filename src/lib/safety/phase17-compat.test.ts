@@ -22,7 +22,7 @@ import { jsonFileBrandStore } from "@/lib/brand/store";
 import { localBrandBrains, localBuilder } from "@/lib/builder/local";
 import { localFileStorage } from "@/lib/builder/storage";
 import { localCredits } from "@/lib/credits/local";
-import { installLaunchSet } from "@/lib/launch";
+import { LAUNCH_AGENTS, installLaunchSet } from "@/lib/launch";
 import { LAUNCH_SAMPLES } from "@/lib/launch/samples";
 import { localEngine } from "@/lib/runs/engine";
 import { publicRunView } from "@/lib/runs/run";
@@ -196,19 +196,12 @@ describe("a phase 17 data dir", () => {
     expect(after.instructions).toContain(FUNKAI_EDIT);
   });
 
-  it("installing the launch set again makes Trend Scout live with its lookup, refreshes only its own untouched samples, and leaves every other agent as it was", async () => {
+  it("installing the launch set again makes Trend Scout live with its lookup, refreshes only its own untouched samples, keeps the agent a person edited and moves the rest to the current launch versions", async () => {
     const dir = copy();
     const accounts = localAccounts(dir, ENV);
     const registry = localRegistry(dir);
-    const others = async () => {
-      const out: Record<string, string> = {};
-      for (const a of await registry.list(PLATFORM_WORKSPACE_ID)) {
-        if (a.id === "trend-scout") continue;
-        out[a.id] = JSON.stringify([a.status, await registry.versions(PLATFORM_WORKSPACE_ID, a.id), await registry.get(PLATFORM_WORKSPACE_ID, a.id)]);
-      }
-      return out;
-    };
-    const otherBefore = await others();
+    const snapshot = async (id: string) => JSON.stringify([(await registry.list(PLATFORM_WORKSPACE_ID)).find((a) => a.id === id)?.status, await registry.versions(PLATFORM_WORKSPACE_ID, id), await registry.get(PLATFORM_WORKSPACE_ID, id)]);
+    const editedBefore = await snapshot("hook-writer");
     expect((await registry.get(PLATFORM_WORKSPACE_ID, "trend-scout"))!).toMatchObject({ version: "2.0.0", status: "draft" });
     const builderFile = () => JSON.parse(readFileSync(join(dir, "builder.json"), "utf8")) as { samples: { id: string; agentId: string; title: string; idealOutput: string; createdAt: string; updatedAt?: string }[] };
     const otherSamples = builderFile().samples.filter((s) => s.agentId !== "trend-scout");
@@ -217,10 +210,14 @@ describe("a phase 17 data dir", () => {
     const engine = localEngine({ dataDir: dir, fake: true, brandBrains: localBrandBrains(dir) });
     const install = () => installLaunchSet({ accounts, registry, builder: localBuilder(accounts, dir, engine), brands: jsonFileBrandStore(join(dir, "brand-brains.json")), files: localFileStorage(join(dir, "files")), images: exampleImages() });
     const report = await install();
-    expect(report.agents.find((a) => a.id === "trend-scout")).toMatchObject({ action: "updated", version: "3.0.0", status: "live" });
+    expect(report.agents.find((a) => a.id === "trend-scout")).toMatchObject({ action: "updated", version: "3.0.1", status: "live" });
     expect(report.agents.find((a) => a.id === "hook-writer")).toMatchObject({ action: "kept" });
     expect(report.samples.refreshed).toBe(5);
-    expect(await others()).toEqual(otherBefore);
+    // The person's edit stays exactly as it was; every untouched launch agent moves to its current launch version, still live.
+    expect(await snapshot("hook-writer")).toBe(editedBefore);
+    for (const spec of LAUNCH_AGENTS.filter((a) => a.id !== "trend-scout" && a.id !== "hook-writer")) {
+      expect(report.agents.find((a) => a.id === spec.id)).toMatchObject({ action: "updated", version: spec.version, status: "live" });
+    }
     // Trend Scout's samples keep their ids (benches point at them) and now cite a source; every other sample is byte for byte the same.
     const after = builderFile();
     expect(after.samples.filter((s) => s.agentId === "trend-scout").map((s) => s.id).sort()).toEqual(scoutIds);

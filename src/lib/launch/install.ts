@@ -128,7 +128,10 @@ export async function installLaunchSet(deps: InstallDeps): Promise<InstallReport
         action = "kept";
         reason = `version ${highest} is newer than the launch version ${spec.version}`;
       } else if (compareSemver(spec.version, highest) === 0) {
-        action = "unchanged";
+        // A builder edit takes the next patch, so a launch version can land on the same number as a person's edit.
+        const byPerson = versions.find((v) => v.version === highest && v.by !== null && v.by !== LAUNCH_AUTHOR_ID);
+        action = byPerson ? "kept" : "unchanged";
+        if (byPerson) reason = `edited in the builder as version ${highest}, so the launch version was not saved over it`;
       } else if (people.length) {
         action = "kept";
         reason = `edited in the builder since (version ${people[people.length - 1].version}), so the launch version was not saved over it`;

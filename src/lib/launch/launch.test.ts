@@ -205,18 +205,18 @@ describe("installing the launch set", () => {
     const t = await setup();
     const report = await t.install();
     expect(report.agents.map((a) => [a.id, a.action, a.version, a.status])).toEqual([
-      ["trend-scout", "updated", "3.0.0", "live"],
-      ["idea-generator", "created", "1.0.0", "live"],
-      ["hook-writer", "updated", "1.1.0", "live"],
-      ["script-writer", "updated", "2.0.0", "live"],
-      ["caption-writer", "updated", "1.1.0", "live"],
-      ["hashtag-picker", "updated", "2.0.0", "live"],
-      ["repurposer", "updated", "2.0.0", "live"],
+      ["trend-scout", "updated", "3.0.1", "live"],
+      ["idea-generator", "created", "1.0.1", "live"],
+      ["hook-writer", "updated", "1.1.1", "live"],
+      ["script-writer", "updated", "2.0.1", "live"],
+      ["caption-writer", "updated", "1.1.1", "live"],
+      ["hashtag-picker", "updated", "2.0.1", "live"],
+      ["repurposer", "updated", "2.0.1", "live"],
     ]);
     const versions = await t.registry.versions(PLATFORM_WORKSPACE_ID, "repurposer");
     expect(versions.map((v) => [v.version, v.by, v.note])).toEqual([
       ["1.0.0", null, "Launch seed"],
-      ["2.0.0", LAUNCH_AUTHOR_ID, LAUNCH_NOTES.repurposer],
+      ["2.0.1", LAUNCH_AUTHOR_ID, LAUNCH_NOTES.repurposer],
     ]);
     expect((await t.registry.get(PLATFORM_WORKSPACE_ID, "hashtag-picker"))!.name).toBe("Hashtag Optimizer");
     expect((await t.registry.get(PLATFORM_WORKSPACE_ID, "storyboarder"))!.status).toBe("hidden");

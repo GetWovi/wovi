@@ -62,8 +62,9 @@ const brandInput = {
 /** How every agent reads the Brand Brain parts it declares. */
 const BRAND_USE = {
   voice:
-    "Voice: sound like this brand. Match its sentence length, punctuation, casing, emoji habits and the words it reaches for, and borrow the rhythm of its sample lines. Never use its words to avoid.",
-  references: "Past posts: these worked for this brand. Learn their shape (how they open, how long they run, how they end). Do not copy their lines.",
+    "Voice: sound like this brand. Match its sentence length, punctuation, casing, emoji habits and the words it reaches for, and borrow the rhythm of its sample lines, not the sentences themselves. Never use its words to avoid.",
+  references:
+    "Past posts: these worked for this brand. Learn their shape (how they open, how long they run, how they end). Do not copy their lines. Never reuse a whole sentence from the past posts or the voice's sample lines; at most one item may echo the brand's best-known line, and only reworded.",
   dos_donts: "Dos and don'ts: every do applies wherever it fits. Every don't is a hard rule, with no exceptions.",
   mood_board: "Mood board: the look the brand wants. Use it for light, colour, framing and pace in what is on screen.",
   idea: "Brand idea: the bigger idea behind the brand. Serve it; never contradict it.",
@@ -87,7 +88,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 1. Research */
   {
     id: "trend-scout",
-    version: "3.0.0",
+    version: "3.0.1",
     name: "Trend Scout",
     job: "Finds the formats rising in your niche this week and how you could use them.",
     category: "research",
@@ -149,7 +150,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 2. Ideation */
   {
     id: "idea-generator",
-    version: "1.0.0",
+    version: "1.0.1",
     name: "Idea Generator",
     job: "Gives you a week of post ideas that only your business could post.",
     category: "ideation",
@@ -234,7 +235,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       "No generic series names like Motivation Monday or Tips Tuesday.",
       "",
       "WHAT TO RETURN",
-      "Seven items, the strongest first. idea: the post in one or two sentences, written so the owner can picture it. format: how it is made, in a few words. why_it_fits: one sentence on why this brand and this goal, naming the topic, value or past post it builds on.",
+      "Seven items, the strongest first. idea: the post in one or two sentences, written so the owner can picture it. format: how it is made, in a few words. why_it_fits: one sentence to the owner on why their audience will watch, share or act on it, saying in plain words which of their topics or past posts it builds on (like \"the same shape as the Gerald post\"). Never brief talk like \"as the dos ask\", \"the brand's own line\" or \"hits the dos\".",
     ),
     owner,
     status: "live",
@@ -244,7 +245,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 3. Writing: hooks */
   {
     id: "hook-writer",
-    version: "1.1.0",
+    version: "1.1.1",
     name: "Hook Writer",
     job: "Opens a post or a short with one line people stop for.",
     category: "writing",
@@ -301,7 +302,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       "Each hook takes a different angle, so the owner gets a real choice. Use these ten, one each, in any order: a specific number; a mistake or confession; a contrast (before and now, them and us); a named person, thing or place from the idea; a plain bold statement; a question only this idea raises; the result first; a common belief the idea corrects; a moment in time (a time of day, a day, a season); a direct, friendly instruction.",
       "",
       "QUALITY RULES",
-      "- At most 12 words. Shorter is usually better.",
+      "- At most 10 words, counting every piece between spaces (\"£12\" is one, \"60 kg\" and \"1 a.m.\" are two). Shorter is usually better. A quoted phrase counts in full, so quote only the few words that matter.",
       "- Every hook names something from the idea. If it could open any other post, rewrite it.",
       "- No questions that could start any post: no \"Did you know\", \"Ever wondered\", \"Want to know\".",
       "- No bait the post cannot pay off, no shouting, no ALL CAPS, no \"wait for it\" or \"watch till the end\".",
@@ -321,7 +322,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 4. Writing: scripts */
   {
     id: "script-writer",
-    version: "2.0.0",
+    version: "2.0.1",
     name: "Script Writer",
     job: "Turns one idea into beats with a beginning, a turn and an end.",
     category: "writing",
@@ -431,6 +432,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       `- ${FACTS}`,
       `- ${NO_CLAIMS}`,
       "- No advice that could hurt someone. For health, fitness or safety topics, keep to what the idea says and suggest asking a professional where it matters.",
+      "- Name the business, product or app at most twice in what is spoken and at most once in on-screen text. Show it in use instead of pitching it.",
       `- ${NO_SLOP}`,
       "",
       "WHAT TO RETURN",
@@ -444,7 +446,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 5. Writing: captions */
   {
     id: "caption-writer",
-    version: "1.1.0",
+    version: "1.1.1",
     name: "Caption Writer",
     job: "Writes the caption to match the clip, the format and your voice.",
     category: "writing",
@@ -558,7 +560,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 6. Optimization: tags and search words */
   {
     id: "hashtag-picker",
-    version: "2.0.0",
+    version: "2.0.1",
     name: "Hashtag Optimizer",
     job: "Picks the few tags and search words that help the right people find the post.",
     category: "optimization",
@@ -613,16 +615,17 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       "",
       "QUALITY RULES",
       "- Every term is about this post: what is in it, who it is for, where it is. Nothing the post does not show.",
-      "- Mix one broad hashtag for the category with specific ones for this post. If a location is given, make one hashtag or search word local.",
+      "- At most one broad hashtag for the category; the rest are specific to this post. If a location is given, make one hashtag or search word local.",
+      "- No two terms built on the same main words. Pick the strongest one, not \"sourdough starter\", \"Gerald sourdough starter\" and \"sourdough starter Leeds\" together.",
       "- Only hashtags and words you are confident people already use for this exact topic. Never make up a hashtag unless it is the brand's own and the Brand Brain shows it.",
       "- Never #fyp, #foryou, #viral, #explorepage, #trending, #follow4follow or #like4like: they say nothing about the post.",
       "- Write hashtags with # and no spaces, and capitalise each word in multi-word hashtags (#SourdoughStarter) so screen readers can read them.",
-      "- Search words are two to four plain words, written the way a person would type them.",
+      "- Search words are two to five plain words, written the way a person really types them, grammar included: \"where is my stopcock\", not \"where is stopcock\".",
       "- Never claim post counts, views or reach in why. You cannot see them.",
       `- ${NO_SLOP}`,
       "",
       "WHAT TO RETURN",
-      "Six items, hashtags first, then search words. type: exactly hashtag or keyword. term: the hashtag with #, or the search words. where: exactly where to put it, like \"End of the caption\", \"First line of the caption\", \"On-screen text in the first 3 seconds\" or \"Shorts title\". why: one short reason tied to this post.",
+      "Six items, hashtags first, then search words. type: exactly hashtag or keyword. term: the hashtag with #, or the search words. where: exactly where to put it, like \"End of the caption\", \"First line of the caption\", \"On-screen text in the first 3 seconds\" or \"Shorts title\". why: one short reason naming who searches or follows this term and what they are looking for.",
     ),
     owner,
     status: "live",
@@ -632,7 +635,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 7. Optimization: one post, every platform */
   {
     id: "repurposer",
-    version: "2.0.0",
+    version: "2.0.1",
     name: "Platform Repurposer",
     job: "Turns one post that worked into a native version for each of your other platforms.",
     category: "optimization",
@@ -721,17 +724,16 @@ export const LAUNCH_AGENTS: CreateInput[] = [
 
 /** The change note each launch version is saved with. */
 export const LAUNCH_NOTES: Record<string, string> = {
-  "trend-scout":
-    "Live with the trend lookup: a web search runs before the model writes, every trend cites the page it came from (new source field), five formats a small team can shoot this week.",
-  "idea-generator": "Launch draft: new agent from the doc's MVP set. Seven ideas for a week, with a goal, a format mix and the Brand Brain topics.",
-  "hook-writer": "Launch draft: ten hooks across ten named angles, spoken versus first-line rules per platform, an optional audience, no unused tool.",
-  "script-writer":
-    "Launch draft: four beats (hook, setup, turn, ending) timed to the length, talking head or voiceover, shots limited to what the owner can film, the mood board for the look.",
-  "caption-writer": "Launch draft: per-platform rules, two variants with different angles, facts to include, and one next step people should take.",
+  "trend-scout": "Tuning round 1: learns the shape of past posts but never reuses a whole sentence from them or the voice's sample lines.",
+  "idea-generator":
+    "Tuning round 1: why_it_fits now tells the owner why their audience will watch, share or act, in plain words instead of brief talk; no whole sentences reused from past posts.",
+  "hook-writer":
+    "Tuning round 1: no hook reuses a whole sentence from the past posts or sample lines; at most one echoes the brand's best-known line, reworded. Asks for at most 10 words, two under the hard 12-word check, so long quotes no longer fail a run.",
+  "script-writer": "Tuning round 1: the business or product is named at most twice spoken and once on screen, shown in use instead of pitched; no whole sentences reused from past posts.",
+  "caption-writer": "Tuning round 1: no caption reuses a whole sentence from the past posts or sample lines.",
   "hashtag-picker":
-    "Launch draft: renamed Hashtag Optimizer as in the doc. Six items per post (hashtags and search words with where each goes), a mix per platform, and the brand's no-hashtag rule respected.",
-  repurposer:
-    "Launch draft: renamed Platform Repurposer as in the doc. One post that worked becomes a native version per chosen platform; long video moves to the Long-to-Short Clipper.",
+    "Tuning round 1: at most one broad hashtag, no two terms on the same main words, search words written the way people really type them, and each why names who searches it.",
+  repurposer: "Tuning round 1: keeps the post's own lines, but never borrows whole sentences from other past posts or the sample lines.",
 };
 
 /** Agents of the phase 2 seeds that are not in the launch text lineup. They stay as they are. */

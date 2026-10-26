@@ -227,7 +227,7 @@ describe("pipeline runs", () => {
     expect(hooks.suggested).not.toBeNull();
     expect(hooks.inputs).toMatchObject({ idea: IDEA, platform: "tiktok" });
     // The pinned version of "current".
-    expect(hooks.agent).toMatchObject({ workspaceId: PLATFORM_WORKSPACE_ID, id: "hook-writer", version: "1.1.0" });
+    expect(hooks.agent).toMatchObject({ workspaceId: PLATFORM_WORKSPACE_ID, id: "hook-writer", version: "1.1.1" });
 
     await t.api.pickInPipeline(t.me, t.team.id, run.id, "hooks", 3);
     run = await t.settle(run.id);
@@ -298,7 +298,8 @@ describe("pipeline runs", () => {
           const base = defaultAnswer(req);
           // Phase 12: the first run's quality-gate rewrites stay dirty too, so the step's own rewrite is what fixes it.
           const stepRewrite = req.messages.some((m) => m.role === "user" && m.content.includes("Rewrite it. The last draft failed"));
-          return stepRewrite ? base : base.replace(/"spoken": "/, '"spoken": "Our artisanal ');
+          // The fake builds its answer from words in the prompt; the rewrite note names the word, so keep it out of the clean draft.
+          return stepRewrite ? base.replace(/artisanal/gi, "") : base.replace(/"spoken": "/, '"spoken": "Our artisanal ');
         },
       },
     });
@@ -440,7 +441,7 @@ describe("pipeline runs", () => {
     const t = await bakery();
     const inputs = { post: "Gerald the starter turns nine, with a candle on the jar", platform: "tiktok" };
     const before = await t.start("caption-and-tags", inputs);
-    expect(before.steps.map((s) => s.agent.version)).toEqual(["1.1.0", "2.0.0"]);
+    expect(before.steps.map((s) => s.agent.version)).toEqual(["1.1.1", "2.0.1"]);
     const spec = (await t.registry.get(PLATFORM_WORKSPACE_ID, "hashtag-picker"))!;
     await t.registry.update(PLATFORM_WORKSPACE_ID, "hashtag-picker", {
       inputs: spec.inputs.map((i) => (i.key === "caption" ? { ...i, key: "post_text" } : i)),
