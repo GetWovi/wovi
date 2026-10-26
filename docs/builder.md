@@ -102,7 +102,7 @@ The board reaches the engine as extra Brand Brain material. `boardBrandBrains(ba
 - **`bench.cancel`** cancels every run of the bench that has not ended (queued ones leave the queue, running ones abort). Cancelled runs count for nothing.
 - A bench ends when its last run ends. The finisher is single-flight per bench, writes the scorecard into the spec first and flips the status after, so whoever sees "done" sees the score too. After a restart, a poll closes a bench whose runs have all ended, and the engine re-queues runs it left behind.
 
-Each result shows: the produced output in its typed shape beside the sample's ideal output (or "what to avoid" for a bad sample); every guardrail with pass, fail or note and its reason; whether the answer parsed first time or needed a repair; the model, the time, the tokens and the cost; the auto score; and the builder's rating.
+Each result shows: the produced output in its typed shape beside the sample's ideal output (or "what to avoid" for a bad sample); every guardrail with pass, fail or note and its reason; whether the answer parsed first time or needed a repair; the model judge's second opinion, its score beside the checks and its reasons under them (when `OPENROUTER_API_KEY` is set; see [quality.md](quality.md#the-judge-second-opinion)); the model, the time, the tokens and the cost, the judge's call included; the auto score; and the builder's rating.
 
 `WOVI_FAKE_LATENCY_MS` makes the fake provider take its time, so a running bench can be seen on a screen.
 
@@ -257,6 +257,6 @@ CLIPS_DIR=/path/to/clips OPENROUTER_API_KEY= node scripts/clip-screens.mjs ~/WOV
 
 ## Not yet
 
-Conversational tuning (describe a change in plain words and get a proposed instruction edit) and an LLM judge beside the deterministic checks come with the quality gates in phase 12. Real model calls happen only when `OPENROUTER_API_KEY` is set; nothing here makes one by default.
+Conversational tuning (describe a change in plain words and get a proposed instruction edit). The LLM judge beside the deterministic checks is built: every bench and batch run gets its second opinion on the fast route, inside the run's cap ([quality.md](quality.md#the-judge-second-opinion)). Real model calls happen only when `OPENROUTER_API_KEY` is set; on the fake provider there is no judge.
 
 Clip samples read three frames, so on-screen text shown only between them is missed (the builder adds it by hand); speaker labels are not asked for; a clip is read once (an edit is the way to change its text); and the cost per call is OpenRouter's figure, not a reconciliation with the invoice.

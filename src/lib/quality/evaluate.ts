@@ -1,7 +1,8 @@
 /**
  * One quality reading of a draft (phase 12): every check, the combined score
- * and whether it clears the agent's bar. Plus the slot for an optional model
- * judge, which is off unless an engine is given one.
+ * and whether it clears the agent's bar. Plus the slot for the model judge
+ * (judge.ts), which the engine asks on bench runs only, unless switched on
+ * for people's runs too.
  */
 import type { CheckResult } from "@/lib/runs/guardrails";
 import { runDeterministicChecks, type QualityInput } from "./checks";
@@ -10,17 +11,25 @@ import type { QualityCheckId, QualityCheckResult } from "./types";
 
 /* ---------- The judge slot ---------- */
 
+/** One judgement: the score, its reasons, and what the call cost. */
+export type JudgeReading = { score: number; reasons: string[]; costMicroUsd: number; tokensIn?: number; tokensOut?: number };
+
 /**
- * An optional second opinion from a model, scored against a rubric. Nothing
- * implements it yet and no engine has one by default, so no run ever calls a
- * model for quality. When one is added, the engine checks its estimate
- * against the run's spend cap first and adds its cost to the run.
+ * A second opinion from a model, scored against a rubric. `modelJudge` in
+ * judge.ts is the real one. The engine checks its estimate against the run's
+ * spend cap first and adds its cost to the run. A judge that throws (a
+ * ProviderError with `billed` when the failed call was still paid for) never
+ * fails the run; the draft simply has no second opinion.
  */
 export interface QualityJudge {
+  /** The provider, for the run's call log. */
   id: string;
+  /** The route and model it calls, for the run's call log. */
+  route?: string;
+  model?: string;
   /** What one judgement may cost at most, in micro-dollars, for the spend cap. */
   estimateMicroUsd(input: QualityInput): number;
-  judge(input: QualityInput, signal: AbortSignal): Promise<{ score: number; reasons: string[]; costMicroUsd: number }>;
+  judge(input: QualityInput, signal: AbortSignal): Promise<JudgeReading>;
 }
 
 /* ---------- Combining ---------- */
@@ -35,6 +44,8 @@ export type QualityReading = {
   failed: QualityCheckId[];
   /** Why it falls short, in plain words. Empty when ready. */
   reasons: string[];
+  /** The score without the judge, set only when the judge took part, so a judged version can be compared with one that was not. */
+  withoutJudge?: number;
 };
 
 /**
@@ -67,15 +78,24 @@ export function failingReasons(checks: QualityCheckResult[]): string[] {
 export function readQuality(checks: QualityCheckResult[], bar: number, guardrails: CheckResult[] = []): QualityReading {
   const failedGuardrails = guardrails.filter((g) => g.status === "fail");
   const hard = checks.some((c) => c.status === "fail") || failedGuardrails.length > 0;
-  const mean = combinedScore(checks);
-  const score = hard ? Math.min(mean, FAIL_CAP) : mean;
+  const capped = (mean: number) => (hard ? Math.min(mean, FAIL_CAP) : mean);
+  const score = capped(combinedScore(checks));
+  const judged = checks.some((c) => c.id === "judge" && c.score !== null);
   const ready = score >= bar && !hard;
   // A guardrail whose quality check already failed says the same thing; it is not said twice.
   const extra = failedGuardrails.filter((g) => !checks.some((c) => c.id === COVERED[g.check] && c.status === "fail"));
   const reasons = ready
     ? []
     : [...(score < bar ? [`Scored ${score}, under this agent's bar of ${bar}.`] : []), ...failingReasons(checks), ...extra.map((g) => `${g.message}${g.findings?.length ? ` ${g.findings.slice(0, 3).join(", ")}` : ""}`)];
-  return { score, checks, ready, failing: checks.filter((c) => c.status === "fail" || c.status === "weak").map((c) => c.id), failed: checks.filter((c) => c.status === "fail").map((c) => c.id), reasons };
+  return {
+    score,
+    checks,
+    ready,
+    failing: checks.filter((c) => c.status === "fail" || c.status === "weak").map((c) => c.id),
+    failed: checks.filter((c) => c.status === "fail").map((c) => c.id),
+    reasons,
+    ...(judged ? { withoutJudge: capped(combinedScore(checks.filter((c) => c.id !== "judge"))) } : {}),
+  };
 }
 
 /** The phase 3 guardrail checks and the quality check that reports the same thing. */

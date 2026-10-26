@@ -204,6 +204,6 @@ describe("the regression gate", () => {
     const mk = (id: string, version: string, at: string, status: Run["status"], score: number | null): [string, G] => [id, { id, status, quality: score === null ? null : ({ score } as QualityReport), checks: [], createdAt: at, agent: { workspaceId: "ws_wovi", id: "hook-writer", version } }];
     const runs = new Map([mk("a", "1.0.0", "1", "succeeded", 50), mk("b", "1.0.0", "2", "succeeded", 90), mk("c", "1.0.0", "3", "failed", null), mk("d", "1.0.1", "1", "cancelled", null)]);
     const got = latestGoldScores("1.0.0", [{ sampleId: "s1", runId: "a" }, { sampleId: "s1", runId: "b" }, { sampleId: "s2", runId: "c" }, { sampleId: "s3", runId: "d" }], runs);
-    expect([...got]).toEqual([["s1", 90], ["s2", 0]]);
+    expect([...got]).toEqual([["s1", { score: 90, withoutJudge: null }], ["s2", { score: 0, withoutJudge: null }]]);
   });
 });

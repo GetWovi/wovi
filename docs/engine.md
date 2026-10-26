@@ -86,7 +86,7 @@ Each guardrail the agent declares runs as a check function from `GUARDRAIL_CHECK
 | `ai_disclosure` | Always a note: label as AI where the platform asks. |
 | `rights_confirmed`, `voice_consent` | Before the run, see submit. |
 
-A failed check is stored in `run.checks` and sets `run.needsReview`; the output is kept for the human approve step. Since phase 12 every parsed draft also goes through the quality gate: six scored checks, one score, the agent's bar, and up to two rewrites with the reasons inside the run's spend cap before a result below the bar goes to review. See [quality.md](quality.md). The phrase lists, platform limits and checks are data in `guardrails.ts`, so phase 12 adds entries (LLM judge, brand-fit score) without touching the engine.
+A failed check is stored in `run.checks` and sets `run.needsReview`; the output is kept for the human approve step. Since phase 12 every parsed draft also goes through the quality gate: six scored checks, one score, the agent's bar, and up to two rewrites with the reasons inside the run's spend cap before a result below the bar goes to review. See [quality.md](quality.md). The phrase lists, platform limits and checks are data in `guardrails.ts`. The LLM judge (`src/lib/quality/judge.ts`) reads bench runs as one more check, "Second opinion", as a `judge` call inside the run's cap; people's runs only with `WOVI_JUDGE_LIVE=on` (off by default). The engine takes it as `judge` and the switch as `judgeLive`; a judge that fails never fails the run. See [quality.md](quality.md#the-judge-second-opinion).
 
 ### 6. Queue, retries, cancel, timeout
 

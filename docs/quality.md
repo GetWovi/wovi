@@ -4,7 +4,7 @@ From the product doc: "Anti-slop is a system. Reference anchoring, banned generi
 
 This phase builds that on the run engine (3), the builder (5, 6), the Brand Brain (7), the launch agents and their golden samples (8), the app (9), pipelines (10) and review (11). Every result is scored after the model answers. Below the agent's bar it is sent back for a rewrite with the reasons, at most twice and inside the run's spend cap; if it is still below, it goes to a person with the reasons and is never marked "ready". People see each agent's record; builders see what fails most.
 
-Nothing here calls a real model, fetches anything or spends money. Every check is deterministic and free; tests, the seed script and the screenshots run on the fake provider, and vitest blanks `OPENROUTER_API_KEY`.
+The six checks are deterministic and free. The one model call is the judge's second opinion ([below](#the-judge-second-opinion)), on bench runs, and only when `OPENROUTER_API_KEY` is set. Tests, the seed script and the screenshots run on the fake provider, and vitest blanks `OPENROUTER_API_KEY`.
 
 The code lives in `src/lib/quality/`.
 
@@ -13,13 +13,14 @@ The code lives in `src/lib/quality/`.
 | `types.ts` | The `QualityReport` a run keeps, its checks and drafts, and the public view. Client-safe. |
 | `data.ts` | The data: banned generic phrases and filler words per language, platform rules, check names and weights, the default bar per category, `gateFor(spec)`. Client-safe. |
 | `checks.ts` | The six checks. |
-| `evaluate.ts` | The combined score, the ready rule, and the slot for a model judge. |
+| `evaluate.ts` | The combined score, the ready rule, and the `QualityJudge` slot. |
+| `judge.ts` | The model judge: the rubric, the strict answer parser, `modelJudge`, and the `WOVI_JUDGE_LIVE` switch. |
 | `gate.ts` | The rewrite message, which draft wins, the report. The loop itself is in `src/lib/runs/execute.ts`. |
 | `scorecard.ts` | The public scorecard math, with the numbers in plain words. |
 | `rollup.ts` | The builder's roll-up per version. |
 | `service.ts` | `QualityService`: gathers runs, decisions and ratings for the two above. `sampleReferences`: the engine's source of golden and bad samples. |
 | `server.ts` | One service per server process. |
-| `quality.test.ts` | The tests (below). |
+| `quality.test.ts`, `judge.test.ts` | The tests (below). |
 
 ## The checks
 
@@ -62,9 +63,35 @@ Both are optional. `minScore` is 40 to 95, `maxRewrites` 0, 1 or 2. Left out, th
 
 The engine reads golden and bad samples through `references` (`ReferenceSource`); the app's engine reads the builder's samples for the agent. Bench runs go through the gate too, so the bench shows what people would get.
 
-### The judge slot
+### The judge (second opinion)
 
-`QualityJudge` in `evaluate.ts` is the place for a model that reads a draft against a rubric. Nothing implements it and no engine has one, so it is off. When an engine is given one, its estimate is checked against the run's cap first, its cost is added to the run as a `judge` call, and its reading joins the checks as "Second opinion" (weight 25).
+From the product doc: "LLM judge plus human spot checks: an automatic judge scores outputs against a rubric". `modelJudge` in `judge.ts` implements `QualityJudge` from `evaluate.ts`.
+
+**What it reads.** One draft, against a rubric built for this run, every piece in its own data block so nothing in it reads as an instruction:
+
+- the agent's name and job, its output contract (counts, sections, platforms and the shape), and the lines under QUALITY RULES in its instructions;
+- the run's inputs, as the engine renders them;
+- the Brand Brain parts the agent reads (`spec.brandBrain`), nothing else of the Brand Brain;
+- up to 12 of the agent's gold sample lines as the reference of good (a bench run of a sample never sees its own, as with reference anchoring);
+- the draft itself.
+
+The rubric asks for a score from 0 to 100 on the job, the quality rules, specificity, facts, brand and, when given, the gold lines, with plain bands (90 ready to post, 70 good, 50 usable after edits, under 50 misses).
+
+**What it answers.** One JSON object with exactly `score` (a whole number from 0 to 100) and `reasons` (one to five short strings; the prompt asks for one to three). A JSON code fence around it is allowed; anything else, extra keys included, is not read.
+
+**Where it runs.** On the `text-fast` route (`openai/gpt-6-luna`, the cheapest text tier) through the OpenRouter provider, with low reasoning like every route, temperature 0, and at most 800 output tokens. The app's engine gets it when `OPENROUTER_API_KEY` is set; on the fake provider there is no judge. No new provider and no new required setting.
+
+**Which runs.** Bench runs, ad-hoc bench runs and batches: the gold set. The engine marks a run for the judge at submit when it is a bench run (`billing.free: "bench"`, which only the bench sets) and keeps that on the run (`run.judge`). People's runs and pipeline steps are not judged unless `WOVI_JUDGE_LIVE=on` (off by default, see Settings).
+
+**In the gate.** Every draft of a judged run, the first and each rewrite, gets the judge's reading as one more check, "Second opinion" (weight 25, weak under 60, never a hard fail). It joins the combined score like any check, and its reasons join the rewrite notes. The report keeps `judge: true` when the used draft has a second opinion, and `withoutJudge`, the same score without it.
+
+**Cost and the cap.** Before each judgement the engine estimates it (the judge's prompt plus all 800 output tokens) and skips it when the run's cap would not cover it; the skip is recorded as a `judge` call with the reason. A judgement is a `judge` call on the run with its tokens and cost, added to the run's totals like any call. A judge prompt is about 1,400 to 2,100 tokens for the launch agents, so one judgement is about $0.0003 (at most about $0.0006 by the estimate); a judged run with two rewrites is three of them.
+
+**When it fails.** No answer, a timeout or an answer that cannot be read never fails or holds up the run: the draft has no second opinion and is scored on the six checks alone. The failed call is recorded, and whatever it was billed (an unreadable answer is still paid for) is counted.
+
+**On the bench.** Each result carries `judge`: the score and reasons, shown beside the checks as "Second opinion 82" with the reasons under them; or "No second opinion" with why (the cap, no answer, an answer that could not be read). Null when the engine has no judge.
+
+**The regression gate** compares the combined score, with the second opinion, on the gold set ([stats.md](stats.md#the-regression-gate)). A gold sample where only one of the two versions had a second opinion (the older one ran before the judge, or its judgement failed) is compared on both scores without it, and the gate says how many.
 
 ## Pipelines
 
@@ -121,11 +148,12 @@ It signs in through the email flow, skips onboarding, then runs `scripts/seed-qu
 
 ## Tests
 
-`src/lib/quality/quality.test.ts` (24 tests):
+`src/lib/quality/quality.test.ts` (24 tests) and `src/lib/quality/judge.test.ts` (10 tests):
 
 - each check: generic phrases from the list; specificity from names, numbers and input words, minus filler and repeats, failing with nothing from the input; reference anchoring against the brand's posts and golden samples and away from bad ones; brand fit, skipped without a Brand Brain; claims; platform rules for X length, Reels hashtags, Shorts titles, the Reels first line, thread posts and tag lists;
 - the combined score: weights with skipped checks dropped, the cap on a failed check, ready only at the bar with nothing failed, a declared guardrail said once; every golden launch sample above its agent's bar and every bad one below; the bar and rewrites from the spec and the category, and their limits;
-- the gate: a clean draft ready with its breakdown on the public view; a rewrite with the reasons in a data block that then passes; still under after the capped rewrites, marked for review with the reasons; the agent's own bar and cap (0, 1, a high bar); the spend cap stopping a rewrite; a rewrite that does not parse; references read from the source; the judge off by default and counted inside the cap when given; fake-provider runs of every live launch agent's golden inputs come back ready with no rewrite;
+- the gate: a clean draft ready with its breakdown on the public view; a rewrite with the reasons in a data block that then passes; still under after the capped rewrites, marked for review with the reasons; the agent's own bar and cap (0, 1, a high bar); the spend cap stopping a rewrite; a rewrite that does not parse; references read from the source; the judge off on people's runs by default and counted inside the cap when it reads them; fake-provider runs of every live launch agent's golden inputs come back ready with no rewrite;
+- the judge: the rubric's content (job, output contract, QUALITY RULES lines of every launch agent, inputs, only the Brand Brain parts the agent reads, gold lines, the draft escaped); good and bad answers parsed strictly; the fast route with low reasoning and an estimate that covers the call; people's runs not judged by default, bench runs judged, every run with the setting on; no answer, an unreadable answer or a throwing judge never failing the run, with what was billed counted; the cap skipping it; bench results carrying the second opinion (or why there is none); the regression gate on the combined score and without the second opinion where only one version had it;
 - pipelines: a step under its bar flagged with the reason in the package;
 - the public scorecard math and its words; decisions from review items and phase 9 reviews, the bench left out;
 - the builder roll-up: tallies, one failing draft per run, grouped change requests and words, decisions, ratings, per version; read from real engine runs; builders only.
@@ -134,7 +162,7 @@ Two phase 6 and phase 10 tests script a bad first answer; their fake responders 
 
 ## Later
 
-- The model judge (the slot is there), with a weekly human sample so it does not drift, as the product doc says.
+- The weekly human spot check of judged results, so the judge does not drift, as the product doc says. The judge's score sits beside the builder's bench rating on every result, which is where that check would read.
 - More languages for the phrase lists once runs carry a language.
 - Engagement after posting (the doc's third layer) when analytics are connected.
 - The regression gate is built: a new version cannot go to everyone if it scores below the current one on the gold set, or is clearly worse on live runs as a canary. See [stats.md](stats.md#the-regression-gate).
@@ -142,3 +170,9 @@ Two phase 6 and phase 10 tests script a bad first answer; their fake responders 
 ## Phase 18
 
 The TikTok caption limit is 2,200 characters. The builder roll-up shows a draft's text and a change request's words only from the bench and from people who turned on "Use my edits to improve agents"; counts and scores still include everyone. See [safety.md](safety.md).
+
+## Settings
+
+| Variable | Default | What it does |
+|---|---|---|
+| `WOVI_JUDGE_LIVE` | off | `on` also asks the judge on people's runs and pipeline steps, inside each run's spend cap. Each judged draft is one more call on the fast route (about $0.0003), charged with the run. Bench runs are judged either way when `OPENROUTER_API_KEY` is set. |

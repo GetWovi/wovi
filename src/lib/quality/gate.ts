@@ -32,7 +32,7 @@ export function beats(b: QualityReading, a: QualityReading): boolean {
 }
 
 /** The report a run keeps: the used draft's checks and score, and every draft in order. */
-export function gateReport(drafts: GateDraft[], used: number, gate: GateSettings, stopped: GateStop | null, judge: boolean): QualityReport {
+export function gateReport(drafts: GateDraft[], used: number, gate: GateSettings, stopped: GateStop | null): QualityReport {
   const best = drafts[used].reading!;
   const first = drafts[0].reading!;
   const attempts: QualityAttempt[] = drafts.map((d, n) => ({
@@ -58,7 +58,8 @@ export function gateReport(drafts: GateDraft[], used: number, gate: GateSettings
     attempts,
     used,
     stopped: best.ready ? null : stopped,
-    judge,
+    judge: best.checks.some((c) => c.id === "judge"),
+    ...(best.withoutJudge !== undefined ? { withoutJudge: best.withoutJudge } : {}),
   };
 }
 

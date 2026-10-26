@@ -83,6 +83,12 @@ export type Run = {
   needsReview: boolean;
   /** The quality gate's reading (phase 12). Missing on runs from before it. */
   quality?: QualityReport | null;
+  /**
+   * Set when the quality gate asks the model judge for a second opinion on
+   * this run: bench runs, and people's runs when WOVI_JUDGE_LIVE is on.
+   * Missing otherwise. Never shown to users.
+   */
+  judge?: boolean;
 
   /** The model whose answer became the output. Hidden from users. */
   model: { route: string; provider: string; model: string } | null;

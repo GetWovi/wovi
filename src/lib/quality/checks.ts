@@ -21,7 +21,8 @@ export type QualityReferences = { gold: string[]; bad: string[] };
 export const NO_REFERENCES: QualityReferences = { gold: [], bad: [] };
 
 export type QualityInput = {
-  spec: Pick<AgentBody, "inputs" | "output" | "platforms" | "category">;
+  /** The checks read the first four; the judge's rubric also reads the job, the instructions' QUALITY RULES and the Brand Brain parts. */
+  spec: Pick<AgentBody, "inputs" | "output" | "platforms" | "category"> & Partial<Pick<AgentBody, "name" | "job" | "instructions" | "brandBrain">>;
   /** The person's inputs, without any rewrite note. */
   inputs: RunInputs;
   output: RunOutput;

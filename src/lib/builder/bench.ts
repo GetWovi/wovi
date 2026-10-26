@@ -5,7 +5,9 @@
  * per version that is written into the spec's quality fields.
  *
  * Runs go through the engine like any other run, in ws_wovi, so the queue's
- * concurrency and the spec's spend cap apply. The bench keeps only the list
+ * concurrency and the spec's spend cap apply. Bench runs are the gold set the
+ * model judge reads (quality/judge.ts), so each result carries its second
+ * opinion when the engine has a judge. The bench keeps only the list
  * of runs and what each one was compared against. Builders see the model,
  * the tokens and the cost, which users never do.
  *
@@ -56,6 +58,13 @@ export type BenchResult = {
   costMicroUsd: number;
   costUsd: number;
   autoScore: number | null;
+  /**
+   * The model judge's second opinion on the result, read against the
+   * agent's rubric: its score and reasons. The score is null when the judge
+   * was asked but gave none (the run's cap, no answer, an answer that could
+   * not be read), with why. Null when it was not asked.
+   */
+  judge: { score: number | null; reasons: string[] } | null;
   rating: { rating: RatingValue; note: string } | null;
   /** The samples the run was given as examples (titles), and whether its own sample was kept out. Null before the run starts. */
   examples: { gold: string[]; bad: string[]; ownKeptOut: boolean } | null;
@@ -594,7 +603,7 @@ export function resultOf(index: number, item: BenchItem, run: Run | null, rating
     runId: item.runId,
   };
   if (!run) {
-    return { ...base, status: "refused", error: item.error ?? "The run is missing.", output: null, checks: [], needsReview: false, parsed: null, model: null, ms: null, tokensIn: 0, tokensOut: 0, costMicroUsd: 0, costUsd: 0, autoScore: null, rating: null, examples: null, sources: [] };
+    return { ...base, status: "refused", error: item.error ?? "The run is missing.", output: null, checks: [], needsReview: false, parsed: null, model: null, ms: null, tokensIn: 0, tokensOut: 0, costMicroUsd: 0, costUsd: 0, autoScore: null, judge: null, rating: null, examples: null, sources: [] };
   }
   return {
     ...base,
@@ -611,8 +620,20 @@ export function resultOf(index: number, item: BenchItem, run: Run | null, rating
     costMicroUsd: run.costMicroUsd,
     costUsd: run.costUsd,
     autoScore: autoScore(run),
+    judge: judgeOf(run),
     rating: rating ? { rating: rating.rating, note: rating.note } : null,
     examples: run.examples ? { gold: run.examples.gold.map((e) => e.title), bad: run.examples.bad.map((e) => e.title), ownKeptOut: Boolean(item.sampleId && run.examples.excluded.includes(item.sampleId)) } : null,
     sources: runSources(run).map(({ url, title, published }) => ({ url, title, published })),
   };
+}
+
+/** A finished run's second opinion: the judge check on the used draft, else why there is none. Null when the judge was not asked. */
+export function judgeOf(run: Run): BenchResult["judge"] {
+  if (run.status !== "succeeded") return null;
+  const check = run.quality?.checks.find((c) => c.id === "judge");
+  if (check) return { score: check.score, reasons: check.reasons };
+  const last = run.calls.filter((c) => c.purpose === "judge").at(-1);
+  if (!last) return null;
+  const why = last.error?.startsWith("skipped:") ? "Not asked: the run's budget would not cover it." : last.error?.startsWith("bad_response") ? "The judge's answer could not be read." : "The judge did not answer.";
+  return { score: null, reasons: [why] };
 }

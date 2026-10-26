@@ -195,7 +195,7 @@ describe("the combined score", () => {
         expect(r.ready, `${a.id}: ${s.title} scored ${r.score}. ${r.reasons.join(" | ")}`).toBe(s.label === "gold");
       }
     }
-  });
+  }, 60_000); // Every launch sample of every agent, each checked against the others: about 12 s with 30 per agent.
 
   it("takes the bar and rewrite cap from the spec, else the category's defaults", () => {
     expect(gateFor({ category: "writing" })).toEqual({ minScore: 70, maxRewrites: 2 });
@@ -315,15 +315,15 @@ describe("the quality gate", () => {
     expect(sampleLines("Hook (3 s)\nSay: Gerald is nine years old today.\nOn screen: the jar\n\n1. Margaret is 61 and lifts.")).toEqual(["Gerald is nine years old today.", "Margaret is 61 and lifts."]);
   });
 
-  it("has a slot for a model judge that is off by default, and counts it inside the spend cap when given one", async () => {
+  it("has a slot for a model judge that is off on people's runs by default, and counts it inside the spend cap when it reads them", async () => {
     const judge: QualityJudge = { id: "judge_fake", estimateMicroUsd: () => 500, judge: async () => ({ score: 40, reasons: ["Flat opening."], costMicroUsd: 500 }) };
-    const { engine } = await testEngine({ judge, agents: [goodSpec({ gate: { maxRewrites: 0 } })] });
+    const { engine } = await testEngine({ judge, judgeLive: true, agents: [goodSpec({ gate: { maxRewrites: 0 } })] });
     const run = await engine.waitForRun(WS, (await engine.submitRun(goodRequest())).id);
     expect(run.quality!.judge).toBe(true);
     expect(run.quality!.checks.find((c) => c.id === "judge")).toMatchObject({ status: "weak", score: 40, reasons: ["Flat opening."] });
     expect(run.calls.map((c) => c.purpose)).toEqual(["answer", "judge"]);
     expect(run.costMicroUsd).toBe(run.calls.reduce((s, c) => s + c.costMicroUsd, 0));
-    const plain = await testEngine();
+    const plain = await testEngine({ judge });
     const p = await plain.engine.waitForRun(WS, (await plain.engine.submitRun(goodRequest())).id);
     expect(p.quality!.judge).toBe(false);
     expect(p.quality!.checks.some((c) => c.id === "judge")).toBe(false);

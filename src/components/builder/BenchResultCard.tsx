@@ -140,6 +140,11 @@ export function BenchResultCard({ csrf, agentId, result, onRated }: { csrf: stri
                 <Icon name={c.status === "pass" ? "check" : c.status === "fail" ? "close" : "info"} size={14} /> {checkLabel(c)}
               </span>
             ))}
+            {r.judge && (
+              <span className={[styles.check, r.judge.score !== null && r.judge.score >= 60 ? styles.checkPass : styles.checkNote].join(" ")} title={r.judge.reasons.join(" ")}>
+                <Icon name={r.judge.score !== null && r.judge.score >= 60 ? "check" : "info"} size={14} /> {r.judge.score === null ? "No second opinion" : `Second opinion ${r.judge.score}`}
+              </span>
+            )}
           </div>
           {fails.length > 0 && (
             <ul className={styles.checkList}>
@@ -148,6 +153,13 @@ export function BenchResultCard({ csrf, agentId, result, onRated }: { csrf: stri
                   {checkLabel(c)}: {c.message} {c.findings?.length ? `(${c.findings.slice(0, 3).join("; ")})` : ""}
                 </li>
               ))}
+            </ul>
+          )}
+          {r.judge && (
+            <ul className={styles.checkList}>
+              <li>
+                {r.judge.score === null ? "No second opinion" : `Second opinion ${r.judge.score}`}: {r.judge.reasons.join(" ")}
+              </li>
             </ul>
           )}
           {(r.examples || r.sources.length > 0) && (

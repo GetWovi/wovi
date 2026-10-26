@@ -13,17 +13,20 @@
  * rewrite it with the reasons as notes, at most `gate.maxRewrites` times and
  * only while the run's budget covers the next call. The best draft is kept;
  * if it is still below the bar the run goes to review with the reasons.
+ *
+ * The model judge (quality/judge.ts), when the engine gives one for this run,
+ * reads every draft as one more check, "Second opinion", inside the cap.
  */
 import { findModelRoute, type ModelRoute } from "@/lib/agents/catalog";
 import type { AgentBody } from "@/lib/agents/spec";
 import { NO_REFERENCES, runDeterministicChecks, type QualityInput, type QualityReferences } from "@/lib/quality/checks";
 import { gateFor, judgeCheck, readQuality, type QualityJudge, type QualityReading } from "@/lib/quality/evaluate";
 import { beats, gateReport, rewriteInstruction, type GateDraft } from "@/lib/quality/gate";
-import type { GateStop, QualityReport } from "@/lib/quality/types";
+import type { GateStop, QualityCheckResult, QualityReport } from "@/lib/quality/types";
 import { brandBrainRef, type BrandBrain } from "./brand-brain";
 import { runAfterChecks, type CheckResult } from "./guardrails";
 import { parseOutput, repairInstruction, type RunOutput } from "./output";
-import { DEFAULT_MAX_OUTPUT_TOKENS, costMicroUsd, estimateCallMicroUsd, toUsd } from "./prices";
+import { DEFAULT_MAX_OUTPUT_TOKENS, costMicroUsd, estimateCallMicroUsd, priceOf, toUsd } from "./prices";
 import { assemblePrompt, promptText } from "./prompt";
 import { ProviderError, asProviderError, type ChatMessage, type ModelProvider } from "./providers/types";
 import type { ModelCall, Run, RunFailureCode } from "./run";
@@ -41,7 +44,7 @@ export type ExecContext = {
   now: () => Date;
   /** The agent's golden and bad samples, for reference anchoring. */
   references?: QualityReferences;
-  /** The optional model judge. Null or left out: off. */
+  /** The model judge for this run: bench runs, or every run with WOVI_JUDGE_LIVE on. Null or left out: off. */
   judge?: QualityJudge | null;
   /** The tools this engine can run. Only the ones the spec declares are called. */
   tools?: ToolSet;
@@ -170,7 +173,7 @@ async function gateLoop(ctx: ExecContext, messages: ChatMessage[], first: { outp
     output: best.output,
     checks: best.guards,
     model: { route: best.answer.route.id, provider: best.answer.provider, model: best.answer.route.model! },
-    quality: gateReport(scoredDrafts, used, gate, stopped, Boolean(ctx.judge)),
+    quality: gateReport(scoredDrafts, used, gate, stopped),
   };
 }
 
@@ -180,23 +183,49 @@ async function score(ctx: ExecContext, output: RunOutput, answer: Answer, bar: n
   const guards = [...runAfterChecks({ spec, inputs: run.inputs, output, brain }), ...toolSourceChecks(output, run.tools)];
   const input: QualityInput = { spec, inputs: run.inputs, output, brain, references: ctx.references ?? NO_REFERENCES };
   const checks = runDeterministicChecks(input);
-  if (ctx.judge) {
-    const estimate = ctx.judge.estimateMicroUsd(input);
-    if (run.costMicroUsd + estimate <= run.capMicroUsd) {
-      const started = Date.now();
-      try {
-        const j = await ctx.judge.judge(input, ctx.signal);
-        run.calls.push(record(ctx, { purpose: "judge", route: "judge", provider: ctx.judge.id, model: ctx.judge.id }, { ok: true, costMicroUsd: j.costMicroUsd, ms: Date.now() - started }));
-        run.costMicroUsd += j.costMicroUsd;
-        run.costUsd = toUsd(run.costMicroUsd);
-        checks.push(judgeCheck(j.score, j.reasons));
-      } catch (err) {
-        if (ctx.signal.aborted) throw new RunAborted();
-        run.calls.push(record(ctx, { purpose: "judge", route: "judge", provider: ctx.judge.id, model: ctx.judge.id }, { ok: false, error: String((err as Error)?.message ?? err), ms: Date.now() - started }));
-      }
-    }
-  }
+  const second = ctx.judge ? await secondOpinion(ctx, ctx.judge, input) : null;
+  if (second) checks.push(second);
   return { output, guards, answer, reading: readQuality(checks, bar, guards) };
+}
+
+/**
+ * The judge's reading of one draft, as a check. Skipped when its estimate
+ * would pass the run's cap; a failed or unreadable answer gives no check and
+ * never fails the run. Either way the call is on the run with what it cost.
+ */
+async function secondOpinion(ctx: ExecContext, judge: QualityJudge, input: QualityInput): Promise<QualityCheckResult | null> {
+  const { run } = ctx;
+  const base = { purpose: "judge" as const, route: judge.route ?? "judge", provider: judge.id, model: judge.model ?? judge.id };
+  const estimate = judge.estimateMicroUsd(input);
+  if (run.costMicroUsd + estimate > run.capMicroUsd) {
+    run.calls.push(record(ctx, base, { ok: false, error: `skipped: estimate $${toUsd(estimate)} would pass the cap ($${toUsd(run.costMicroUsd)} of $${toUsd(run.capMicroUsd)} spent)` }));
+    return null;
+  }
+  const timeout = AbortSignal.timeout(ctx.callTimeoutMs);
+  const started = Date.now();
+  let tokensIn = 0;
+  let tokensOut = 0;
+  let cost = 0;
+  let check: QualityCheckResult | null = null;
+  try {
+    const j = await judge.judge(input, AbortSignal.any([ctx.signal, timeout]));
+    ({ tokensIn = 0, tokensOut = 0, costMicroUsd: cost } = j);
+    run.calls.push(record(ctx, base, { ok: true, tokensIn, tokensOut, costMicroUsd: cost, ms: Date.now() - started }));
+    check = judgeCheck(j.score, j.reasons);
+  } catch (err) {
+    if (ctx.signal.aborted) throw new RunAborted();
+    const pe = timeout.aborted ? new ProviderError("timeout", `No answer within ${ctx.callTimeoutMs} ms.`) : asProviderError(err);
+    if (pe.billed) {
+      ({ tokensIn, tokensOut } = pe.billed);
+      cost = pe.billed.costMicroUsd ?? (judge.model && priceOf(judge.model) ? costMicroUsd(judge.model, tokensIn, tokensOut) : 0);
+    }
+    run.calls.push(record(ctx, base, { ok: false, error: `${pe.kind}: ${pe.message}`, ms: Date.now() - started, ...(pe.billed ? { tokensIn, tokensOut, costMicroUsd: cost } : {}) }));
+  }
+  run.tokensIn += tokensIn;
+  run.tokensOut += tokensOut;
+  run.costMicroUsd += cost;
+  run.costUsd = toUsd(run.costMicroUsd);
+  return check;
 }
 
 /** Tries each route in order until one answers. */

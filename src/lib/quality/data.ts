@@ -148,7 +148,7 @@ export const CHECKS: Record<QualityCheckId, { label: string; weight: number; wha
   reference_anchoring: { label: "Like your best posts", weight: 15, what: "Close to your own posts that worked and to the agent's best examples." },
   claims: { label: "No misleading claims", weight: 10, what: "No promises about results, money or health, no invented reviews, nobody else's voice." },
   platform_rules: { label: "Fits the platform", weight: 10, what: "Inside each platform's length, title and hashtag limits." },
-  judge: { label: "Second opinion", weight: 25, what: "A model reads it against a rubric. Off unless switched on." },
+  judge: { label: "Second opinion", weight: 25, what: "A model reads it against the agent's rubric. On bench runs; on people's runs only when switched on." },
 };
 
 /** A check that fails caps the combined score here, so a score never reads "fine" over a hard problem. */

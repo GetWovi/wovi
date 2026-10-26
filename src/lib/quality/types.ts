@@ -80,8 +80,10 @@ export type QualityReport = {
   used: number;
   /** Why rewriting stopped short, when the draft is still below the bar. */
   stopped: GateStop | null;
-  /** Whether the optional model judge took part. Off by default. */
+  /** Whether the model judge's second opinion is in the used draft's checks. Bench runs ask for it; people's runs only when WOVI_JUDGE_LIVE is on. */
   judge: boolean;
+  /** The used draft's score without the second opinion, when it has one, so the regression gate can compare a judged version with one that was not. */
+  withoutJudge?: number;
 };
 
 /** The agent's gate: its bar and how many rewrites it may run. */

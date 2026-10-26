@@ -19,6 +19,7 @@ import type { AgentSpec } from "@/lib/agents/spec";
 import { jsonFileBrandStore } from "@/lib/brand/store";
 import { NO_REFERENCES, type QualityReferences } from "@/lib/quality/checks";
 import type { QualityJudge } from "@/lib/quality/evaluate";
+import { judgeLiveEnabled, modelJudge } from "@/lib/quality/judge";
 import { storeBrainSource } from "@/lib/brand/source";
 import { BillingRefusal, type RunBilling, type RunBillingRequest } from "./billing";
 import type { BrandBrain, BrandBrainSource } from "./brand-brain";
@@ -138,8 +139,14 @@ export type EngineOptions = {
    * Left out, only the Brand Brain's own posts are compared.
    */
   references?: ReferenceSource;
-  /** The optional model judge for the quality gate. Off (null) unless given. */
+  /**
+   * The model judge for the quality gate (quality/judge.ts). It reads bench
+   * runs (the gold set); people's runs only with `judgeLive`. Left out: none,
+   * as in tests. The local engine gives the real one when OpenRouter is set up.
+   */
   judge?: QualityJudge | null;
+  /** Also judge people's runs and pipeline steps (WOVI_JUDGE_LIVE=on). Off by default: every judged draft is one more call. */
+  judgeLive?: boolean;
   /**
    * Credits (phase 13): holds the estimate at submit and charges or gives
    * back at the end. Left out, runs cost no credits, as before.
@@ -472,6 +479,8 @@ export class RunEngine {
         }
       : null;
     const exclude = cleanIds(req.excludeSampleIds);
+    // The judge reads the bench's runs; people's runs only when judging live runs is on.
+    const judged = req.billing?.free === "bench" || this.opts.judgeLive === true;
     // Credits last, once everything else passed: hold the estimate, or refuse before anything is queued.
     const credits = await this.reserve(req, id, spec);
     const run: Run = {
@@ -502,6 +511,7 @@ export class RunEngine {
       costUsd: 0,
       ...(credits ? { credits } : {}),
       ...(release ? { release } : {}),
+      ...(judged ? { judge: true } : {}),
       ...(exclude.length ? { examples: { gold: [], bad: [], excluded: exclude } } : {}),
       timings: { queuedAt: now, startedAt: null, finishedAt: null, queueMs: null, runMs: null },
       createdAt: now,
@@ -684,7 +694,7 @@ export class RunEngine {
         callTimeoutMs: this.cfg.callTimeoutMs,
         now: this.cfg.now,
         references,
-        judge: this.opts.judge ?? null,
+        judge: run.judge ? (this.opts.judge ?? null) : null,
         tools: this.tools,
         toolCache: this.opts.toolCache ?? null,
         toolLimits: this.opts.toolLimits,
@@ -796,7 +806,9 @@ export function requestTexts(spec: Pick<AgentSpec, "inputs">, inputs: RunInputs,
  * The engine on the local JSON stores in .data/ (or WOVI_DATA_DIR), with the
  * workspace's Brand Brains from .data/brand-brains.json unless another source
  * is given. Uses the fake provider
- * unless OPENROUTER_API_KEY is set, and always when `fake` is true.
+ * unless OPENROUTER_API_KEY is set, and always when `fake` is true. With
+ * OpenRouter it has the model judge for bench runs (and for people's runs
+ * when WOVI_JUDGE_LIVE is on); on the fake provider there is no judge.
  */
 export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrains?: BrandBrainSource; references?: ReferenceSource; examples?: ExampleSource | null; billing?: RunBilling | null; router?: VersionRouter | null } = {}): RunEngine {
   const dataDir = opts.dataDir ?? process.env.WOVI_DATA_DIR ?? join(process.cwd(), ".data");
@@ -817,6 +829,8 @@ export function localEngine(opts: { dataDir?: string; fake?: boolean; brandBrain
     toolCache: jsonFileToolCache(join(dataDir, "tool-cache.json")),
     billing: opts.billing ?? null,
     router: opts.router ?? null,
+    judge: !fake && providers.openrouter ? modelJudge({ provider: providers.openrouter }) : null,
+    judgeLive: judgeLiveEnabled(),
   });
 }
 
