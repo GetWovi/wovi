@@ -163,19 +163,19 @@ Both send every mail as plain text and a simple HTML version (`email-html.ts`): 
 |---|---|---|
 | `EMAIL_PROVIDER` | empty | `resend` or `smtp`. Empty: the dev sender locally, refusal in production. |
 | `RESEND_API_KEY` | empty | `re_...`, a key with sending access for the domain. |
-| `EMAIL_FROM` | `WOVI <noreply@wovi.fun>` | The sender. Must be on a verified domain. |
+| `EMAIL_FROM` | `WOVI <noreply@getwovi.fun>` | The sender. Must be on a verified domain. |
 | `REPLY_TO` | empty | Where replies go, if not the sender. |
 | `SMTP_URL` or `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE` | empty | For `smtp`. |
 
-### The domain's DNS for Resend (once wovi.fun exists)
+### The domain's DNS for Resend (getwovi.fun)
 
-1. In Resend: Domains, Add domain, `wovi.fun`, and pick the sending region closest to the server.
+1. In Resend: Domains, Add domain, `getwovi.fun`, and pick the sending region closest to the server.
 2. Add the records Resend shows at the domain's DNS host, exactly as shown (the values are per account):
    - **DKIM**: a TXT record `resend._domainkey` with the public key `p=MIGf...`.
    - **SPF** for the bounce address, on the `send` subdomain: an MX record `send` (priority 10) and a TXT record `send` starting `v=spf1 include:`. The root domain's own SPF is not touched.
    - **DMARC** (recommended): a TXT record `_dmarc` with `v=DMARC1; p=none; rua=mailto:getwovi@gmail.com`, tightened to `p=quarantine` once reports look clean.
 3. Press Verify in Resend and wait for all records to show verified.
-4. Resend, API Keys, Create: sending access, domain `wovi.fun`. Put it in `RESEND_API_KEY`, set `EMAIL_PROVIDER=resend`, restart.
+4. Resend, API Keys, Create: sending access, domain `getwovi.fun`. Put it in `RESEND_API_KEY`, set `EMAIL_PROVIDER=resend`, restart.
 5. `getwovi@gmail.com` is the contact address everywhere (`CONTACT_EMAIL` in `src/lib/legal/operator.ts`) and the default reply-to on every mail, so nothing on wovi.fun needs an inbox. Resend only sends, from `noreply@wovi.fun`.
 6. The privacy notice names the provider by itself: "Who helps us run WOVI" reads `EMAIL_PROVIDER` (`src/lib/legal/processors.ts`).
 

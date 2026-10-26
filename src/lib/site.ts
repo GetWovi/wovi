@@ -5,7 +5,7 @@ export const X_URL = "https://x.com/wovifun";
 export const GITHUB_URL: string = "";
 
 /** The public address the homepage's code samples use. */
-export const SITE_URL = "https://wovi.fun";
+export const SITE_URL = "https://getwovi.fun";
 
 /** The contact address, the same one the legal pages and emails use. */
 export { CONTACT_EMAIL } from "./legal/operator";
