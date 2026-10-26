@@ -140,7 +140,13 @@ export type StartPipelineInput = {
 };
 
 /** A pipeline run with one state and its title. */
-export type PipelineView = { run: PublicPipelineRun; state: PipelineState; title: string };
+export type PipelineView = {
+  run: PublicPipelineRun;
+  state: PipelineState;
+  title: string;
+  /** What this workspace already did with each step's result, by step id. Only on a single pipeline run's view. */
+  feedback?: Record<string, RunFeedback> | null;
+};
 
 export type PipelineRunsFilter = { q?: string; state?: PipelineState | RunState | "all" | "open"; pipelineId?: string; limit?: number };
 
@@ -536,7 +542,10 @@ export class AppApi {
 
   async pipelineRun(caller: Principal, workspaceId: string, id: string): Promise<PipelineView | null> {
     const run = await this.pl.getRun(caller, workspaceId, id);
-    return run ? { run, state: pipelineState(run), title: pipelineTitle(run) } : null;
+    if (!run) return null;
+    const fb = this.o.feedback;
+    const feedback = fb ? Object.fromEntries(await Promise.all(run.steps.filter((s) => s.runId).map(async (s) => [s.id, await fb.stateOf(workspaceId, s.runId!)] as const))) : null;
+    return { run, state: pipelineState(run), title: pipelineTitle(run), feedback };
   }
 
   /** The engine runs of a pipeline run, step by step, so the run pages can show the chain. */
@@ -584,6 +593,33 @@ export class AppApi {
     if (!step?.runId || !this.o.feedback) return null;
     await this.quietFeedback(caller, workspaceId, step.runId, "use", "pipeline", "copy");
     return this.o.feedback.stateOf(workspaceId, step.runId);
+  }
+
+  /**
+   * Edit or rate one part of a package: the event goes on the step run the
+   * part came from, like Use, Edit and the thumbs on a single result. An edit
+   * sends the step's whole output with the part changed.
+   */
+  async pipelinePartFeedback(caller: Principal, workspaceId: string, id: string, stepId: string, req: FeedbackRequest): Promise<RunFeedback> {
+    if (req?.action !== "edit" && req?.action !== "rating") throw new AppError("invalid_request", "Edit or rate a part.");
+    const run = await this.pl.getRun(caller, workspaceId, id);
+    if (!run) throw new AppError("not_found", "No such pipeline run.");
+    const step = run.steps.find((s) => s.id === stepId);
+    if (!step?.runId) throw new AppError("not_ready", "That part has no result yet.");
+    return this.giveFeedback(caller, workspaceId, step.runId, req, "pipeline");
+  }
+
+  /** "Try again" on one part of a package: that step runs once more with the same inputs, and the result it replaces counts a regenerate. */
+  async redoPipelineStep(caller: Principal, workspaceId: string, id: string, stepId: string): Promise<PublicPipelineRun> {
+    const was = (await this.pl.getRun(caller, workspaceId, id))?.steps.find((s) => s.id === stepId)?.runId ?? null;
+    let run: PublicPipelineRun;
+    try {
+      run = await this.pl.redoStep(caller, workspaceId, id, stepId);
+    } catch (err) {
+      throw pipelineAppError(err);
+    }
+    if (was) await this.quietFeedback(caller, workspaceId, was, "regenerate", "pipeline", "regenerate");
+    return run;
   }
 
   async cancelPipeline(caller: Principal, workspaceId: string, id: string): Promise<PublicPipelineRun> {

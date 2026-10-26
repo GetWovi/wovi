@@ -165,6 +165,24 @@ describe("delete my account", () => {
     expect((await s.api.runs(as(s.ada.id), s.team.id)).length).toBe(1);
   });
 
+  it("counts runs the way History does: a pipeline's own step runs are part of its pipeline run, not runs of their own", async () => {
+    const s = await setup();
+    const ed = await s.join("ed@example.com", "editor");
+    const personal = ed.personalWorkspaceId;
+    await s.guardedCredits!.topUp(as(ed.id), personal, 500, "ed-1");
+    const own = await s.api.startRun(as(ed.id), personal, { agentId: "hook-writer", inputs: hookInputs("Gerald the sourdough starter turns nine on Saturday and gets his own cake"), quotedCredits: 50 });
+    await s.engine.waitForRun(personal, own.id);
+    const pipe = await s.api.startPipeline(as(ed.id), personal, { pipelineId: "caption-and-tags", inputs: { post: "Gerald the starter turns nine, with a candle on the jar", platform: "tiktok" } });
+    await s.pipelineEngine.waitUntilSettled(personal, pipe.id);
+    // The run store holds the hook run and the pipeline's first step run.
+    expect((await s.runStore.list(personal)).length).toBeGreaterThan(1);
+
+    const history = (await s.api.runs(as(ed.id), personal)).length + (await s.api.pipelineRuns(as(ed.id), personal)).length;
+    const counts = (await s.privacy.deletionPlan(ed.id)).workspaces.find((w) => w.id === personal)!.counts!;
+    expect(counts).toMatchObject({ runs: 1, pipelineRuns: 1 });
+    expect(counts.runs + counts.pipelineRuns).toBe(history);
+  });
+
   it("asks the last owner of a shared workspace to hand it over first", async () => {
     const s = await setup();
     await s.join("ed@example.com", "editor");

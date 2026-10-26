@@ -58,6 +58,16 @@ export const SUPERSEDED_SAMPLES: Record<string, Record<string, string[]>> = {
     "Invoicing app on X": ["108f1782860e8716"],
     "Generic advice with no evidence": ["95d0b958f086ffbc"],
   },
+  // Idea Generator 1.0.1, when some ideas said they were filmed with the client's yes.
+  "idea-generator": {
+    "Salon selling the colour consult": ["5ed8b3c7dc039f0c"],
+    "Gym's over-40 first deadlifts": ["c85fb19655377539"],
+    "Desk physio selling video desk checks": ["ecb1e665e09cc29e"],
+    "Gym on the hip hinge": ["c075834dfecca7a3"],
+    "Salon on twice-a-year cuts": ["a6629545316ff583"],
+    "Salon on wedding hair trials": ["e3437666d9013f45"],
+    "Groomer's puppy intro sessions": ["e3a66621c4300bbf"],
+  },
 };
 
 const textHash = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 16);

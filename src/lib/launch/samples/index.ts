@@ -19,3 +19,16 @@ export const LAUNCH_SAMPLES: Record<string, LaunchSample[]> = {
   "hashtag-picker": HASHTAG_OPTIMIZER_SAMPLES,
   repurposer: PLATFORM_REPURPOSER_SAMPLES,
 };
+
+/**
+ * Inputs in which a sample carries its own business's facts: what is coming
+ * up, facts to include, what it can film, where it is, lines that must stay.
+ * "Fill with an example" copies them only onto the sample's own Brand Brain.
+ */
+export const SAMPLE_FACT_INPUTS: Record<string, readonly string[]> = {
+  "idea-generator": ["coming_up"],
+  "script-writer": ["footage"],
+  "caption-writer": ["details"],
+  "hashtag-picker": ["location"],
+  repurposer: ["keep"],
+};

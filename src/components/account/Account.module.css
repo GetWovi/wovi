@@ -48,6 +48,22 @@
   color: var(--text-muted);
   font-size: var(--fs-xs);
 }
+/* The line for someone new on the sign-in card: readable, set off from the buttons. */
+.newHere {
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.newHere b {
+  color: var(--text);
+}
+/* Under the code: send it again, or go back and type another email. */
+.codeLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
 
 .fieldset {
   border: 0;

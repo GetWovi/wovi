@@ -172,7 +172,7 @@ async function fillPosts() {
   await type('input[maxlength="60"]', "Spoke and Chain");
   await type('input[maxlength="80"]', "Bike repair shop in Bristol");
   await clickText("X");
-  await clickText("Reels");
+  await clickText("Instagram Reels");
   await clickText("Add a post");
   await sleep(200);
   for (const [i, p] of POSTS.entries()) await type(`textarea[aria-label="Post ${i + 1}"]`, p);

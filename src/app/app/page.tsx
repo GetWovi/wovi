@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AgentCard } from "@/components/app/AgentCard";
 import styles from "@/components/app/App.module.css";
 import { AppShell } from "@/components/app/AppShell";
+import { PipelineCard } from "@/components/app/PipelineParts";
 import { RunRow } from "@/components/app/RunRow";
 import { Sparkle, Sticker } from "@/components/brand/Accents";
 import { Mascot } from "@/components/brand/Mascot";
@@ -12,6 +13,7 @@ import { Icon } from "@/components/ui/Icon";
 import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
 import { PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
+import { hasVoice, welcomeWords } from "@/lib/app/onboarding";
 import { appPage, redirectToOnboarding } from "@/lib/app/server";
 import { appQuality } from "@/lib/quality/server";
 import { appStats } from "@/lib/stats/server";
@@ -28,7 +30,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   const editor = role ? can(role, "run_agents") : false;
   const workspaces = await accounts().workspaces.listForUser(info.user.id);
   const current = workspaces.find((w) => w.id === workspaceId);
-  const [lineup, brains, recent] = await Promise.all([api.lineup(me, workspaceId), api.brains(me, workspaceId), api.runs(me, workspaceId, { limit: 5 })]);
+  const [lineup, brains, recent, pipelines] = await Promise.all([api.lineup(me, workspaceId), api.brains(me, workspaceId), api.runs(me, workspaceId, { limit: 5 }), api.pipelines(me, workspaceId)]);
   const scores = await appQuality().scorecards(PLATFORM_WORKSPACE_ID, lineup.filter((a) => a.status === "live").map((a) => a.id));
   const live = await appStats().agentsStats(PLATFORM_WORKSPACE_ID, lineup.filter((a) => a.status === "live").map((a) => a.id));
   const open = recent.filter((r) => r.state === "needs_review" || r.state === "ready").length;
@@ -36,7 +38,9 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
   const now = currentTime();
   const first = info.user.name?.split(" ")[0] ?? null;
   const pose = welcome ? "done" : running ? "move" : recent.length === 0 ? "hello" : "wait";
-  const stageLine = welcome ? "Your Brand Brain is in. Every agent reads it first." : running ? "A job is on the go." : recent.length === 0 ? "Nothing made yet. Pick an agent to start." : open ? `${open} result${open === 1 ? "" : "s"} waiting for your yes.` : "Waiting for a job.";
+  const own = brains.find((b) => b.isDefault) ?? brains[0];
+  const hello = welcomeWords(own ? { voiced: hasVoice(own) } : null);
+  const stageLine = welcome ? `${hello.title}. ${hello.description}` : running ? "A job is on the go." : recent.length === 0 ? "Nothing made yet. Pick an agent to start." : open ? `${open} result${open === 1 ? "" : "s"} waiting for your yes.` : "Waiting for a job.";
 
   return (
     <AppShell info={info} active="home">
@@ -80,6 +84,28 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
         <p className="visually-hidden">{stageLine}</p>
       </section>
 
+      {/* The templates right under the hero, so someone new finds "Idea to ready post" without digging. */}
+      {pipelines.length > 0 && (
+        <section className={styles.section} id="templates">
+          <div className={styles.sectionHead}>
+            <div>
+              <span className="eyebrow">Pipelines</span>
+              <h2>Start from a template</h2>
+              <p className={[styles.muted, styles.small].join(" ")}>Agents in a row, from the idea to a post you approve. One short form, no prompt to write.</p>
+            </div>
+            <Link href="/app/pipelines" className={styles.sectionLink}>
+              All pipelines <Icon name="arrow-right" size={16} />
+            </Link>
+          </div>
+          <div className={[styles.grid3, styles.gridCentered].join(" ")}>
+            {/* "Idea to ready post" leads: the doc's first template, and the one that starts from nothing but an idea. */}
+            {[...pipelines.filter((p) => p.spec.id === "idea-to-post"), ...pipelines.filter((p) => p.spec.id !== "idea-to-post")].slice(0, 3).map((p, i) => (
+              <PipelineCard key={p.spec.id} info={p} alt={i % 2 === 1} />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className={styles.section} id="brands">
         <div className={styles.sectionHead}>
           <div>
@@ -90,7 +116,8 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
             Open Brand Brains <Icon name="arrow-right" size={16} />
           </Link>
         </div>
-        <div className={styles.grid3}>
+        {/* One brand and the add card fill two columns; three would leave an empty slot. */}
+        <div className={brains.length === 1 ? styles.grid2 : styles.grid3}>
           {brains.map((b) => (
             <Link key={b.id} href={`/brand-brain/${b.id}`} className={styles.cardLink}>
               <article className={[styles.panel, styles.panelTight, styles.brainCard].join(" ")}>
@@ -137,7 +164,7 @@ export default async function AppHome({ searchParams }: { searchParams: Promise<
             Pick by what you need <Icon name="arrow-right" size={16} />
           </Link>
         </div>
-        <div className={styles.grid4}>
+        <div className={[styles.grid4, styles.gridCentered].join(" ")}>
           {lineup.map((a, i) => (
             <AgentCard key={a.id} agent={a} alt={i % 2 === 1} score={scores[a.id] ?? null} stats={live[a.id] ?? null} />
           ))}

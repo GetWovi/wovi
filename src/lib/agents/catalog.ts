@@ -92,6 +92,15 @@ export const GUARDRAIL_IDS: readonly string[] = GUARDRAILS.map((g) => g.id);
 export const BRAND_BRAIN_PARTS = ["voice", "mood_board", "references", "dos_donts", "idea"] as const;
 export type BrandBrainPart = (typeof BRAND_BRAIN_PARTS)[number];
 
+/** Each part in an owner's words, for screens that show what an agent reads. */
+export const BRAND_BRAIN_PART_LABELS: Record<BrandBrainPart, string> = {
+  voice: "Your voice",
+  mood_board: "Your mood board",
+  references: "Your past posts",
+  dos_donts: "Your dos and don'ts",
+  idea: "Your brand idea",
+};
+
 /** Launch platforms: X, TikTok, YouTube Shorts and Instagram Reels. */
 export const PLATFORMS = ["x", "tiktok", "shorts", "reels"] as const;
 export type Platform = (typeof PLATFORMS)[number];

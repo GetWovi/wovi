@@ -150,7 +150,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 2. Ideation */
   {
     id: "idea-generator",
-    version: "1.0.1",
+    version: "1.0.2",
     name: "Idea Generator",
     job: "Gives you a week of post ideas that only your business could post.",
     category: "ideation",
@@ -222,6 +222,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       "- One point per post.",
       "- It serves the goal. Reach: something a stranger would share or search for. Trust: show the work, the people, the honest how. Sell: one specific product or booking, shown in use. Talking: a real question or a small, friendly disagreement.",
       "- Use anything coming up where it fits, with its facts exactly as given.",
+      "- Permission or consent to film or name someone is something the owner handles off camera. Never write it into an idea, a hook or anything a viewer sees or hears: no \"with their yes\", no \"if they are happy to be filmed\".",
       "",
       "PLATFORM",
       "X: text first. Formats like a single post, a short thread, a photo with a line, or a poll.",
@@ -726,7 +727,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
 export const LAUNCH_NOTES: Record<string, string> = {
   "trend-scout": "Tuning round 1: learns the shape of past posts but never reuses a whole sentence from them or the voice's sample lines.",
   "idea-generator":
-    "Tuning round 1: why_it_fits now tells the owner why their audience will watch, share or act, in plain words instead of brief talk; no whole sentences reused from past posts.",
+    "Tuning round 1: why_it_fits now tells the owner why their audience will watch, share or act, in plain words instead of brief talk; no whole sentences reused from past posts. Permission to film someone stays off camera: never written into an idea or anything a viewer sees or hears.",
   "hook-writer":
     "Tuning round 1: no hook reuses a whole sentence from the past posts or sample lines; at most one echoes the brand's best-known line, reworded. Asks for at most 10 words, two under the hard 12-word check, so long quotes no longer fail a run.",
   "script-writer": "Tuning round 1: the business or product is named at most twice spoken and once on screen, shown in use instead of pitched; no whole sentences reused from past posts.",

@@ -162,7 +162,7 @@ export function PastePosts({ csrf, start, quote = { mode: "free" } }: { csrf: st
         <Card title="Dos and don'ts" className={shell.section}>
           <div className={styles.halves}>
             <LinesField label="Do" value={profile.dos} onChange={(dos) => set({ dos })} />
-            <LinesField label="Don't" help='Start with "No" or "Never" so the check can catch it.' value={profile.donts} onChange={(donts) => set({ donts })} />
+            <LinesField label="Don't" help='Write each one plainly, like: No hashtags. Never say "cheap". Drafts that break a line like that are flagged.' value={profile.donts} onChange={(donts) => set({ donts })} />
           </div>
         </Card>
         <Card title="The idea" className={shell.section}>

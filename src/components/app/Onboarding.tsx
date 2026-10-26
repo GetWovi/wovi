@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { finishOnboarding, readPosts, saveOnboarding, skipOnboarding } from "@/app/app/welcome/actions";
 import { Sparkle, Sticker } from "@/components/brand/Accents";
 import { Mascot } from "@/components/brand/Mascot";
@@ -13,7 +13,7 @@ import { Input, Textarea } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
 import type { Platform } from "@/lib/agents/catalog";
-import { STEP_TITLES, canReadPosts, filledPosts, progressLabel, stepIndex, type OnboardingState } from "@/lib/app/onboarding";
+import { STEP_TITLES, canReadPosts, filledPosts, progressLabel, stepIndex, stepNumber, welcomeWords, type OnboardingState } from "@/lib/app/onboarding";
 import { ONBOARDING_STEPS, type OnboardingStep } from "@/lib/app/types";
 import type { PublicProposal, ReadQuote } from "@/lib/brand/brains";
 import { ReadChoice, defaultUseModel } from "@/components/brand-brain/ReadChoice";
@@ -42,6 +42,15 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor, quo
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [useModel, setUseModel] = useState(defaultUseModel(quote));
+  const [readSeconds, setReadSeconds] = useState(0);
+
+  // The seconds on the reading screen, so a longer read never looks stuck.
+  useEffect(() => {
+    if (busy !== "read") return;
+    const started = Date.now();
+    const timer = window.setInterval(() => setReadSeconds(Math.round((Date.now() - started) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [busy]);
 
   function go(next: OnboardingStep) {
     setStep(next);
@@ -61,8 +70,10 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor, quo
   async function read() {
     const can = canReadPosts(posts);
     if (!can.ok) return setError(can.reason);
+    setReadSeconds(0);
     setBusy("read");
     setError(null);
+    window.scrollTo({ top: 0 });
     const saved = await saveOnboarding(csrf, { step: "posts", name, niche, platforms, posts });
     if (!saved.ok) {
       setBusy(null);
@@ -84,7 +95,8 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor, quo
     const r = await finishOnboarding(csrf, edits);
     setBusy(null);
     if (!r.ok) return setError(r.error);
-    toast({ tone: "success", title: r.value.brainId ? "Your Brand Brain is in" : "You are in", description: r.value.brainId ? "Every agent reads it first." : "Build a Brand Brain whenever you like." });
+    // Skipping the posts leaves a Brand Brain with only the basics, so the welcome says so.
+    toast({ tone: "success", ...welcomeWords(r.value.brainId ? { voiced: withVoice } : null) });
     router.push("/app?welcome=1");
   }
 
@@ -98,12 +110,12 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor, quo
 
   const steps = (
     <nav className={styles.steps} aria-label="Onboarding steps">
-      {ONBOARDING_STEPS.map((s, i) => {
+      {ONBOARDING_STEPS.map((s) => {
         const reachable = s !== "review" || Boolean(proposal);
         const cls = [styles.step, s === step ? styles.stepCurrent : "", stepIndex(s) < stepIndex(step) ? styles.stepDone : ""].join(" ");
         const body = (
           <>
-            <span className={styles.stepNo}>{stepIndex(s) < stepIndex(step) ? <Icon name="check" size={14} /> : i + 1}</span>
+            <span className={styles.stepNo}>{stepIndex(s) < stepIndex(step) ? <Icon name="check" size={14} /> : (stepNumber(s) ?? <Icon name="spark" size={14} />)}</span>
             <span>{STEP_TITLES[s]}</span>
           </>
         );
@@ -142,7 +154,7 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor, quo
             <h1 className={styles.h1}>
               Hi, I am Wovi. Let&apos;s make content that <em>sounds like you</em>.
             </h1>
-            <p className={styles.lead}>Three short steps, about two minutes. Tell me who you are, show me a few posts you were happy with, and check what I read in them. That becomes your Brand Brain, and every agent reads it before it writes.</p>
+            <p className={styles.lead}>About two minutes. Tell me who you are, show me a few posts you were happy with, and check what I read in them. That becomes your Brand Brain, and every agent reads it before it writes.</p>
             <div className={styles.tiles}>
               {[
                 ["Your brand", "A name, what you do, where you post."],
@@ -220,7 +232,15 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor, quo
     );
   }
 
-  /* ---------- 3. Paste past posts ---------- */
+  /* ---------- 3. Paste past posts, then Wovi reading them ---------- */
+  if (step === "posts" && busy === "read") {
+    return (
+      <div className={styles.stack}>
+        {steps}
+        <Reading posts={filledPosts(posts).length} seconds={readSeconds} />
+      </div>
+    );
+  }
   if (step === "posts") {
     const filled = filledPosts(posts).length;
     return (
@@ -322,7 +342,7 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor, quo
             <WordsField label="What you post about" value={profile.topics} onChange={(topics) => set({ topics })} max={BRAND_LIMITS.topics} />
             <div className={styles.halves}>
               <LinesField label="Do" value={profile.dos} onChange={(dos) => set({ dos })} />
-              <LinesField label="Don't" help='Start with "No" or "Never" so the brand-fit check can catch it.' value={profile.donts} onChange={(donts) => set({ donts })} />
+              <LinesField label="Don't" help='Write each one plainly, like: No hashtags. Never say "cheap". Drafts that break a line like that are flagged.' value={profile.donts} onChange={(donts) => set({ donts })} />
             </div>
             <Textarea label="The idea behind the brand (optional)" rows={2} value={idea} onChange={(e) => setIdea(e.target.value)} maxLength={BRAND_LIMITS.idea} placeholder="Fix it today, not someday." />
           </div>
@@ -402,6 +422,38 @@ function Aside({ pose, title, tips }: { pose: "hello" | "wait"; title: string; t
         </div>
       </div>
     </aside>
+  );
+}
+
+/** While the posts are read: Wovi on the move and what is happening, in the style of an agent's run. */
+function Reading({ posts, seconds }: { posts: number; seconds: number }) {
+  const steps = [
+    { label: `${posts} posts saved`, state: "done" },
+    { label: "Reading how you write: sentences, emoji, hashtags, how you open", state: "now" },
+    { label: "Your voice, ready for you to check", state: "todo" },
+  ];
+  return (
+    <section className={[styles.panel, styles.running].join(" ")} aria-live="polite">
+      <Mascot pose="move" size={150} className="wovi" label="Wovi, reading your posts" />
+      <div className={styles.runningText}>
+        <span className="eyebrow">{progressLabel("posts")}</span>
+        <h2>Reading your posts</h2>
+        <ol className={styles.progress}>
+          {steps.map((s) => (
+            <li key={s.label} data-state={s.state}>
+              <span className={styles.dot}>{s.state === "done" && <Icon name="check" size={14} />}</span>
+              {s.label}
+            </li>
+          ))}
+        </ol>
+        <div className={styles.runningMeta}>
+          <span>
+            {seconds} second{seconds === 1 ? "" : "s"}
+          </span>
+          <span>Your voice opens here when it is ready.</span>
+        </div>
+      </div>
+    </section>
   );
 }
 

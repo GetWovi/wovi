@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeNext } from "./sign-in";
+import { safeNext, typedEmail } from "./sign-in";
 import { rejectsCode, testAccounts } from "./test-helpers";
 
 const MIN = 60_000;
@@ -110,5 +110,12 @@ describe("email sign-in", () => {
     expect(safeNext("//evil.example")).toBeNull();
     expect(safeNext("/\\evil.example")).toBeNull();
     expect(safeNext("/account")).toBe("/account");
+  });
+
+  it("hands the typed email back after an error, trimmed and bounded, so the form keeps it", () => {
+    expect(typedEmail("  maria@curlandco  ")).toBe("maria@curlandco");
+    expect(typedEmail("x".repeat(1000))).toHaveLength(320);
+    expect(typedEmail(null)).toBe("");
+    expect(typedEmail(["a@b.c"])).toBe("");
   });
 });

@@ -212,7 +212,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
     },
     ideal: items(
       i(
-        "A real consult at chair nine, filmed with the client's yes: the strand test, the questions, the honest answer. Ten minutes cut down to thirty seconds.",
+        "A real consult at chair nine: the strand test, the questions, the honest answer. Ten minutes cut down to thirty seconds.",
         "Step-by-step demo",
         "People planning a big colour change are nervous about what happens first, and seeing the whole consult makes booking one feel easy.",
       ),
@@ -227,7 +227,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
         "Shows people the consult is a short chat about their own hair, not a sales pitch, so the booking feels small.",
       ),
       i(
-        "The next time a consult ends in a no to bleach, film the plan you make instead and say how long it will last, with the client's yes.",
+        "The next time a consult ends in a no to bleach, film the plan you make instead and say how long it will last.",
         "Voiceover over footage",
         "Same shape as the Priya post, and saying no on camera tells people you care more about their hair than the booking.",
       ),
@@ -447,7 +447,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
     },
     ideal: items(
       i(
-        "Dan fixing one member's first deadlift, filmed with their yes: the brace, the hinge, the one cue that changed it. Just the bar, the cue and the lift.",
+        "Dan fixing one member's first deadlift: the brace, the hinge, the one cue that changed it. Just the bar, the cue and the lift.",
         "Step-by-step demo",
         "People over 40 worry they will be left to get it wrong, and watching a coach slow someone down is what makes them trust you.",
       ),
@@ -462,7 +462,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
         "It is the doubt that keeps people from ever walking in, and hearing it from the coach who will be there makes coming easier.",
       ),
       i(
-        "A member over 40 on their first ever lift here, filmed only with their yes, with the real weight on screen, whatever it is.",
+        "A member over 40 on their first ever lift here, with the real weight on screen, whatever it is.",
         "Text on screen over footage",
         "Real first lifts by people their own age tell over-40s more than any promise could, and a small honest number is the point.",
       ),
@@ -633,7 +633,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
     },
     ideal: items(
       i(
-        "A real desk check, filmed with the client's yes: their desk on the call, the changes you suggest one per line on screen, 20 minutes cut down to 30 seconds.",
+        "A real desk check: their desk on the call, the changes you suggest one per line on screen, 20 minutes cut down to 30 seconds.",
         "Step-by-step demo",
         "People only book what they can picture, and seeing a whole check in half a minute makes it feel small and easy.",
       ),
@@ -770,7 +770,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
     inputs: { topic: "the hip hinge, for beginners who think they cannot deadlift", goal: "reach", platform: "tiktok" },
     ideal: items(
       i(
-        "The hip hinge with a broom handle along the back: head, upper back and tailbone touching it, and the coach correcting one member's hinge, filmed with their yes.",
+        "The hip hinge with a broom handle along the back: head, upper back and tailbone touching it, and the coach correcting one member's hinge.",
         "Step-by-step demo",
         "Form before weight is one of your topics, and a broom handle is a test strangers can try in their own kitchen and share.",
       ),
@@ -780,7 +780,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
         "It speaks to the worry that keeps beginners away, and a careful, plain answer is the kind people send to a friend.",
       ),
       i(
-        "Margaret's first hinge, if she is happy to share it, next to her 60 kg deadlift at 61: where that lift started.",
+        "Margaret's first hinge next to her 60 kg deadlift at 61: where that lift started.",
         "Text on screen over footage",
         "Margaret's 60 kg is the post people already know you for, and showing where it began makes the hinge worth learning.",
       ),
@@ -800,7 +800,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
         "People who never thought a gym was for them need to see day one is this simple, which is what your gym is for.",
       ),
       i(
-        "A common first-hinge mistake, filmed on a member with their yes: knees forward, back rounding, then the coach's fix on the bar.",
+        "A common first-hinge mistake on a real member: knees forward, back rounding, then the coach's fix on the bar.",
         "Text on screen over footage",
         "Showing the coach fixing a real member's form is what you do best, and beginners save the fix for their own first session.",
       ),
@@ -1103,7 +1103,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
     },
     ideal: items(
       i(
-        "A low-maintenance cut on a client who comes twice a year, filmed with their yes: the technique named, the time it took, and how it will sit at three and six months.",
+        "A low-maintenance cut on a client who comes twice a year: the technique named, the time it took, and how it will sit at three and six months.",
         "Step-by-step demo",
         "People who rarely get to a salon search for exactly this, and saying how it grows out is the bit nobody else shows them.",
       ),
@@ -1133,7 +1133,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
         "Lived-in is a word people search without knowing what it means, so a clear answer reaches new people.",
       ),
       i(
-        "One client's cut on day one, at three months and at six, with their yes, and what to ask for at the next visit.",
+        "One client's cut on day one, at three months and at six, and what to ask for at the next visit.",
         "Step-by-step demo",
         "Saying how long a cut will last is what you are known for, and a timeline is the frame people pause on and save.",
       ),
@@ -1177,7 +1177,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
         "How long a style lasts is what you always talk about, and the replies are funny and honest at once.",
       ),
       i(
-        "A lived-in colour at chair nine, shown with the client's yes. Line: colour three weeks before the wedding, or one week before?",
+        "A lived-in colour at chair nine. Line: colour three weeks before the wedding, or one week before?",
         "Photo with a line",
         "Timing colour around a wedding is a real question people argue about, and it leads to your consult without selling it.",
       ),
@@ -1196,7 +1196,7 @@ export const IDEA_GENERATOR_SAMPLES: LaunchSample[] = [
     },
     ideal: items(
       i(
-        "A puppy's first intro session, filmed with the owner's yes: feet first, then the face, then the bath, a calm hand on the collar the whole way. Name and breed on screen.",
+        "A puppy's first intro session: feet first, then the face, then the bath, a calm hand on the collar the whole way. Name and breed on screen.",
         "Step-by-step demo",
         "Owners of new puppies want to see exactly what happens in the 30 minutes, and seeing it calm is what gets them to book.",
       ),

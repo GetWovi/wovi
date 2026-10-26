@@ -4,6 +4,7 @@
  * engine still checks every value itself (validateRunInputs), so the form and
  * the engine can never disagree about what is valid.
  */
+import { PLATFORMS } from "@/lib/agents/catalog";
 import type { AgentInput, AgentSpec } from "@/lib/agents/spec";
 import { validateRunInputs, type FileRef } from "@/lib/runs/inputs";
 
@@ -95,6 +96,41 @@ export function initialValues(spec: Pick<AgentSpec, "inputs">): FormValues {
     else if (input.type === "number") out[input.key] = input.default === undefined ? "" : String(input.default);
     else if (input.type === "image" || input.type === "file" || input.type === "video") out[input.key] = [] as FileRef[];
     else out[input.key] = "";
+  }
+  return out;
+}
+
+/**
+ * The person's own platform as the pick of every one-pick platform field: the
+ * first of their Brand Brain's platforms (saved at onboarding) that the field
+ * offers. It wins over the spec's default, which knows nothing of the person.
+ */
+export function platformDefaults(spec: Pick<AgentSpec, "inputs">, platforms: readonly string[] | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!platforms?.length) return out;
+  for (const input of spec.inputs) {
+    if (input.type !== "choice" || input.multiple) continue;
+    const offered = input.options.map((o) => o.value);
+    if (!offered.every((v) => (PLATFORMS as readonly string[]).includes(v))) continue;
+    const first = platforms.find((p) => offered.includes(p));
+    if (first) out[input.key] = first;
+  }
+  return out;
+}
+
+/** Empty values with the person's platform picked, for a form that opens on a Brand Brain. */
+export function initialValuesFor(spec: Pick<AgentSpec, "inputs">, platforms: readonly string[] | undefined): FormValues {
+  return { ...initialValues(spec), ...platformDefaults(spec, platforms) };
+}
+
+/** Another Brand Brain picked: platform fields still on the old default follow the new one; a pick the person made stays. */
+export function switchPlatformDefaults(spec: Pick<AgentSpec, "inputs">, values: FormValues, before: readonly string[] | undefined, after: readonly string[] | undefined): FormValues {
+  const base = initialValues(spec);
+  const was = platformDefaults(spec, before);
+  const now = platformDefaults(spec, after);
+  const out = { ...values };
+  for (const key of new Set([...Object.keys(was), ...Object.keys(now)])) {
+    if (values[key] === (was[key] ?? base[key])) out[key] = now[key] ?? base[key];
   }
   return out;
 }

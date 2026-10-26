@@ -16,6 +16,7 @@ import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { useToast } from "@/components/ui/Toast";
+import { BRAND_BRAIN_PART_LABELS, type BrandBrainPart } from "@/lib/agents/catalog";
 import type { HistoryEntry } from "@/lib/brand/brains";
 import { BRAND_LIMITS, FIELD_LABELS, type BrainBody, type MoodItem, type MoodKind } from "@/lib/brand/types";
 import { brandFit, describeFlag } from "@/lib/runs/brand-fit";
@@ -65,14 +66,14 @@ function SaveBar({ busy, editable, onSave, label = "Save" }: { busy: boolean; ed
 }
 
 /** What agents get, as the engine fills it in. Rendered on the server from the saved version. */
-function AgentPreview({ preview, parts }: { preview: Record<string, string>; parts: string[] }) {
+function AgentPreview({ preview, parts }: { preview: Record<string, string>; parts: BrandBrainPart[] }) {
   return (
     <Card className={shell.section}>
       <h3>What agents read</h3>
       <p className={shell.sectionNote}>The saved version, the way an agent gets it. Only agents that ask for a part get it.</p>
       {parts.map((p) => (
         <div key={p} className={shell.stackTight}>
-          <code className={shell.mono}>{`{{brand.${p}}}`}</code>
+          <span className={styles.fieldLabel}>{BRAND_BRAIN_PART_LABELS[p]}</span>
           <pre className={shell.pre} style={{ maxHeight: "none" }}>
             {preview[p]}
           </pre>
@@ -367,7 +368,7 @@ export function RulesPanel(props: Common & { draft?: string }) {
     <div className={styles.split}>
       <fieldset disabled={!editable} className={shell.stack} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         <Card title="Dos and don'ts" className={shell.section}>
-          <p className={shell.sectionNote}>Every agent that reads the rules gets both lists. Start a don&apos;t with &quot;No&quot; or &quot;Never&quot;, and put exact phrases in quotes, so the brand-fit check can catch it.</p>
+          <p className={shell.sectionNote}>Every agent that reads the rules gets both lists. Write a don&apos;t plainly, like No hashtags or Never say &quot;cheap&quot;: drafts that break a line like that are flagged.</p>
           <div className={styles.halves}>
             <LinesField label="Do" value={dos} onChange={setDos} placeholder="Add a do" />
             <LinesField label="Don't" value={donts} onChange={setDonts} placeholder="Add a don't" />
@@ -526,7 +527,8 @@ export function BrainActions({ csrf, id, name, isDefault, children }: { csrf: st
           Make default
         </Button>
       )}
-      <Button variant="ghost" onClick={() => setConfirm(true)} leading={<Icon name="close" size={18} />}>
+      <span className={styles.actionsRule} aria-hidden="true" />
+      <Button variant="ghost" size="sm" className={styles.deleteAction} onClick={() => setConfirm(true)} leading={<Icon name="close" size={16} />}>
         Delete
       </Button>
       <Modal

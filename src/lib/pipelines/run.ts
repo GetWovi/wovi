@@ -69,10 +69,20 @@ export type StepRun = {
   /** The quality gate on the used run (phase 12): its score, the bar, the verdict, the rewrites inside the run and why it needs review. */
   quality?: StepQuality | null;
   costMicroUsd: number;
+  /** Why the step stopped. On a finished step: why the last "Try again" on its part did not land (the step kept what it had). */
   error: { code: string; message: string } | null;
   startedAt: string | null;
   finishedAt: string | null;
+  /**
+   * "Try again" on this step's part of a finished package: how many times it
+   * was asked for, and what the step had before the try that is going, so a
+   * try that does not land puts it back. Missing on steps never tried again.
+   */
+  redo?: { count: number; before: StepBefore | null } | null;
 };
+
+/** What a step had before a "Try again" on its part. */
+export type StepBefore = Pick<StepRun, "status" | "runId" | "retries" | "rewrite" | "output" | "candidates" | "suggested" | "picked" | "brandFit" | "checks" | "quality" | "error" | "startedAt" | "finishedAt">;
 
 /** One part of the final package: a picked item, or a step's whole output. */
 export type PackageItem = {
@@ -128,8 +138,9 @@ export function publicPipelineRun(run: PipelineRun) {
   const { capMicroUsd, costMicroUsd, costUsd, requestHash, steps, credits, ...rest } = run;
   // The credits it held and was charged. The guarded view blanks it for people who may not see costs.
   // Which side of a canary a step went to stays inside: people never see release routing.
+  // A "Try again" in progress keeps the step's earlier state inside too.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return { ...rest, charge: chargeView(credits), steps: steps.map(({ costMicroUsd: _c, release: _r, ...s }) => s) };
+  return { ...rest, charge: chargeView(credits), steps: steps.map(({ costMicroUsd: _c, release: _r, redo: _d, ...s }) => s) };
 }
 export type PublicPipelineRun = ReturnType<typeof publicPipelineRun>;
 export type PublicStepRun = PublicPipelineRun["steps"][number];

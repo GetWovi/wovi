@@ -65,6 +65,10 @@ The result, in its typed shape:
 - **Platforms** (captions, repurposed posts): one block per platform; a version written in the repurposer's `Hook:`, `Script:`, `On screen:`, `Caption:` layout is shown as labelled parts.
 - **Copy everything** gives the whole result as plain text.
 
+Every item is editable in place (the doc's "every result is editable inline"): a pen beside each item's copy button opens it where it stands, one box per part of it (a hook; an idea's idea, format and why; a beat's lines and what is on screen; a caption, or each labelled part of a repurposed version; a post's part). "Keep my version" saves the whole result with that item changed as the run's edit, so the edit distance, the consent rule and the live stats work as before, and copies the item. The item gets a "Your version" mark; changing a second item saves the version so far again. Edit in the bar under the result opens the first item. `editFields` and `editItem` in `results.ts` do this per output kind.
+
+On an Idea Generator result each idea has **Make this into a post**: "Idea to ready post" opens with the idea filled in, with the run's platform when the template has it and the same Brand Brain (the doc's chaining; `ideaToPostHref` and `prefillFrom` in `pipelines.ts`). It counts as a use of the result. Both are tested in `src/lib/app/inline-edit.test.ts`.
+
 Above it: brand fit as one number with a plain reading (sounds like you, close to your voice, a little off, breaks a rule), and every flagged check in plain words with what was found: "Uses filler phrases", "Makes a claim it cannot back up", "Uses words your brand avoids", "Breaks a brand rule", "Could be about anyone", "Too long for the platform", plus the AI-label note. The fake provider writes filler from the inputs, so results on it are placeholder text; the shapes, checks and brand fit are real.
 
 **Quick edits** (Shorter, Punchier, More like my brand) run the same job again with a note on the person's main input ("Note for this run: ..."), so the agent's instructions never change and the engine treats it as data like everything the person typed. A second edit replaces the note rather than piling up, and the note never counts as part of the run's title. "Make another" clears the form.
@@ -102,7 +106,7 @@ The agent cards on `/` now show the phase 8 lineup: Idea Generator, Hook Writer,
 
 ## Live stats
 
-Under every result: Use it (copies the whole result), Edit (change it and keep your version, which is copied), Try again (the same job again) and the thumbs with an optional note. Copying any item, approving and asking for changes count too. Agent cards in the gallery and on the home show "Used as is", "Edited" and "Thumbs up" from real runs, and the agent page has a Live stats section with every number and what it was counted from; below 20 runs a number says New. See [stats.md](stats.md).
+Under every result: Use it (copies the whole result, with the person's changes), Edit (opens the items in place, above), Try again (the same job again) and the thumbs with an optional note. Copying any item, approving and asking for changes count too. Agent cards in the gallery and on the home show "Used as is", "Edited" and "Thumbs up" from real runs, and the agent page has a Live stats section with every number and what it was counted from; below 20 runs a number says New. See [stats.md](stats.md).
 
 ## Safety (phase 18)
 

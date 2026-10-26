@@ -251,7 +251,8 @@ export class Privacy {
           why: "You are the only member, so it is deleted with everything in it.",
           counts: {
             brandBrains: (await this.o.brand.brains.find({ workspaceId: m.workspaceId })).length,
-            runs: (await this.o.runs.list(m.workspaceId)).length,
+            // As History counts them: a pipeline's step runs belong to its pipeline run.
+            runs: (await this.o.runs.list(m.workspaceId)).filter((r) => !r.parent).length,
             pipelineRuns: (await this.o.pipelines.pipelineRuns.find({ workspaceId: m.workspaceId })).length,
           },
           paidCredits: bal ? bal.paid : null,

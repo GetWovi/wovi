@@ -478,6 +478,50 @@
     grid-template-columns: 1fr;
   }
 }
+/*
+ * A short last row sits in the middle instead of leaving a hole at the end:
+ * 7 agents in rows of 4, 3 templates in rows of 2. The grid runs on
+ * half-columns and every card spans two, so the cards keep their width.
+ */
+@media (min-width: 1101px) {
+  .grid4.gridCentered {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+  .grid4.gridCentered > * {
+    grid-column: span 2;
+  }
+  .grid4.gridCentered > :nth-child(4n + 1):nth-last-child(3) {
+    grid-column: 2 / span 2;
+  }
+  .grid4.gridCentered > :nth-child(4n + 1):nth-last-child(2) {
+    grid-column: 3 / span 2;
+  }
+  .grid4.gridCentered > :nth-child(4n + 1):last-child {
+    grid-column: 4 / span 2;
+  }
+}
+@media (min-width: 561px) and (max-width: 1100px) {
+  .grid4.gridCentered {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .grid4.gridCentered > * {
+    grid-column: span 2;
+  }
+  .grid4.gridCentered > :nth-child(2n + 1):last-child {
+    grid-column: 2 / span 2;
+  }
+}
+@media (min-width: 561px) and (max-width: 900px) {
+  .grid3.gridCentered {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .grid3.gridCentered > * {
+    grid-column: span 2;
+  }
+  .grid3.gridCentered > :nth-child(2n + 1):last-child {
+    grid-column: 2 / span 2;
+  }
+}
 
 .stack {
   display: flex;
@@ -571,10 +615,11 @@
   min-height: 300px;
   border-radius: var(--r-lg);
   background: var(--surface-alt);
-  padding: var(--s-6) var(--s-5) var(--s-5);
+  /* Room on top for the two stickers, so "content out" never sits on Wovi's head. */
+  padding: var(--s-9) var(--s-5) var(--s-5);
 }
 .heroStage svg.wovi {
-  width: min(240px, 60%);
+  width: min(210px, 55%);
   height: auto;
 }
 .stickers {
@@ -1601,9 +1646,14 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--s-3);
 }
+/* An odd count, like seven ideas: the last card takes the whole row instead of standing alone in half of it. */
+.cards > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
 @media (max-width: 720px) {
   .cards {
-    grid-template-columns: 1fr;
+    /* minmax(0, ...): a long tag never widens the card past a phone's screen. */
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 .card {

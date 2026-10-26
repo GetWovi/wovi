@@ -11,8 +11,10 @@ import styles from "./Account.module.css";
 export function SignInForm({ next }: { next: string }) {
   const [sent, sendAction, sending] = useActionState(requestSignIn, null);
   const [checked, codeAction, checking] = useActionState(verifyCode, null);
+  // "Use a different email" sets aside this send; the next one shows the code step again.
+  const [retyped, setRetyped] = useState<typeof sent>(null);
 
-  if (sent?.sent) {
+  if (sent?.sent && sent !== retyped) {
     return (
       <div className={styles.stack}>
         <p className={styles.lead}>
@@ -25,13 +27,18 @@ export function SignInForm({ next }: { next: string }) {
             Sign in
           </Button>
         </form>
-        <form action={sendAction}>
-          <input type="hidden" name="email" value={sent.sent.email} />
-          <input type="hidden" name="next" value={next} />
-          <Button type="submit" variant="ghost" size="sm" disabled={sending}>
-            Send a new code
+        <div className={styles.codeLinks}>
+          <form action={sendAction}>
+            <input type="hidden" name="email" value={sent.sent.email} />
+            <input type="hidden" name="next" value={next} />
+            <Button type="submit" variant="ghost" size="sm" disabled={sending}>
+              Send a new code
+            </Button>
+          </form>
+          <Button variant="ghost" size="sm" onClick={() => setRetyped(sent)}>
+            Use a different email
           </Button>
-        </form>
+        </div>
       </div>
     );
   }
@@ -40,14 +47,17 @@ export function SignInForm({ next }: { next: string }) {
     <div className={styles.stack}>
       <form action={sendAction} className={styles.stack}>
         <input type="hidden" name="next" value={next} />
-        <Input label="Email" name="email" type="email" autoComplete="email webauthn" placeholder="you@example.com" required autoFocus error={sent?.error} />
+        {/* The typed email comes back with an error, so the form's reset after the action keeps it. */}
+        <Input label="Email" name="email" type="email" autoComplete="email webauthn" placeholder="you@example.com" required autoFocus error={sent?.error} defaultValue={sent?.email ?? ""} />
         <Button type="submit" block loading={sending}>
           Email me a sign-in link
         </Button>
       </form>
       <p className={styles.or}>or</p>
       <PasskeySignIn next={next} />
-      <p className={styles.fine}>New here? The same email makes your account.</p>
+      <p className={styles.newHere}>
+        <b>New here?</b> Type your email above. Your first sign-in makes your account.
+      </p>
     </div>
   );
 }

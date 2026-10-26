@@ -115,6 +115,113 @@ export function resultView(output: RunOutput): ResultView {
   }
 }
 
+/** One item as the copy button beside it gives it: labelled parts as "Label: value" lines, else its text. */
+export function itemText(view: ResultView, block: number, item: number): string {
+  const it = view.blocks[block]?.items[item];
+  if (!it) return "";
+  return (view.layout === "cards" || view.layout === "beats") && it.fields.length ? it.fields.map((f) => `${f.label}: ${f.value}`).join("\n") : it.text;
+}
+
+/* ---------- Changing one item in place ---------- */
+
+/** One part of an item a person can change: a hook, an idea's field, a beat's lines, a caption. */
+export type EditField = { key: string; label: string; value: string };
+
+/**
+ * The parts of one item (by its place in `resultView`) as text boxes: a
+ * list item, each field of an idea or a tag, what a beat says and shows, a
+ * caption (or each labelled part of a repurposed version), a post's part.
+ */
+export function editFields(output: RunOutput, block: number, item: number): EditField[] {
+  const plain = (value: string): EditField[] => [{ key: "text", label: "Your version", value }];
+  switch (output.kind) {
+    case "text":
+      return block === 0 && item === 0 ? plain(output.text) : [];
+    case "list": {
+      const it = block === 0 ? output.items[item] : undefined;
+      if (it === undefined) return [];
+      return typeof it === "string" ? plain(it) : Object.entries(it).map(([key, value]) => ({ key, label: fieldName(key), value }));
+    }
+    case "script": {
+      const s = block === 0 ? output.sections[item] : undefined;
+      return s ? [{ key: "spoken", label: "Say", value: s.spoken }, { key: "on_screen", label: "On screen", value: s.on_screen }] : [];
+    }
+    case "caption_set": {
+      const v = output.captions[block]?.variants[item];
+      if (v === undefined) return [];
+      const parts = labelledLines(v);
+      return parts ? parts.map((p, n) => ({ key: `part${n}`, label: p.label, value: p.value })) : plain(v);
+    }
+    case "post_set": {
+      const t = output.posts[block]?.parts[item];
+      return t === undefined ? [] : plain(t);
+    }
+  }
+}
+
+/** The output with one item changed: `values` by the keys `editFields` gave. Missing keys keep what was there. */
+export function editItem(output: RunOutput, block: number, item: number, values: Record<string, string>): RunOutput {
+  const next = structuredClone(output);
+  const get = (key: string, was: string) => (typeof values[key] === "string" ? values[key].trim() : was);
+  switch (next.kind) {
+    case "text":
+      if (block === 0 && item === 0) next.text = get("text", next.text);
+      break;
+    case "list": {
+      const it = block === 0 ? next.items[item] : undefined;
+      if (typeof it === "string") (next.items as string[])[item] = get("text", it);
+      else if (it) for (const k of Object.keys(it)) it[k] = get(k, it[k]);
+      break;
+    }
+    case "script": {
+      const s = block === 0 ? next.sections[item] : undefined;
+      if (s) {
+        s.spoken = get("spoken", s.spoken);
+        s.on_screen = get("on_screen", s.on_screen);
+      }
+      break;
+    }
+    case "caption_set": {
+      const c = next.captions[block];
+      const v = c?.variants[item];
+      if (v === undefined) break;
+      const parts = labelledLines(v);
+      c.variants[item] = parts && !("text" in values) ? parts.map((p, n) => `${p.label}: ${get(`part${n}`, p.value)}`).join("\n") : get("text", v);
+      break;
+    }
+    case "post_set": {
+      const p = next.posts[block];
+      if (p && p.parts[item] !== undefined) p.parts[item] = get("text", p.parts[item]);
+      break;
+    }
+  }
+  return next;
+}
+
+/**
+ * Where a pipeline step's picked item (its place in the step's items, see
+ * `outputItems`) sits in `resultView`, so it can be changed like any item.
+ * Null where an item is not one place: a script, or a whole post.
+ */
+export function pickedPlace(output: RunOutput, index: number): { block: number; item: number } | null {
+  switch (output.kind) {
+    case "text":
+      return index === 0 ? { block: 0, item: 0 } : null;
+    case "list":
+      return index >= 0 && index < output.items.length ? { block: 0, item: index } : null;
+    case "caption_set": {
+      let n = index;
+      for (const [block, c] of output.captions.entries()) {
+        if (n < c.variants.length) return n >= 0 ? { block, item: n } : null;
+        n -= c.variants.length;
+      }
+      return null;
+    }
+    default:
+      return null;
+  }
+}
+
 /** The whole result as plain text, for one copy button. */
 export function copyAll(output: RunOutput): string {
   const view = resultView(output);

@@ -17,6 +17,7 @@ import { outputTexts, type RunOutput } from "@/lib/runs/output";
 import { defaultAnswer } from "@/lib/runs/providers/fake";
 import type { CompletionRequest } from "@/lib/runs/providers/types";
 import { publicRunView, type Run } from "@/lib/runs/run";
+import { MIN_COUNT } from "@/lib/stats/types";
 import { WS, goodRequest, testEngine } from "@/lib/runs/test-helpers";
 import {
   brandFitCheck,
@@ -32,7 +33,7 @@ import { CHECKS, FAIL_CAP, GENERIC_PHRASES, PLATFORM_RULES, gateFor } from "./da
 import { combinedScore, readQuality, type QualityJudge } from "./evaluate";
 import { rewriteInstruction } from "./gate";
 import { builderRollup } from "./rollup";
-import { publicScorecard, type RunDecision } from "./scorecard";
+import { MIN_RUNS, publicScorecard, type RunDecision } from "./scorecard";
 import { QualityService, sampleLines, sampleReferences } from "./service";
 import type { QualityCheckResult, QualityReport } from "./types";
 
@@ -403,9 +404,10 @@ describe("the public scorecard", () => {
       { runId: "elsewhere", outcome: "approved", changesAsked: 0, changeNotes: [], at: "" },
     ];
     const card = publicScorecard("hook-writer", runs, decisions);
-    expect(card).toMatchObject({ runs: 6, scored: 5, passed: 4, passRate: 0.8, firstTry: 3, avgScore: 80, decided: 3, approved: 2, changesAsked: 1, enough: true });
+    expect(card).toMatchObject({ runs: 6, scored: 5, passed: 4, passRate: 0.8, firstTry: 3, avgScore: 80, decided: 3, approved: 2, changesAsked: 1, enough: false });
     expect(card.approvalRate).toBeCloseTo(2 / 3);
-    expect(card.words.headline).toBe("Passes the quality bar on 80% of runs");
+    // Six runs are under the live stats' minimum of 20, so the headline gives counts, not a share.
+    expect(card.words.headline).toBe("New agent: 4 of 5 runs passed the quality bar so far");
     expect(card.words.lines).toEqual([
       "4 of 5 runs passed the quality bar, 1 after a rewrite.",
       "Average quality 80 out of 100.",
@@ -418,6 +420,13 @@ describe("the public scorecard", () => {
     expect(fresh.words.headline).toBe("New agent: 1 of 1 runs passed the quality bar so far");
     expect(fresh.words.lines).toContain("No approvals or rejections yet.");
     expect(publicScorecard("x", [], []).words.headline).toBe("New agent: no scored runs yet");
+    // From 20 runs, the same minimum as every live stat, the share shows.
+    const twenty = Array.from({ length: 20 }, (_, n) => qrun(`m${n}`, n < 16 ? "ready" : "needs_review", n < 16 ? 85 : 50));
+    expect(MIN_RUNS).toBe(MIN_COUNT);
+    expect(publicScorecard("hook-writer", twenty.slice(0, 19), []).enough).toBe(false);
+    const enough = publicScorecard("hook-writer", twenty, []);
+    expect(enough.enough).toBe(true);
+    expect(enough.words.headline).toBe("Passes the quality bar on 80% of runs");
   });
 
   it("gathers decisions from review items and phase 9 reviews across workspaces, and leaves the builder's bench out", async () => {

@@ -455,6 +455,15 @@ export class PipelineEngine {
   async cancel(workspaceId: string, id: string): Promise<PipelineRun> {
     const pr = await this.require(workspaceId, id);
     if (pr.status !== "running" && pr.status !== "waiting") return pr;
+    // Stopping a "Try again" on one part: the step goes back to what it had and the package waits again.
+    const redo = pr.steps.findIndex((s) => s.redo?.before);
+    if (redo !== -1) {
+      const s = pr.steps[redo];
+      const going = s.status === "running" || s.status === "rewriting" ? s.runIds[s.runIds.length - 1] : null;
+      await this.undoRedo(pr, redo, null, "cancelled");
+      if (going) await this.o.runs.cancelRun(workspaceId, going).catch(() => undefined);
+      return pr;
+    }
     const at = this.now().toISOString();
     pr.status = "cancelled";
     pr.finishedAt = at;
@@ -525,6 +534,50 @@ export class PipelineEngine {
     return pr;
   }
 
+  /**
+   * "Try again" on one part of a package that waits for its yes or no: that
+   * step runs once more with the same inputs (the steps before it are as
+   * they were), through the same queue with its own credit hold, inside what
+   * is left of the run's total cap, with the rewrite loop and the pick like
+   * the first time. The steps after it keep what they made. When the new try
+   * does not land, the step gets back what it had and the package is as it
+   * was, with the reason on the step.
+   */
+  async redoStep(workspaceId: string, id: string, stepId: string): Promise<PipelineRun> {
+    const pr = await this.require(workspaceId, id);
+    const i = pr.steps.findIndex((s) => s.id === stepId);
+    if (i === -1) throw new PipelineError("not_found", `No step "${stepId}" in this run.`);
+    if (pr.status !== "ready") throw new PipelineError("not_ready", "Only a package that waits for its yes or no can have a part tried again.");
+    const step = pr.steps[i];
+    const def = pr.spec.steps[i];
+    if (!step.runId || !step.output || (step.status !== "done" && step.status !== "flagged")) throw new PipelineError("not_ready", `"${step.label}" has no result to try again.`);
+    if (this.budget(pr, def) === null) throw new PipelineError("spend_cap", `This run's budget is used up, so "${step.label}" cannot run again. Start a new run instead.`);
+    const agent = await this.agentOf(step);
+    if (!agent) throw new PipelineError("not_found", `${step.agent.name} is not available any more.`);
+    if (this.o.billing && pr.credits) {
+      // A new try holds again, for this one step.
+      const next = await this.reserve(workspaceId, id, pr.credits.holdIds.length, pr.pipeline.name, [{ def, agent: { spec: agent, workspaceId: step.agent.workspaceId } }], pr.capMicroUsd - pr.costMicroUsd, { userId: pr.credits.userId }, pr.credits);
+      if (next) pr.credits = next;
+    }
+    const { status, runId, retries, rewrite, output, candidates, suggested, picked, brandFit, checks, quality, error, startedAt, finishedAt } = step;
+    step.redo = { count: (step.redo?.count ?? 0) + 1, before: { status, runId, retries, rewrite, output, candidates, suggested, picked, brandFit, checks, quality, error, startedAt, finishedAt } };
+    Object.assign(step, { status: "todo", retries: 0, rewrite: null, candidates: [], suggested: null, picked: null, error: null, startedAt: null, finishedAt: null });
+    pr.status = "running";
+    pr.finishedAt = null;
+    await this.save(pr);
+    this.kick(workspaceId, id);
+    return pr;
+  }
+
+  /** A "Try again" that did not land: the step gets back what it had, the package is built again, the reason stays on the step. */
+  private async undoRedo(pr: PipelineRun, i: number, why: { code: string; message: string } | null, reason: ReleaseReason): Promise<void> {
+    const step = pr.steps[i];
+    if (!step.redo?.before) return;
+    Object.assign(step, step.redo.before, { error: why });
+    step.redo = { count: step.redo.count, before: null };
+    return this.finish(pr, reason);
+  }
+
   /* ---------- Driving ---------- */
 
   private kick(workspaceId: string, id: string) {
@@ -575,6 +628,12 @@ export class PipelineEngine {
     const left = pr.capMicroUsd - pr.costMicroUsd;
     if (left <= 0) return null;
     return Math.min(toUsd(left), def.maxCostUsd ?? Infinity);
+  }
+
+  /** The start of a step's idempotency keys: one per step, and one per "Try again" on it, so a restart finds each run again. */
+  private stepKey(pr: PipelineRun, i: number): string {
+    const step = pr.steps[i];
+    return `${pr.id}.${step.id}${step.redo?.count ? `.again${step.redo.count}` : ""}`;
   }
 
   private async submitStep(pr: PipelineRun, i: number, inputs: RunInputs, key: string, capUsd: number): Promise<Run> {
@@ -645,7 +704,7 @@ export class PipelineEngine {
     if (cap === null) return this.failRun(pr, i, "spend_cap", `The pipeline's budget ran out before "${step.label}".`);
     let run: Run;
     try {
-      run = await this.submitStep(pr, i, inputs, `${pr.id}.${step.id}.${step.retries}`, cap);
+      run = await this.submitStep(pr, i, inputs, `${this.stepKey(pr, i)}.${step.retries}`, cap);
     } catch (err) {
       if (!(err instanceof RunError)) throw err;
       if (err.code === "over_budget") return this.failRun(pr, i, "spend_cap", `The pipeline's budget ran out before "${step.label}". ${err.message.split("\n")[0]}`);
@@ -653,6 +712,12 @@ export class PipelineEngine {
       if (err.code === "not_found" || err.code === "not_runnable") return this.failRun(pr, i, "agent_missing", `${step.agent.name} could not run: ${err.message.split("\n")[0]}`);
       if (err.code === "blocked") return this.failRun(pr, i, "step_failed", `"${step.label}" was refused: ${err.issues.map((x) => x.replace(/^[a-z_]+: /, "")).join(" ")}`);
       return this.failRun(pr, i, "step_failed", err.message.split("\n")[0]);
+    }
+    // Stopped while the run was handed over (a cancel, or a "Try again" put back): that run is not wanted.
+    const now = await this.get(pr.workspaceId, pr.id);
+    if (!now || now.status !== "running" || now.steps[i].status !== "todo") {
+      await this.o.runs.cancelRun(pr.workspaceId, run.id).catch(() => undefined);
+      return;
     }
     step.inputs ??= inputs;
     if (!step.runIds.includes(run.id)) step.runIds.push(run.id);
@@ -671,6 +736,7 @@ export class PipelineEngine {
     if (this.o.billing && pr.credits) pr.credits = await this.o.billing.pipelineTotals(ws, pr.credits);
 
     if (run.status === "cancelled") {
+      if (step.redo?.before) return this.undoRedo(pr, i, null, "cancelled");
       step.status = "cancelled";
       step.finishedAt = this.now().toISOString();
       pr.status = "cancelled";
@@ -722,7 +788,7 @@ export class PipelineEngine {
     const inputs = { ...run.inputs, [main.key]: withNote(String(run.inputs[main.key]), note, main.limits.maxLength) };
     let next: Run;
     try {
-      next = await this.submitStep(pr, i, inputs, `${pr.id}.${step.id}.rw${step.retries}`, cap);
+      next = await this.submitStep(pr, i, inputs, `${this.stepKey(pr, i)}.rw${step.retries}`, cap);
     } catch (err) {
       if (err instanceof RunError) return false;
       throw err;
@@ -791,7 +857,9 @@ export class PipelineEngine {
   }
 
   /** Every step is done: the package for the approve step. */
-  private async finish(pr: PipelineRun): Promise<void> {
+  private async finish(pr: PipelineRun, reason: ReleaseReason = "ended"): Promise<void> {
+    // A "Try again" that landed: what the step had before is not needed any more.
+    for (const s of pr.steps) if (s.redo?.before) s.redo = { count: s.redo.count, before: null };
     const items: PackageItem[] = [];
     for (const part of pr.spec.package) {
       const step = pr.steps.find((s) => s.id === part.step);
@@ -812,11 +880,13 @@ export class PipelineEngine {
     pr.needsReview = items.some((p) => p.flags.length > 0) || pr.steps.some((s) => s.status === "flagged" && pr.spec.package.some((p) => p.step === s.id && p.take === "all"));
     pr.status = "ready";
     // Every step ran: what was held and not used comes back.
-    await this.closeCredits(pr);
+    await this.closeCredits(pr, reason);
     await this.save(pr);
   }
 
   private async failRun(pr: PipelineRun, i: number | null, code: PipelineFailure, message: string): Promise<void> {
+    // A "Try again" on a finished package never stops the run: the step goes back to what it had.
+    if (i !== null && pr.steps[i].redo?.before) return this.undoRedo(pr, i, { code, message }, "failed");
     const at = this.now().toISOString();
     if (i !== null) {
       const step = pr.steps[i];

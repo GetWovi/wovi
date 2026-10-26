@@ -5,24 +5,23 @@ import { ago } from "@/components/builder/labels";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 import type { ItemView } from "@/lib/team/team";
-import { ITEM_STATE_LABELS } from "@/lib/team/types";
 import { ItemStateTag, Votes } from "./ItemState";
-import { itemPose } from "./labels";
+import { itemPose, itemTag } from "./labels";
 import t from "./Team.module.css";
 
 /** One item in the review queue: Wovi in the state's pose, what made it, the client, who has it, the yeses so far. */
 export function ItemRow({ item, now, action, href = `/app/review/${item.id}` }: { item: ItemView; now: number; action?: ReactNode; href?: string }) {
   const running = item.source === "running";
   return (
-    <div className={[t.row, item.state === "needs_review" ? t.rowNeeds : ""].join(" ")}>
+    <div className={[t.row, item.state === "needs_review" && item.flagged ? t.rowNeeds : ""].join(" ")}>
       <Link href={href} className={t.rowMain}>
         <span className={t.rowMascot}>
-          <Mascot pose={itemPose(item.state, running)} size={56} label={`Wovi, ${ITEM_STATE_LABELS[item.state].toLowerCase()}`} />
+          <Mascot pose={itemPose(item.state, running)} size={56} label={`Wovi, ${itemTag(item.state, item.flagged).label.toLowerCase()}`} />
         </span>
         <span className={t.rowText}>
           <span className={t.rowTop}>
             <span className={t.rowWhat}>{item.what.name}</span>
-            <ItemStateTag state={item.state} />
+            <ItemStateTag state={item.state} flagged={item.flagged} />
             {running && <span className={t.client}>Still running</span>}
             {item.flagged && (
               <span className={t.flag}>

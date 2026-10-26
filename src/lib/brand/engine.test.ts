@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BRAND_BRAIN_PARTS, type BrandBrainPart } from "@/lib/agents/catalog";
+import { BRAND_BRAIN_PARTS, BRAND_BRAIN_PART_LABELS, type BrandBrainPart } from "@/lib/agents/catalog";
 import { AgentRegistry } from "@/lib/agents/registry";
 import { memoryStore } from "@/lib/agents/store";
 import { goodSpec } from "@/lib/agents/test-helpers";
@@ -153,6 +153,17 @@ describe("brand fit", () => {
     expect(fit.score).toBeLessThanOrEqual(25);
     expect(dontPhrases("No discounts in the first line")).toEqual([]);
     expect(brandFit(["just bread."], brain).flags).toEqual([]);
+  });
+
+  it("catches the don'ts the way the onboarding hint tells an owner to write them", () => {
+    const hinted = { dos_donts: { dos: [], donts: ["No hashtags.", 'Never say "cheap".'], bannedWords: [] } };
+    expect(brandFit(["Cuts that are not cheap, just good #curls"], hinted).flags.map((f) => f.found)).toEqual(["#curls", "cheap"]);
+  });
+
+  it("names every part in plain words for the 'What agents read' panel, never as a placeholder", () => {
+    for (const p of BRAND_BRAIN_PARTS) expect(BRAND_BRAIN_PART_LABELS[p]).toMatch(/^Your [a-z][a-z' ]+$/);
+    expect(BRAND_BRAIN_PART_LABELS.voice).toBe("Your voice");
+    expect(BRAND_BRAIN_PART_LABELS.idea).toBe("Your brand idea");
   });
 
   it("scores a draft in the voice above one that is not", () => {

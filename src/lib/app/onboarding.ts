@@ -78,7 +78,28 @@ export function reachableStep(state: OnboardingState, wanted: OnboardingStep): O
   return wanted;
 }
 
-/** The progress line under the steps: "Step 2 of 4". */
+/** How many steps the person does: the welcome is the door, not a step, so the screens say three like the welcome does. */
+export const STEPS_TO_DO = ONBOARDING_STEPS.length - 1;
+
+/** The number on a step's pill: none for the welcome, 1 to 3 after it. */
+export function stepNumber(step: OnboardingStep): number | null {
+  return step === "welcome" ? null : stepIndex(step);
+}
+
+/** The progress line above each screen: "Step 2 of 3", and the time it takes on the welcome. */
 export function progressLabel(step: OnboardingStep): string {
-  return `Step ${stepIndex(step) + 1} of ${ONBOARDING_STEPS.length}`;
+  const n = stepNumber(step);
+  return n === null ? `${STEPS_TO_DO} short steps` : `Step ${n} of ${STEPS_TO_DO}`;
+}
+
+/** Whether a Brand Brain has a voice yet: words about it, a tone, past posts or rules. A name and platforms alone are not one. */
+export function hasVoice(brain: { voice: string; tone: readonly string[]; references: number; rules: number }): boolean {
+  return Boolean(brain.voice.trim()) || brain.tone.length > 0 || brain.references > 0 || brain.rules > 0;
+}
+
+/** The welcome after onboarding, true to what the Brand Brain holds: null when none was made. */
+export function welcomeWords(brain: { voiced: boolean } | null): { title: string; description: string } {
+  if (!brain) return { title: "You are in", description: "Build a Brand Brain whenever you like." };
+  if (brain.voiced) return { title: "Your Brand Brain is in", description: "Every agent reads it first." };
+  return { title: "You are in", description: "Your Brand Brain only has the basics so far. Add a few posts on the Brand page so agents can sound like you." };
 }

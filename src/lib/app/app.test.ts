@@ -40,7 +40,11 @@ describe("onboarding state", () => {
     expect(nextStep("review")).toBeNull();
     expect(prevStep("brand")).toBe("welcome");
     expect(prevStep("welcome")).toBeNull();
-    expect(progressLabel("posts")).toBe("Step 3 of 4");
+    // The welcome is the door; the three steps after it are the ones the welcome promises.
+    expect(progressLabel("welcome")).toBe("3 short steps");
+    expect(progressLabel("brand")).toBe("Step 1 of 3");
+    expect(progressLabel("posts")).toBe("Step 2 of 3");
+    expect(progressLabel("review")).toBe("Step 3 of 3");
   });
 
   it("needs 3 to 5 posts, none too long, before it reads them", () => {

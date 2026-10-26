@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { GUARDRAIL_IDS, TOOL_IDS } from "@/lib/agents/catalog";
 import { PLATFORM_WORKSPACE_ID, SEED_AGENTS } from "@/lib/agents/seeds";
@@ -17,7 +18,7 @@ import { NOT_GIVEN, fillInstructions } from "@/lib/runs/prompt";
 import { memoryFileStorage } from "@/lib/builder/storage";
 import { LAUNCH_BRAINS, LAUNCH_BRAIN_NAMES } from "./brains";
 import { formatOutput } from "./format";
-import { LAUNCH_AUTHOR_ID, installLaunchSet } from "./install";
+import { LAUNCH_AUTHOR_ID, SUPERSEDED_SAMPLES, installLaunchSet } from "./install";
 import { LAUNCH_SAMPLES } from "./samples";
 import { LAUNCH_AGENTS, LAUNCH_NOTES, NOT_IN_LAUNCH } from "./specs";
 
@@ -137,6 +138,20 @@ describe("the golden samples", () => {
     expect(new Set(allSamples.map(({ sample }) => sample.brain)).size).toBe(10);
   });
 
+  it("keep permission to film off camera: Idea Generator is told so, and no sample idea says it", () => {
+    expect(spec("idea-generator").instructions).toMatch(/consent to film or name someone is something the owner handles off camera/);
+    const consent = /\b(their|the client's|the owner's|her|his) yes\b|permission|consent|happy to (be filmed|share)/i;
+    for (const s of samplesOf("idea-generator").filter((x) => x.label === "gold")) {
+      const ideas = s.ideal.kind === "list" ? s.ideal.items.map((it) => (typeof it === "string" ? it : (it.idea ?? ""))) : [];
+      expect([s.title, ideas.filter((idea) => consent.test(idea))]).toEqual([s.title, []]);
+    }
+    // The ideas the launch set stored before are rewritten in place on the next install.
+    for (const [title, hashes] of Object.entries(SUPERSEDED_SAMPLES["idea-generator"])) {
+      const now = samplesOf("idea-generator").find((x) => x.title === title)!;
+      expect(hashes).not.toContain(createHash("sha256").update(formatOutput(now.ideal)).digest("hex").slice(0, 16));
+    }
+  });
+
   it.each(allSamples.map(({ agentId, sample }) => [agentId, sample.title, sample] as const))("%s / %s fits the form and the output shape", (agentId, _title, sample) => {
     const s = spec(agentId);
     const fits = validateRunInputs(s, { ...sample.inputs, brand: "bb_test" });
@@ -206,7 +221,7 @@ describe("installing the launch set", () => {
     const report = await t.install();
     expect(report.agents.map((a) => [a.id, a.action, a.version, a.status])).toEqual([
       ["trend-scout", "updated", "3.0.1", "live"],
-      ["idea-generator", "created", "1.0.1", "live"],
+      ["idea-generator", "created", "1.0.2", "live"],
       ["hook-writer", "updated", "1.1.1", "live"],
       ["script-writer", "updated", "2.0.1", "live"],
       ["caption-writer", "updated", "1.1.1", "live"],

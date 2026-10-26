@@ -16,6 +16,8 @@ import { agentIcon, agentTag } from "./agent-icons";
  */
 export function AgentCard({ agent, alt = false, score, stats }: { agent: Pick<LineupAgent, "id" | "name" | "job" | "category" | "status">; alt?: boolean; score?: PublicScorecard | null; stats?: PublicStats | null }) {
   const live = agent.status === "live";
+  // A new agent with no scores and no live stats yet says so once, not in two boxes.
+  const fresh = score !== undefined && (!score || !score.scored);
   const card = (
     <article className={[styles.panel, styles.panelTight, alt ? styles.panelAlt : "", styles.agentCard, live ? "" : styles.agentCardComing].join(" ")}>
       <div className={styles.agentTop}>
@@ -27,7 +29,7 @@ export function AgentCard({ agent, alt = false, score, stats }: { agent: Pick<Li
       <h3 className={styles.agentName}>{agent.name}</h3>
       <p className={styles.agentJob}>{agent.job}</p>
       {live && score !== undefined && <CardScore card={score} />}
-      {live && stats !== undefined && <CardStats stats={stats} />}
+      {live && stats !== undefined && !(fresh && (!stats || stats.isNew)) && <CardStats stats={stats} />}
       <div className={styles.agentFoot}>
         <span className={styles.chip}>{agentTag(agent.id, agent.category)}</span>
         {live ? (

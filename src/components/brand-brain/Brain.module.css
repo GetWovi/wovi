@@ -21,6 +21,18 @@
   }
 }
 
+/* Delete stands apart from the everyday actions: after a rule, smaller, no outline, in the warning colour. */
+.actionsRule {
+  width: 1px;
+  height: 24px;
+  margin-inline: var(--s-2);
+  background: var(--hairline-strong);
+}
+button.deleteAction {
+  border-color: transparent;
+  color: var(--blaze-text);
+}
+
 /* ---------- List ---------- */
 .headActions {
   display: flex;

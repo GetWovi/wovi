@@ -149,6 +149,12 @@ export class GuardedPipelines {
     return this.view(caller, role, await this.engine.retry(workspaceId, id));
   }
 
+  /** "Try again" on one part of a finished package: that step runs once more, held and charged like any step. */
+  async redoStep(caller: Principal, workspaceId: string, id: string, stepId: string): Promise<PublicPipelineRun> {
+    const role = await this.accounts.authorize(caller, workspaceId, "run_agents");
+    return this.view(caller, role, await this.engine.redoStep(workspaceId, id, stepId));
+  }
+
   /** The human approve step. "decide", so an API key never approves (phase 18 closed this: it used to ask for run_agents only). */
   async decide(caller: Principal, workspaceId: string, id: string, decision: "approved" | "rejected", note = ""): Promise<PublicPipelineRun> {
     const role = await this.accounts.authorize(caller, workspaceId, "decide");

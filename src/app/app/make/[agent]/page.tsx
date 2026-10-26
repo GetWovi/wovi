@@ -9,8 +9,8 @@ import { currentTime } from "@/components/builder/labels";
 import { Icon } from "@/components/ui/Icon";
 import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
+import { agentExamples } from "@/lib/app/pipeline-examples";
 import { appPage } from "@/lib/app/server";
-import { LAUNCH_SAMPLES } from "@/lib/launch/samples";
 import { AgentScorecard } from "@/components/quality/QualityParts";
 import { gateFor } from "@/lib/quality/data";
 import { appQuality } from "@/lib/quality/server";
@@ -35,7 +35,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const view = runId ? await api.run(me, workspaceId, runId) : null;
   const shown = view && view.run.agent.id === spec.id ? view : null;
   const reviewer = shown?.review ? ((await accounts().getUser(shown.review.by))?.name ?? (await accounts().getUser(shown.review.by))?.email ?? null) : null;
-  const examples = (LAUNCH_SAMPLES[spec.id] ?? []).filter((s) => s.label === "gold").map((s) => ({ brain: s.brain, inputs: s.inputs }));
+  const examples = agentExamples(spec.id);
   const card = await appQuality().scorecard(found.agentWorkspaceId, spec.id);
   const live = await appStats().agentStats(found.agentWorkspaceId, spec.id);
   const price = await api.agentPrice(me, workspaceId, spec.id, found.agentWorkspaceId);
@@ -62,7 +62,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           <span className={styles.chip}>{agentTag(spec.id, spec.category)}</span>
           <span className={styles.chip}>v{spec.version}</span>
           <a href="#scorecard" className={[styles.chip, styles.chipCobalt].join(" ")}>
-            {card.scored ? `${Math.round((card.passRate ?? 0) * 100)}% pass the quality bar` : "New: no scores yet"}
+            {card.enough ? `${Math.round((card.passRate ?? 0) * 100)}% pass the quality bar` : "Quality bar: New"}
           </a>
           <a href="#live-stats" className={[styles.chip, styles.chipBlaze].join(" ")}>
             {live.isNew ? "Live stats: New" : `${pctOf(live.acceptance)} used as is`}

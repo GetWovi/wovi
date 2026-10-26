@@ -1,12 +1,23 @@
 /** Words and poses for review screens. Data only, client-safe. */
 import type { IconName } from "@/components/ui/Icon";
-import type { ActivityKind, ItemState, NotificationKind } from "@/lib/team/types";
+import { STATE_LABELS } from "@/lib/app/results";
+import { ITEM_STATE_LABELS, type ActivityKind, type ItemState, type NotificationKind } from "@/lib/team/types";
 
 export function itemPose(state: ItemState, running: boolean): "move" | "wait" | "done" | "hello" {
   if (running) return "move";
   if (state === "needs_review") return "hello";
   if (state === "approved") return "done";
   return "wait";
+}
+
+/**
+ * The tag on a review row. Waiting for a decision is what the tab says; the
+ * tag says what the run is, in History's words: "Ready" when it came out
+ * clean, "Needs review" only when a check flagged it.
+ */
+export function itemTag(state: ItemState, flagged: boolean): { tone: ItemState | "ready"; label: string } {
+  if (state === "needs_review") return flagged ? { tone: "needs_review", label: STATE_LABELS.needs_review } : { tone: "ready", label: STATE_LABELS.ready };
+  return { tone: state, label: ITEM_STATE_LABELS[state] };
 }
 
 /** One activity line: "approved it", "asked for changes". */

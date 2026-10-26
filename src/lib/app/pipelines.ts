@@ -75,6 +75,38 @@ export function stepsDone(run: Pick<PublicPipelineRun, "steps">): number {
   return run.steps.filter((s) => s.status === "done" || s.status === "flagged" || s.status === "skipped").length;
 }
 
+/** The template an Idea Generator idea is made into a post with: the product doc's "Idea to ready post". */
+export const IDEA_TO_POST = "idea-to-post";
+
+/**
+ * The link from one idea to "Idea to ready post" with the idea filled in
+ * (the doc's chaining), with the run's platform and Brand Brain; the form
+ * keeps only what fits its own inputs.
+ */
+export function ideaToPostHref(idea: string, run: { inputs: Record<string, unknown>; brandBrain?: { id: string } | null }): string {
+  const q = new URLSearchParams({ idea });
+  if (typeof run.inputs.platform === "string") q.set("platform", run.inputs.platform);
+  if (run.brandBrain?.id) q.set("brand", run.brandBrain.id);
+  return `/app/pipelines/${IDEA_TO_POST}?${q}`;
+}
+
+/**
+ * Form values from a link's query (`?idea=...&platform=tiktok`): text inputs
+ * as given (the form's own check says when one is too long), and choices
+ * only when they are one of the input's options. Everything else is left out.
+ */
+export function prefillFrom(spec: Pick<PipelineSpec, "inputs">, query: Record<string, string | string[] | undefined>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const input of spec.inputs) {
+    const raw = query[input.key];
+    const v = Array.isArray(raw) ? raw[0] : raw;
+    if (typeof v !== "string" || !v.trim()) continue;
+    if (input.type === "text" || input.type === "long_text") out[input.key] = v.slice(0, 2000);
+    else if (input.type === "choice" && !input.multiple && input.options.some((o) => o.value === v)) out[input.key] = v;
+  }
+  return out;
+}
+
 /** One part of the package as text. */
 export function partText(p: PackageItem): string {
   if (p.item) return p.item.text;

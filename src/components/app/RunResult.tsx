@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { giveFeedback, rerun } from "@/app/app/make/actions";
-import { ResultFeedback } from "@/components/stats/ResultFeedback";
+import { useState, type ReactNode } from "react";
+import { giveFeedback, regenerateRun, rerun } from "@/app/app/make/actions";
+import { NO_FEEDBACK, ResultFeedback } from "@/components/stats/ResultFeedback";
 import { Mascot } from "@/components/brand/Mascot";
 import { ago } from "@/components/builder/labels";
 import { GateNote, QualityBreakdown, QualityScore } from "@/components/quality/QualityParts";
@@ -14,12 +14,17 @@ import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
 import type { PublicAgent } from "@/lib/accounts/guard";
 import type { RunView } from "@/lib/app/api";
+import { ideaToPostHref } from "@/lib/app/pipelines";
 import { QUICK_EDITS } from "@/lib/app/quick-edits";
-import { brandFitOf, copyAll, explainChecks, resultNoun, resultView, runTitle, type ResultItem, type ResultView } from "@/lib/app/results";
+import { brandFitOf, copyAll, editFields, editItem, explainChecks, itemText, resultNoun, resultView, runTitle, type ResultItem, type ResultView } from "@/lib/app/results";
+import type { RunOutput } from "@/lib/runs/output";
+import type { RunFeedback } from "@/lib/stats/feedback";
 import { splitNote } from "@/lib/app/quick-edits";
 import { ChargeLine } from "@/components/credits/CreditParts";
 import styles from "./App.module.css";
 import { CopyButton } from "./CopyButton";
+import { EditButton, EditedTag, ItemEditor } from "./ItemEdit";
+import e from "./ItemEdit.module.css";
 import { ReviewPanel } from "./ReviewControls";
 import { AiLabelPanel } from "@/components/safety/AiLabelPanel";
 import { ReportLink } from "@/components/safety/LegalLinks";
@@ -28,8 +33,9 @@ export type AgentForResult = Pick<PublicAgent, "id" | "name" | "job" | "inputs" 
 
 /**
  * A finished run: Wovi celebrating, the result in its typed shape with copy
- * buttons, brand fit as one number, flagged checks in plain words, quick
- * edits that run again with a note, and the human approve step.
+ * buttons, each item editable in place, brand fit as one number, flagged
+ * checks in plain words, quick edits that run again with a note, and the
+ * human approve step.
  */
 export function RunResult({
   csrf,
@@ -59,7 +65,20 @@ export function RunResult({
   const { toast } = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const { run } = view;
-  const output = run.output;
+  // The person's version, item by item, while they are on this result. Each Keep saves the whole of it as the run's edit.
+  const [forRun, setForRun] = useState(run.id);
+  const [kept, setKept] = useState<RunOutput | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const [edited, setEdited] = useState<ReadonlySet<string>>(() => new Set());
+  const [fb, setFb] = useState<RunFeedback>(view.feedback ?? NO_FEEDBACK);
+  if (forRun !== run.id) {
+    setForRun(run.id);
+    setKept(null);
+    setOpen(null);
+    setEdited(new Set());
+    setFb(view.feedback ?? NO_FEEDBACK);
+  }
+  const output = kept ?? run.output;
   const fit = brandFitOf(run);
   const flags = explainChecks(run.checks);
   const fails = flags.filter((f) => f.tone === "fail");
@@ -67,7 +86,56 @@ export function RunResult({
   const idle = run.status === "failed" || run.status === "cancelled";
 
   // Live stats: copying any part of a result is a use of it.
-  const used = (how: "copy" | "copy_all") => void giveFeedback(csrf, run.id, { action: "use", how });
+  const used = (how: "copy" | "copy_all" | "pick") => void giveFeedback(csrf, run.id, { action: "use", how });
+
+  /** Keeps one changed item: the whole result with it goes in as the run's edit (the distance is measured on that), and the item is copied. */
+  async function keepItem(block: number, item: number, values: Record<string, string>): Promise<boolean> {
+    if (!output) return false;
+    const next = editItem(output, block, item, values);
+    const r = await giveFeedback(csrf, run.id, { action: "edit", text: copyAll(next) });
+    if (!r.ok) {
+      toast({ tone: "warning", title: r.error });
+      return false;
+    }
+    setKept(next);
+    setFb(r.value);
+    setOpen(null);
+    setEdited((all) => new Set(all).add(`${block}:${item}`));
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(itemText(resultView(next), block, item));
+      copied = true;
+    } catch {
+      /* The text stays on screen to select. */
+    }
+    toast({ tone: "success", title: "Kept your version", description: copied ? "Copied, ready to paste." : undefined });
+    return true;
+  }
+
+  async function again() {
+    const r = await regenerateRun(csrf, run.id);
+    if (!r.ok) return toast({ tone: "warning", title: r.error });
+    if (onRerun) onRerun(r.value.id);
+    else router.push(`/app/make/${agent.id}?run=${r.value.id}`);
+  }
+
+  const slot = (block: number, item: number): ItemSlot => {
+    const key = `${block}:${item}`;
+    const out: ItemSlot = { edited: edited.has(key) };
+    if (!editor || !output || !rv) return out;
+    if (open === key) out.editor = <ItemEditor key={key} fields={editFields(output, block, item)} onKeep={(values) => keepItem(block, item, values)} onCancel={() => setOpen(null)} />;
+    else out.tools = <EditButton what={itemText(rv, block, item)} onClick={() => setOpen(key)} />;
+    // Chaining (product doc): an idea goes straight into "Idea to ready post".
+    const idea = agent.id === "idea-generator" ? rv.blocks[block]?.items[item]?.text : undefined;
+    if (idea) {
+      out.foot = (
+        <ButtonLink href={ideaToPostHref(idea, run)} size="sm" variant="ghost" leading={<Icon name="layers" size={16} />} onClick={() => used("pick")}>
+          Make this into a post
+        </ButtonLink>
+      );
+    }
+    return out;
+  };
 
   async function edit(id: string) {
     setBusy(id);
@@ -179,11 +247,20 @@ export function RunResult({
         <CopyButton text={copyAll(output)} label="Copy everything" onCopy={() => used("copy_all")} />
       </div>
 
-      <ResultBody view={rv} onCopy={() => used("copy")} />
+      <ResultBody view={rv} onCopy={() => used("copy")} slot={slot} />
 
       {run.sources && run.sources.length > 0 && <Sources sources={run.sources} />}
 
-      <ResultFeedback csrf={csrf} runId={run.id} agentId={agent.id} text={copyAll(output)} initial={view.feedback} editor={editor} onRegenerated={onRerun} />
+      <ResultFeedback
+        text={copyAll(output)}
+        state={fb}
+        onState={setFb}
+        send={(req) => giveFeedback(csrf, run.id, req)}
+        editor={editor}
+        editing={open !== null}
+        onEdit={() => setOpen((o) => (o ? null : "0:0"))}
+        onAgain={again}
+      />
 
       {run.quality && <QualityBreakdown q={run.quality} />}
 
@@ -266,54 +343,91 @@ export function Asked({ run, agent }: { run: RunView["run"]; agent: AgentForResu
   );
 }
 
-/** The typed output in its shape: lines, cards, beats or platforms. */
-export function ResultBody({ view, onCopy }: { view: ResultView; onCopy?: () => void }) {
+/** What a screen adds to one item: buttons beside its copy button, an editor in its place, a mark once it was changed, a row under a card. */
+export type ItemSlot = { tools?: ReactNode; editor?: ReactNode; edited?: boolean; foot?: ReactNode };
+
+/** The typed output in its shape: lines, cards, beats or platforms. `slot` adds to each item by its place (block, item). */
+export function ResultBody({ view, onCopy, slot }: { view: ResultView; onCopy?: () => void; slot?: (block: number, item: number) => ItemSlot | null }) {
+  const at = (b: number, i: number): ItemSlot => slot?.(b, i) ?? {};
   switch (view.layout) {
     case "lines":
       return (
         <ol className={styles.lines}>
-          {view.blocks[0].items.map((it) => (
-            <li key={it.label} className={styles.line}>
-              <span className={styles.lineNo}>{view.count > 1 ? it.label : <Icon name="pen" size={16} />}</span>
-              <span className={styles.lineText}>{it.text}</span>
-              <CopyButton text={it.text} small onCopy={onCopy} />
-            </li>
-          ))}
+          {view.blocks[0].items.map((it, i) => {
+            const s = at(0, i);
+            return (
+              <li key={it.label} className={styles.line}>
+                <span className={styles.lineNo}>{view.count > 1 ? it.label : <Icon name="pen" size={16} />}</span>
+                {s.editor ? (
+                  <div className={e.inLine}>{s.editor}</div>
+                ) : (
+                  <>
+                    <span className={styles.lineText}>
+                      {it.text}
+                      {s.edited && (
+                        <>
+                          {" "}
+                          <EditedTag />
+                        </>
+                      )}
+                    </span>
+                    <span className={e.tools}>
+                      <CopyButton text={itemText(view, 0, i)} small onCopy={onCopy} />
+                      {s.tools}
+                    </span>
+                  </>
+                )}
+              </li>
+            );
+          })}
         </ol>
       );
     case "cards":
       return (
         <div className={styles.cards}>
-          {view.blocks[0].items.map((it) => (
-            <Card key={it.label} item={it} onCopy={onCopy} />
+          {view.blocks[0].items.map((it, i) => (
+            <Card key={it.label} item={it} text={itemText(view, 0, i)} onCopy={onCopy} slot={at(0, i)} />
           ))}
         </div>
       );
     case "beats":
       return (
         <div className={styles.beats}>
-          {view.blocks[0].items.map((it) => (
-            <div key={it.label} className={styles.beat}>
-              <div className={styles.beatHead}>
-                <span className={styles.beatName}>{it.label}</span>
-                {it.meta && <span className={styles.beatTime}>{it.meta}</span>}
+          {view.blocks[0].items.map((it, i) => {
+            const s = at(0, i);
+            return (
+              <div key={it.label} className={styles.beat}>
+                <div className={styles.beatHead}>
+                  <span className={styles.beatName}>{it.label}</span>
+                  {it.meta && <span className={styles.beatTime}>{it.meta}</span>}
+                  {s.edited && !s.editor && <EditedTag />}
+                </div>
+                {s.editor ? (
+                  <div className={e.inBeat}>{s.editor}</div>
+                ) : (
+                  <>
+                    <div className={styles.beatBody}>
+                      <p className={styles.spoken}>{it.text}</p>
+                      <p className={styles.onScreen}>
+                        <b>On screen</b>
+                        {it.fields.find((f) => f.label === "On screen")?.value}
+                      </p>
+                    </div>
+                    <span className={[e.tools, e.toolsTop].join(" ")}>
+                      <CopyButton text={itemText(view, 0, i)} small onCopy={onCopy} />
+                      {s.tools}
+                    </span>
+                  </>
+                )}
               </div>
-              <div className={styles.beatBody}>
-                <p className={styles.spoken}>{it.text}</p>
-                <p className={styles.onScreen}>
-                  <b>On screen</b>
-                  {it.fields.find((f) => f.label === "On screen")?.value}
-                </p>
-              </div>
-              <CopyButton text={it.fields.map((f) => `${f.label}: ${f.value}`).join("\n")} small onCopy={onCopy} />
-            </div>
-          ))}
+            );
+          })}
         </div>
       );
     case "platforms":
       return (
         <div className={styles.blocks}>
-          {view.blocks.map((b) => (
+          {view.blocks.map((b, bi) => (
             <div key={b.title ?? ""} className={styles.block}>
               <div className={styles.blockTitle}>
                 <h3>{b.title}</h3>
@@ -322,29 +436,42 @@ export function ResultBody({ view, onCopy }: { view: ResultView; onCopy?: () => 
                 </span>
               </div>
               <div className={styles.variants}>
-                {b.items.map((it) => (
-                  <div key={it.label} className={styles.variant}>
-                    {it.fields.length ? (
-                      <dl className={styles.kv}>
-                        {it.fields.map((f) => (
-                          <div key={f.label} style={{ display: "contents" }}>
-                            <dt>{f.label}</dt>
-                            <dd>{f.value}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    ) : (
-                      <p className={styles.variantText}>{it.text}</p>
-                    )}
-                    <div className={styles.variantFoot}>
-                      <span>
-                        {it.label}
-                        {it.fields.length ? "" : ` · ${it.text.length} characters`}
-                      </span>
-                      <CopyButton text={it.text} onCopy={onCopy} />
+                {b.items.map((it, i) => {
+                  const s = at(bi, i);
+                  return (
+                    <div key={it.label} className={styles.variant}>
+                      {s.editor ? (
+                        s.editor
+                      ) : it.fields.length ? (
+                        <dl className={styles.kv}>
+                          {it.fields.map((f) => (
+                            <div key={f.label} style={{ display: "contents" }}>
+                              <dt>{f.label}</dt>
+                              <dd>{f.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      ) : (
+                        <p className={styles.variantText}>{it.text}</p>
+                      )}
+                      {!s.editor && (
+                        <div className={styles.variantFoot}>
+                          <span className={e.tools}>
+                            <span>
+                              {it.label}
+                              {it.fields.length ? "" : ` · ${it.text.length} characters`}
+                            </span>
+                            {s.edited && <EditedTag />}
+                          </span>
+                          <span className={e.tools}>
+                            <CopyButton text={itemText(view, bi, i)} onCopy={onCopy} />
+                            {s.tools}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -353,25 +480,40 @@ export function ResultBody({ view, onCopy }: { view: ResultView; onCopy?: () => 
   }
 }
 
-function Card({ item, onCopy }: { item: ResultItem; onCopy?: () => void }) {
+function Card({ item, text, onCopy, slot }: { item: ResultItem; text: string; onCopy?: () => void; slot: ItemSlot }) {
   const rest = item.fields.filter((f) => f.value !== item.text);
   return (
     <div className={styles.card}>
       <div className={styles.cardTop}>
-        <span className={styles.chip}>{item.meta ? item.meta : item.label}</span>
-        <CopyButton text={item.fields.map((f) => `${f.label}: ${f.value}`).join("\n")} small onCopy={onCopy} />
+        <span className={e.label}>
+          <span className={[styles.chip, e.chipFit].join(" ")} title={item.meta ?? undefined}>
+            {item.meta ? item.meta : item.label}
+          </span>
+          {slot.edited && !slot.editor && <EditedTag />}
+        </span>
+        {!slot.editor && (
+          <span className={e.tools}>
+            <CopyButton text={text} small onCopy={onCopy} />
+            {slot.tools}
+          </span>
+        )}
       </div>
-      <p className={styles.cardLead}>{item.text}</p>
-      {rest.length > 0 && (
-        <dl className={styles.kv}>
-          {rest.map((f) => (
-            <div key={f.label} style={{ display: "contents" }}>
-              <dt>{f.label}</dt>
-              <dd>{f.value}</dd>
-            </div>
-          ))}
-        </dl>
+      {slot.editor ?? (
+        <>
+          <p className={styles.cardLead}>{item.text}</p>
+          {rest.length > 0 && (
+            <dl className={styles.kv}>
+              {rest.map((f) => (
+                <div key={f.label} style={{ display: "contents" }}>
+                  <dt>{f.label}</dt>
+                  <dd>{f.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </>
       )}
+      {slot.foot && !slot.editor && <div className={e.cardFoot}>{slot.foot}</div>}
     </div>
   );
 }

@@ -132,7 +132,7 @@ export type BrandBrainsOptions = {
 const NOT_FOUND = "No such Brand Brain in this workspace.";
 /** Who the example Brand Brains from `npm run brains:seed` name as their author. */
 export const SEED_AUTHOR = "seed";
-const PLATFORM_LABELS: Record<Platform, string> = { x: "X", tiktok: "TikTok", shorts: "Shorts", reels: "Reels" };
+const PLATFORM_LABELS: Record<Platform, string> = { x: "X", tiktok: "TikTok", shorts: "YouTube Shorts", reels: "Instagram Reels" };
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 /** A body field as lines of plain text, for the history's diff. */

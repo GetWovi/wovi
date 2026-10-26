@@ -1,7 +1,8 @@
 import { Badge } from "@/components/ui/Badge";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { CHECKS } from "@/lib/quality/data";
-import type { PublicScorecard } from "@/lib/quality/scorecard";
+import { MIN_RUNS, type PublicScorecard } from "@/lib/quality/scorecard";
+import { NEW } from "@/lib/stats/words";
 import type { PublicQuality, QualityCheckResult, QualityStatus } from "@/lib/quality/types";
 import styles from "./Quality.module.css";
 
@@ -125,7 +126,8 @@ const pct = (x: number | null) => (x === null ? "·" : `${Math.round(x * 100)}%`
 
 /** One line under an agent card: its average quality and how often it passes the bar. */
 export function CardScore({ card }: { card: PublicScorecard | null }) {
-  if (!card || !card.scored) {
+  // Below the minimum a share of one or two runs says nothing, as in the live stats.
+  if (!card || !card.enough) {
     return (
       <div className={styles.cardScore}>
         <span className={styles.newDot}>
@@ -133,7 +135,7 @@ export function CardScore({ card }: { card: PublicScorecard | null }) {
         </span>
         <span className={styles.cardScoreText}>
           <b>New agent</b>
-          <span>Scores show after its first runs</span>
+          <span>Scores show after {MIN_RUNS} runs</span>
         </span>
       </div>
     );
@@ -156,13 +158,15 @@ export function CardScore({ card }: { card: PublicScorecard | null }) {
 
 /** The agent page's scorecard: the numbers, the same in words, and what every result is checked for. */
 export function AgentScorecard({ card, bar, rewrites }: { card: PublicScorecard; bar: number; rewrites: number }) {
+  // Below the minimum every share and average reads New, as in the live stats; the counts under them still show.
+  const shown = (v: string) => (card.enough ? v : NEW);
   const tiles = [
-    { label: "Pass the bar", value: pct(card.passRate), hint: card.scored ? `${card.passed} of ${card.scored} runs` : "No runs yet", main: true },
-    { label: "Avg quality", value: card.avgScore === null ? "·" : String(card.avgScore), hint: "out of 100" },
-    { label: "Approved", value: pct(card.approvalRate), hint: card.decided ? `${card.approved} of ${card.decided} decided` : "None decided yet" },
-    { label: "Changes asked", value: pct(card.changesRate), hint: card.decided ? `on ${card.changesAsked} of ${card.decided}` : "None yet" },
-    { label: "Runs", value: String(card.runs), hint: "by everyone" },
-    { label: "First try", value: card.scored ? pct(card.firstTry / card.scored) : "·", hint: "passed with no rewrite" },
+    { label: "Pass the bar", value: shown(pct(card.passRate)), hint: card.scored ? `${card.passed} of ${card.scored} runs` : "No runs yet", main: true },
+    { label: "Avg quality", value: shown(card.avgScore === null ? "·" : String(card.avgScore)), hint: "out of 100" },
+    { label: "Approved", value: shown(pct(card.approvalRate)), hint: card.decided ? `${card.approved} of ${card.decided} decided` : "None decided yet" },
+    { label: "Changes asked", value: shown(pct(card.changesRate)), hint: card.decided ? `on ${card.changesAsked} of ${card.decided}` : "None yet" },
+    { label: "Runs", value: String(card.runs), hint: card.enough ? "by everyone" : `${card.runs} of the ${MIN_RUNS} it needs` },
+    { label: "First try", value: shown(card.scored ? pct(card.firstTry / card.scored) : "·"), hint: "passed with no rewrite" },
   ];
   return (
     <div className={styles.card}>

@@ -1,7 +1,7 @@
 "use server";
 
 import { appCall, type Result } from "@/app/app/actions";
-import type { PipelineView, StartPipelineInput } from "@/lib/app/api";
+import type { FeedbackRequest, PipelineView, StartPipelineInput } from "@/lib/app/api";
 import type { ReviewDecision } from "@/lib/app/types";
 import type { PublicPipelineRun } from "@/lib/pipelines/run";
 import type { RunFeedback } from "@/lib/stats/feedback";
@@ -40,4 +40,14 @@ export async function clearPipelineDecision(csrf: string, id: string): Promise<R
 /** Live stats: copying one part of a package uses the step run it came from. */
 export async function pipelinePartUsed(csrf: string, id: string, stepId: string): Promise<Result<RunFeedback | null>> {
   return appCall(csrf, ({ api, me, workspaceId }) => api.pipelinePartUsed(me, workspaceId, id, stepId));
+}
+
+/** Live stats: an edit or a rating on one part of a package, on the step run it came from. */
+export async function pipelinePartFeedback(csrf: string, id: string, stepId: string, req: FeedbackRequest): Promise<Result<RunFeedback>> {
+  return appCall(csrf, ({ api, me, workspaceId }) => api.pipelinePartFeedback(me, workspaceId, id, stepId, req));
+}
+
+/** "Try again" on one part of a package: that step runs once more with the same inputs. */
+export async function redoPipelineStep(csrf: string, id: string, stepId: string): Promise<Result<PublicPipelineRun>> {
+  return appCall(csrf, ({ api, me, workspaceId }) => api.redoPipelineStep(me, workspaceId, id, stepId), { refresh: "/app" });
 }

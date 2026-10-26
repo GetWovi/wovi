@@ -1,7 +1,7 @@
 /** Words for the catalog values, for the builder's screens. Data only. */
 import type { Category, Platform } from "@/lib/agents/catalog";
 
-export const PLATFORM_LABELS: Record<Platform, string> = { x: "X", tiktok: "TikTok", shorts: "Shorts", reels: "Reels" };
+export const PLATFORM_LABELS: Record<Platform, string> = { x: "X", tiktok: "TikTok", shorts: "YouTube Shorts", reels: "Instagram Reels" };
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   research: "Research",

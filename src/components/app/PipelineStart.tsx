@@ -11,8 +11,8 @@ import { useToast } from "@/components/ui/Toast";
 import type { PipelineInfo, Price } from "@/lib/app/api";
 import { CreditsBlocked, PriceLine } from "@/components/credits/CreditParts";
 import { BlockedNotice } from "@/components/safety/BlockedNotice";
-import { checkForm, formFields, initialValues, valuesFrom, type FormValues } from "@/lib/app/forms";
-import type { PipelineExample } from "@/lib/app/pipeline-examples";
+import { checkForm, formFields, initialValues, initialValuesFor, switchPlatformDefaults, valuesFrom, type FormValues } from "@/lib/app/forms";
+import { exampleInputs, type FormExample } from "@/lib/app/examples";
 import styles from "./App.module.css";
 import p from "./Pipeline.module.css";
 import { Field, type BrainOption } from "./AgentRun";
@@ -23,14 +23,36 @@ import { ChainList } from "./PipelineParts";
  * Brand Brain picker, the confirmations its agents ask for, and the chain
  * beside it. Starting goes to the run's page.
  */
-export function PipelineStart({ csrf, info, brains, editor, examples, price = null }: { csrf: string; info: PipelineInfo; brains: BrainOption[]; editor: boolean; examples: PipelineExample[]; price?: Price | null }) {
+export function PipelineStart({
+  csrf,
+  info,
+  brains,
+  editor,
+  examples,
+  price = null,
+  prefill = {},
+  brainId: givenBrain = null,
+}: {
+  csrf: string;
+  info: PipelineInfo;
+  brains: BrainOption[];
+  editor: boolean;
+  examples: FormExample[];
+  price?: Price | null;
+  /** Text and choice inputs filled in from a link, like an idea from Idea Generator (`prefillFrom`). */
+  prefill?: Record<string, string>;
+  /** The Brand Brain to start with, when it is one of the workspace's. */
+  brainId?: string | null;
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const spec = info.spec;
   const fields = formFields(spec);
   const brandKey = spec.brand.input ?? null;
-  const [values, setValues] = useState<FormValues>(() => initialValues(spec));
-  const [brainId, setBrainId] = useState<string>(() => brains.find((b) => b.isDefault)?.id ?? brains[0]?.id ?? "");
+  const startBrain = brains.find((b) => b.id === givenBrain) ?? brains.find((b) => b.isDefault) ?? brains[0];
+  // The platform opens on the brand's own, as on an agent's form, not on the template's TikTok. A link's values come on top.
+  const [values, setValues] = useState<FormValues>(() => ({ ...initialValuesFor(spec, startBrain?.platforms), ...prefill }));
+  const [brainId, setBrainId] = useState<string>(() => startBrain?.id ?? "");
   const [rights, setRights] = useState(false);
   const [voice, setVoice] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -49,11 +71,16 @@ export function PipelineStart({ csrf, info, brains, editor, examples, price = nu
     });
   };
 
+  /** Another brand: its platform becomes the pick, unless the person chose one. */
+  function pickBrain(next: string) {
+    setValues((all) => switchPlatformDefaults(spec, all, brains.find((b) => b.id === brainId)?.platforms, brains.find((b) => b.id === next)?.platforms));
+    setBrainId(next);
+  }
+
   function fillExample() {
-    const name = brains.find((b) => b.id === brainId)?.name;
-    const example = examples.find((e) => e.brain === name) ?? examples[0];
-    if (!example) return;
-    setValues({ ...initialValues(spec), ...valuesFrom(spec, example.inputs) });
+    const inputs = exampleInputs(examples, brains.find((b) => b.id === brainId)?.name);
+    if (!inputs) return;
+    setValues({ ...initialValues(spec), ...valuesFrom(spec, inputs) });
     setErrors({});
   }
 
@@ -152,7 +179,7 @@ export function PipelineStart({ csrf, info, brains, editor, examples, price = nu
         {brandKey && (
           <div className={[styles.panel, styles.panelTight, styles.panelAlt, styles.stack].join(" ")}>
             {brains.length > 0 ? (
-              <Select label="Brand Brain" value={brainId} onChange={(e) => setBrainId(e.target.value)} hint="Every step reads it first." options={brains.map((b) => ({ value: b.id, label: `${b.name}${b.isDefault ? " (default)" : ""}` }))} error={errors[brandKey]} />
+              <Select label="Brand Brain" value={brainId} onChange={(e) => pickBrain(e.target.value)} hint="Every step reads it first." options={brains.map((b) => ({ value: b.id, label: `${b.name}${b.isDefault ? " (default)" : ""}` }))} error={errors[brandKey]} />
             ) : (
               <div className={styles.stackTight}>
                 <span className={styles.fieldLabel}>Brand Brain</span>

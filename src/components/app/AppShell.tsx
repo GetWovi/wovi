@@ -23,12 +23,12 @@ import { GITHUB_URL, X_URL } from "@/lib/site";
 
 export type AppArea = "home" | "make" | "pipelines" | "review" | "history" | "brand" | "settings" | "notifications" | "credits";
 
-/** `short` is the label on the phone's tab bar, where six tabs share the width. */
+/** `short` is the label on the phone's tab bar, where seven tabs share the width. */
 /** `mid` is a shorter label for desktops under 1560px, where the header is full. */
 const NAV: { id: AppArea; href: string; label: string; short?: string; mid?: string; icon: IconName }[] = [
   { id: "home", href: "/app", label: "Home", icon: "home" },
   { id: "make", href: "/app/make", label: "Make", icon: "bolt" },
-  { id: "pipelines", href: "/app/pipelines", label: "Pipelines", short: "Chains", icon: "layers" },
+  { id: "pipelines", href: "/app/pipelines", label: "Pipelines", icon: "layers" },
   { id: "review", href: "/app/review", label: "Review", icon: "inbox" },
   { id: "history", href: "/app/history", label: "History", icon: "clock" },
   { id: "brand", href: "/brand-brain", label: "Brand Brain", short: "Brand", mid: "Brand", icon: "bulb" },
@@ -38,9 +38,10 @@ const NAV: { id: AppArea; href: string; label: string; short?: string; mid?: str
 /**
  * The signed-in app chrome: logo left, the app nav, the workspace switcher,
  * the account, GitHub and X as the site chrome has them, and the theme. On a
- * phone the nav moves to a tab bar at the bottom.
+ * phone the nav moves to a tab bar at the bottom. Without `active` no tab is
+ * lit, as during onboarding, which is not the home yet.
  */
-export async function AppShell({ info, active, children }: { info: SessionInfo; active: AppArea; children: ReactNode }) {
+export async function AppShell({ info, active, children }: { info: SessionInfo; active?: AppArea; children: ReactNode }) {
   const a = accounts();
   const me = { kind: "user" as const, userId: info.user.id };
   const workspaceId = info.session.workspaceId;
@@ -134,7 +135,8 @@ export async function AppShell({ info, active, children }: { info: SessionInfo; 
           <LegalLinks />
         </div>
       </footer>
-      <nav className={styles.tabs} aria-label="App">
+      {/* data-tab-bar lets the toasts on a phone sit above this bar (Toast.module.css). */}
+      <nav className={styles.tabs} aria-label="App" data-tab-bar>
         {NAV.map((n) => (
           <Link key={n.id} href={n.href} className={styles.tab} aria-current={active === n.id ? "page" : undefined}>
             <span className={styles.tabIcon}>

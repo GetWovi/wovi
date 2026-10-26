@@ -1,7 +1,7 @@
 import type { Platform } from "@/lib/agents/catalog";
 
 /** Plain module, so server pages can read it (a constant from a client module arrives there as a reference, not the object). */
-export const PLATFORM_LABELS: Record<Platform, string> = { x: "X", tiktok: "TikTok", shorts: "Shorts", reels: "Reels" };
+export const PLATFORM_LABELS: Record<Platform, string> = { x: "X", tiktok: "TikTok", shorts: "YouTube Shorts", reels: "Instagram Reels" };
 
 /** Cream or night text, whichever reads on a colour. */
 export function inkOn(hex: string): string {

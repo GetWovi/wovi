@@ -103,8 +103,8 @@ Every step is an engine run, so every step goes through the same gate and its re
 |---|---|
 | A result (`/app/runs/[id]`, the agent page) | Quality as one number beside brand fit, with "Passed the bar of 70" or "Under the bar of 70". When the gate rewrote it: "Rewritten once by the quality gate", each draft's score and what the first one got wrong. When it is not ready: "Waiting for a person: under the quality bar" with every reason. Under the result, the breakdown: each check, its score and its reason. The heading says "for review" instead of "ready". |
 | A review item (`/app/review/[id]`) | The same, for the team. Clients see none of it. |
-| Agent cards (home, Make) | Average quality, how many runs pass the bar, how many results were approved, and the number of runs. "New agent" until there are scored runs. |
-| The agent page | "How it scores": the numbers in words, six tiles (pass the bar, average quality, approved, changes asked, runs, first try), the agent's bar and what happens under it, and what every result is checked for. A chip in the head links to it. |
+| Agent cards (home, Make) | Average quality, how many runs pass the bar, how many results were approved, and the number of runs. "New agent" until it has 20 runs, the same minimum as the live stats. |
+| The agent page | "How it scores": the numbers in words, six tiles (pass the bar, average quality, approved, changes asked, runs, first try), the agent's bar and what happens under it, and what every result is checked for. Under 20 runs the shares and the average read "New" (the counts under them still show), and so does the chip in the head that links to it. |
 
 **The public scorecard** counts runs of the agent across every workspace that used it, and returns only counts and averages, never another workspace's runs. Bench runs in the builder's workspace are left out. Builder-only details (cost, models, routes) are not in it.
 

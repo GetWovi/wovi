@@ -20,7 +20,7 @@ The code lives in `src/lib/launch/`.
 | # | Name | Id | Job | Status | Version | Model slot (fallback) | Cap per run |
 |---|---|---|---|---|---|---|---|
 | 1 | Trend Scout | `trend-scout` | Finds the formats rising in your niche this week and how you could use them. | live | 3.0.1 | strong (standard) | $0.20 |
-| 2 | Idea Generator | `idea-generator` | Gives you a week of post ideas that only your business could post. | live | 1.0.1 | strong (standard) | $0.12 |
+| 2 | Idea Generator | `idea-generator` | Gives you a week of post ideas that only your business could post. | live | 1.0.2 | strong (standard) | $0.12 |
 | 3 | Hook Writer | `hook-writer` | Opens a post or a short with one line people stop for. | live | 1.1.1 | standard (fast) | $0.05 |
 | 4 | Script Writer | `script-writer` | Turns one idea into beats with a beginning, a turn and an end. | live | 2.0.1 | strong (standard) | $0.15 |
 | 5 | Caption Writer | `caption-writer` | Writes the caption to match the clip, the format and your voice. | live | 1.1.1 | standard (fast) | $0.08 |
@@ -170,7 +170,7 @@ What it does, in order:
 2. Seeds the phase 2 agents as the base (`seedPlatformAgents`), so history reads "1.0.0 Launch seed", then the launch version.
 3. Adds the seven Brand Brains, skipping names already there.
 4. For each launch agent: creates it if missing; saves the launch version if it is newer than every version and **nobody but the seeds and the launch author has ever saved the agent**; otherwise leaves it alone and says why. A version Funkai saved in the builder always wins (a Trend Scout he saved stays as he left it, a draft). Status is applied only when the launch version is saved.
-5. Adds the samples, skipping titles the agent already has. A sample that no longer fits a changed form is reported, not forced in. A launch sample whose shape a newer launch version changed (Trend Scout's five gained a source in 3.0.0) is rewritten in place, keeping its id, but only while the agent is on that launch version and the stored sample still holds exactly the text the launch set wrote (`SUPERSEDED_SAMPLES` keeps a hash of it). A sample anyone edited stays as it is.
+5. Adds the samples, skipping titles the agent already has. A sample that no longer fits a changed form is reported, not forced in. A launch sample whose shape a newer launch version changed (Trend Scout's five gained a source in 3.0.0; in Idea Generator 1.0.2 seven ideas lost a "filmed with their yes" that viewers would have seen) is rewritten in place, keeping its id, but only while the agent is on that launch version and the stored sample still holds exactly the text the launch set wrote (`SUPERSEDED_SAMPLES` keeps a hash of it). A sample anyone edited stays as it is.
 
 6. Installs the pipeline templates (phase 10, [pipelines.md](pipelines.md#templates)): "Idea to ready post", "Repurpose a post that worked" and "Caption and tags for a clip", skipping any a builder has saved over.
 
@@ -194,7 +194,7 @@ The doc's loop at levels 1 and 2 (instruction edits, checked against the samples
 | Script Writer | A sales brief named the product in every line | Name it at most twice spoken, once on screen, show it in use | Same scores; the sales sample no longer reads as an ad |
 | Hook Writer | Hooks ran past the 12-word check | Ask for at most 10 words; quoted phrases count in full | 4 of 5 samples pass; one sample full of quoted invoice wording still fails at times (format, not length), as it did on 23 October |
 
-Versions: trend-scout 3.0.1, idea-generator 1.0.1, hook-writer 1.1.1, script-writer 2.0.1, caption-writer 1.1.1, hashtag-picker 2.0.1, repurposer 2.0.1. The installer saves them on the next start unless a person has edited that agent in the builder; an edit that took the same patch number now reports "kept" too.
+Versions: trend-scout 3.0.1, idea-generator 1.0.2, hook-writer 1.1.1, script-writer 2.0.1, caption-writer 1.1.1, hashtag-picker 2.0.1, repurposer 2.0.1. The installer saves them on the next start unless a person has edited that agent in the builder; an edit that took the same patch number now reports "kept" too.
 
 ## Tuning round 2 (2026-10-26): more examples
 

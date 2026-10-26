@@ -32,6 +32,11 @@ export function safeNext(next: unknown): string | null {
   return next;
 }
 
+/** The email as typed, handed back to the form after an error so the person fixes it instead of typing it again. Bounded, never a whole post. */
+export function typedEmail(raw: unknown): string {
+  return typeof raw === "string" ? raw.trim().slice(0, 320) : "";
+}
+
 const BAD_CODE = "That code is not right, or it has expired. Ask for a new one.";
 const BAD_LINK = "This sign-in link has expired or was already used. Ask for a new one.";
 

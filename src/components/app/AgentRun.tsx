@@ -11,8 +11,9 @@ import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
 import type { PublicAgent } from "@/lib/accounts/guard";
 import type { Price, RunView } from "@/lib/app/api";
+import { exampleInputs, type FormExample } from "@/lib/app/examples";
 import { CreditsBlocked, PriceLine } from "@/components/credits/CreditParts";
-import { checkForm, confirmationsFor, formFields, initialValues, valuesFrom, type FormField, type FormValues } from "@/lib/app/forms";
+import { checkForm, confirmationsFor, formFields, initialValuesFor, switchPlatformDefaults, valuesFrom, type FormField, type FormValues } from "@/lib/app/forms";
 import type { FileRef } from "@/lib/runs/inputs";
 import styles from "./App.module.css";
 import { AGENT_GETS } from "./agent-icons";
@@ -21,7 +22,8 @@ import { BlockedNotice } from "@/components/safety/BlockedNotice";
 import { PlatformRules } from "@/components/safety/PlatformRules";
 import { RightsCheck } from "@/components/safety/RightsCheck";
 
-export type BrainOption = { id: string; name: string; isDefault: boolean };
+/** `platforms` are the brand's own, from onboarding or its Brand Brain: the platform fields open on the first one. */
+export type BrainOption = { id: string; name: string; isDefault: boolean; platforms?: readonly string[] };
 
 type Phase = { kind: "form" } | { kind: "running"; runId: string; view: RunView | null; startedAt: number } | { kind: "done"; view: RunView };
 
@@ -47,7 +49,7 @@ export function AgentRun({
   brains: BrainOption[];
   editor: boolean;
   /** The agent's golden samples, to fill the form in one click: the one written for the picked Brand Brain when there is one. */
-  examples: { brain: string; inputs: Record<string, unknown> }[];
+  examples: FormExample[];
   /** A run to show instead of the form, when the page opened on one. */
   initialRun: RunView | null;
   reviewer: string | null;
@@ -58,7 +60,7 @@ export function AgentRun({
   const fields = formFields(agent);
   const asks = confirmationsFor(agent);
   const readsIdea = agent.brandBrain.includes("idea");
-  const [values, setValues] = useState<FormValues>(() => initialValues(agent));
+  const [values, setValues] = useState<FormValues>(() => initialValuesFor(agent, (brains.find((b) => b.isDefault) ?? brains[0])?.platforms));
   const [brainId, setBrainId] = useState<string>(() => brains.find((b) => b.isDefault)?.id ?? brains[0]?.id ?? "");
   const [idea, setIdea] = useState("");
   const [rights, setRights] = useState(false);
@@ -180,11 +182,16 @@ export function AgentRun({
   }
 
   function fillExample() {
-    const brandName = brains.find((b) => b.id === brainId)?.name;
-    const example = examples.find((e) => e.brain === brandName) ?? examples[0];
-    if (!example) return;
-    setValues(valuesFrom(agent, example.inputs));
+    const inputs = exampleInputs(examples, brains.find((b) => b.id === brainId)?.name);
+    if (!inputs) return;
+    setValues(valuesFrom(agent, inputs));
     setErrors({});
+  }
+
+  /** Another brand: its platform becomes the pick, unless the person chose one. */
+  function pickBrain(next: string) {
+    setValues((all) => switchPlatformDefaults(agent, all, brains.find((b) => b.id === brainId)?.platforms, brains.find((b) => b.id === next)?.platforms));
+    setBrainId(next);
   }
 
   async function upload(field: FormField, list: FileList | null, rightsOk: boolean) {
@@ -316,7 +323,7 @@ export function AgentRun({
       <aside className={styles.runSideCol}>
         <div className={[styles.panel, styles.panelTight, styles.panelAlt, styles.stack].join(" ")}>
           {brains.length > 0 ? (
-            <Select label="Brand Brain" value={brainId} onChange={(e) => setBrainId(e.target.value)} hint="The voice, rules and references this run reads first." options={brains.map((b) => ({ value: b.id, label: `${b.name}${b.isDefault ? " (default)" : ""}` }))} />
+            <Select label="Brand Brain" value={brainId} onChange={(e) => pickBrain(e.target.value)} hint="The voice, rules and references this run reads first." options={brains.map((b) => ({ value: b.id, label: `${b.name}${b.isDefault ? " (default)" : ""}` }))} />
           ) : (
             <div className={styles.stackTight}>
               <span className={styles.fieldLabel}>Brand Brain</span>

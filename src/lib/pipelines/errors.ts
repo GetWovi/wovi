@@ -15,6 +15,8 @@ export type PipelineErrorCode =
   | "not_enough_credits"
   /** Credits (phase 13): a monthly limit would be passed. */
   | "over_limit"
+  /** Nothing is left of the run's total cap for another try of a step. */
+  | "spend_cap"
   /** Phase 18: the inputs ask for something WOVI does not write. */
   | "blocked";
 

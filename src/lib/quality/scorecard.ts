@@ -11,6 +11,7 @@
  * - changes asked: results where someone asked for changes, out of the decided ones.
  */
 import type { Run } from "@/lib/runs/run";
+import { MIN_COUNT } from "@/lib/stats/types";
 
 /** What happened to one run in review: its latest decision, and how many times changes were asked on it. */
 export type RunDecision = {
@@ -46,8 +47,8 @@ export type PublicScorecard = {
   words: { headline: string; lines: string[] };
 };
 
-/** Below this many runs the card says it is new. */
-export const MIN_RUNS = 5;
+/** Below this many runs the card says it is new: the live stats' minimum, so no share shows from one or two runs. */
+export const MIN_RUNS = MIN_COUNT;
 
 const pct = (n: number | null) => (n === null ? "" : `${Math.round(n * 100)}%`);
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);

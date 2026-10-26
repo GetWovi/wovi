@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import type { AuthenticationResponseJSON, PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/server";
 import { AccountError } from "@/lib/accounts/errors";
 import { SESSION_COOKIE, accounts, checkOrigin, requestMeta, setSessionCookie } from "@/lib/accounts/server";
-import { safeNext, type SignInResult } from "@/lib/accounts/sign-in";
+import { safeNext, typedEmail, type SignInResult } from "@/lib/accounts/sign-in";
 
-export type SignInState = { error?: string; sent?: { email: string; next: string } } | null;
+/** `email` is what was typed, kept on an error so the form shows it again. */
+export type SignInState = { error?: string; email?: string; sent?: { email: string; next: string } } | null;
 
 function message(err: unknown): string {
   if (err instanceof AccountError) return err.message;
@@ -30,7 +31,7 @@ export async function requestSignIn(_prev: SignInState, formData: FormData): Pro
     await accounts().signIn.request({ email, ip, next });
     return { sent: { email: email.trim().toLowerCase(), next } };
   } catch (err) {
-    return { error: message(err) };
+    return { error: message(err), email: typedEmail(email) };
   }
 }
 

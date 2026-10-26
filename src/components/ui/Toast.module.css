@@ -16,6 +16,12 @@
     align-items: flex-end;
   }
 }
+/* On a phone the app's tab bar (68px, App.module.css) sits at the bottom: toasts go above it, never over it. */
+@media (max-width: 760px) {
+  :global(body:has([data-tab-bar])) .region {
+    bottom: calc(68px + var(--s-3));
+  }
+}
 
 .toast {
   display: flex;

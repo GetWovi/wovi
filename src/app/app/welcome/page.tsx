@@ -25,7 +25,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
   const quote = editor ? await appBrands().readQuote(me, workspaceId) : ({ mode: "off" } as const);
 
   return (
-    <AppShell info={info} active="home">
+    <AppShell info={info}>
       <div className={styles.head}>
         <div className={styles.headText}>
           <span className="eyebrow">Welcome{first ? `, ${first}` : ""}</span>

@@ -8,14 +8,16 @@ import { Icon } from "@/components/ui/Icon";
 import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
 import { pipelineExamples } from "@/lib/app/pipeline-examples";
+import { prefillFrom } from "@/lib/app/pipelines";
 import { appPage } from "@/lib/app/server";
 import { brainChoices } from "@/lib/team/brand-pick";
 
 export const metadata: Metadata = { title: "Pipeline", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-export default async function PipelineStartPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PipelineStartPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { id } = await params;
+  const query = await searchParams;
   const { info, me, workspaceId, csrf, api } = await appPage(`/app/pipelines/${id}`);
   const pipeline = await api.pipeline(me, workspaceId, id);
   if (!pipeline) notFound();
@@ -46,7 +48,17 @@ export default async function PipelineStartPage({ params }: { params: Promise<{ 
           <span className={styles.chip}>v{pipeline.spec.version}</span>
         </div>
       </div>
-      <PipelineStart csrf={csrf} info={pipeline} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={pipelineExamples(pipeline.spec)} price={price} />
+      <PipelineStart
+        csrf={csrf}
+        info={pipeline}
+        brains={await brainChoices(me, workspaceId, brains)}
+        editor={editor}
+        examples={pipelineExamples(pipeline.spec)}
+        price={price}
+        // Chaining: a link from a result fills the form (an idea from Idea Generator, its platform and Brand Brain).
+        prefill={prefillFrom(pipeline.spec, query)}
+        brainId={typeof query.brand === "string" ? query.brand : null}
+      />
     </AppShell>
   );
 }

@@ -3,24 +3,29 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { cancelPipeline, clearPipelineDecision, decidePipeline, pickInPipeline, pipelinePartUsed, pipelineView, retryPipeline } from "@/app/app/pipelines/actions";
+import type { Result } from "@/app/app/actions";
+import { cancelPipeline, clearPipelineDecision, decidePipeline, pickInPipeline, pipelinePartFeedback, pipelinePartUsed, pipelineView, redoPipelineStep, retryPipeline } from "@/app/app/pipelines/actions";
+import { NO_FEEDBACK, ResultFeedback } from "@/components/stats/ResultFeedback";
 import { Mascot } from "@/components/brand/Mascot";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
-import type { PipelineView } from "@/lib/app/api";
+import type { FeedbackRequest, PipelineView } from "@/lib/app/api";
 import { STEP_LABELS, currentStepIndex, packageText, partText, pipelinePose, pipelineState, pipelineTitle } from "@/lib/app/pipelines";
-import { resultView } from "@/lib/app/results";
+import { copyAll, editFields, editItem, itemText, pickedPlace, resultView } from "@/lib/app/results";
+import { outputItems } from "@/lib/pipelines/values";
+import type { RunFeedback } from "@/lib/stats/feedback";
 import type { Candidate, PackageItem, PublicPipelineRun, PublicStepRun } from "@/lib/pipelines/run";
 import type { RunOutput } from "@/lib/runs/output";
 import { ChargeLine } from "@/components/credits/CreditParts";
 import styles from "./App.module.css";
 import { CopyButton } from "./CopyButton";
+import { EditButton, ItemEditor } from "./ItemEdit";
 import p from "./Pipeline.module.css";
 import { PipelineStateTag } from "./PipelineParts";
-import { ResultBody } from "./RunResult";
+import { ResultBody, type ItemSlot } from "./RunResult";
 import { agentIcon } from "./agent-icons";
 
 const fitWords = (n: number) => (n >= 85 ? "Sounds like you" : n >= 70 ? "Close to your voice" : "A little off your voice");
@@ -86,7 +91,19 @@ export function PipelineFollow({ csrf, initial, editor, decidedBy, now }: { csrf
       )}
 
       {run.package && (state === "ready" || state === "needs_review" || state === "approved" || state === "rejected") && (
-        <PackagePanel run={run} onCopyPart={(step) => void pipelinePartUsed(csrf, run.id, step)} editor={editor} decidedBy={decidedBy} busy={busy} onDecide={(d, note) => call(d, () => decidePipeline(csrf, run.id, d, note), (next) => (d === "rejected" ? "Rejected. Start it again with a new idea." : next.status === "approved" ? "Approved. Post it when you are ready." : "Your yes is in. This workspace needs one more."))} onClear={() => call("clear", () => clearPipelineDecision(csrf, run.id))} />
+        <PackagePanel
+          run={run}
+          onCopyPart={(step) => void pipelinePartUsed(csrf, run.id, step)}
+          editor={editor}
+          decidedBy={decidedBy}
+          busy={busy}
+          onDecide={(d, note) => call(d, () => decidePipeline(csrf, run.id, d, note), (next) => (d === "rejected" ? "Rejected. Start it again with a new idea." : next.status === "approved" ? "Approved. Post it when you are ready." : "Your yes is in. This workspace needs one more."))}
+          onClear={() => call("clear", () => clearPipelineDecision(csrf, run.id))}
+          feedback={view.feedback ?? {}}
+          sendPart={(step, req) => pipelinePartFeedback(csrf, run.id, step, req)}
+          // A part can be tried again while the package waits for its yes or no.
+          againPart={run.status === "ready" ? (step) => call(`again-${step}`, () => redoPipelineStep(csrf, run.id, step), "Trying that part again. The rest stays as it is.") : undefined}
+        />
       )}
 
       <section className={styles.section}>
@@ -244,9 +261,34 @@ function OptionText({ c }: { c: Candidate }) {
 
 /* ---------- The package and the approve step ---------- */
 
-function PackagePanel({ run, editor, decidedBy, busy, onDecide, onClear, onCopyPart }: { run: PublicPipelineRun; editor: boolean; decidedBy: string | null; busy: string | null; onDecide: (d: "approved" | "rejected", note: string) => void; onClear: () => void; onCopyPart?: (step: string) => void }) {
+function PackagePanel({
+  run,
+  editor,
+  decidedBy,
+  busy,
+  onDecide,
+  onClear,
+  onCopyPart,
+  feedback,
+  sendPart,
+  againPart,
+}: {
+  run: PublicPipelineRun;
+  editor: boolean;
+  decidedBy: string | null;
+  busy: string | null;
+  onDecide: (d: "approved" | "rejected", note: string) => void;
+  onClear: () => void;
+  onCopyPart?: (step: string) => void;
+  /** What the workspace already did with each step's result. */
+  feedback: Record<string, RunFeedback>;
+  sendPart: (step: string, req: FeedbackRequest) => Promise<Result<RunFeedback>>;
+  againPart?: (step: string) => Promise<unknown>;
+}) {
   const [note, setNote] = useState("");
-  const parts = run.package ?? [];
+  // Parts the person changed and kept, so Copy everything gives their version.
+  const [edits, setEdits] = useState<Record<string, PackageItem>>({});
+  const parts = (run.package ?? []).map((part) => edits[part.step] ?? part);
   return (
     <section className={[styles.panel, p.package].join(" ")}>
       <div className={p.packageHead}>
@@ -254,16 +296,35 @@ function PackagePanel({ run, editor, decidedBy, busy, onDecide, onClear, onCopyP
           <span className="eyebrow">The package</span>
           <h2>Your post, in one place</h2>
           <span className={[styles.muted, styles.small].join(" ")}>
-            Each part is copyable, with its brand fit. A draft until you approve it. <Link href={`/app/review/${run.id}`}>Comments and the team&apos;s say</Link>
+            Each part can be copied, changed or tried again, with its brand fit. A draft until you approve it. <Link href={`/app/review/${run.id}`}>Comments and the team&apos;s say</Link>
           </span>
         </div>
         <CopyButton text={packageText(run)} label="Copy everything" onCopy={() => parts.forEach((part) => onCopyPart?.(part.step))} />
       </div>
 
       <div className={p.parts}>
-        {parts.map((part) => (
-          <Part key={part.step} part={part} onCopy={onCopyPart ? () => onCopyPart(part.step) : undefined} />
-        ))}
+        {(run.package ?? []).map((part) => {
+          const step = run.steps.find((s) => s.id === part.step);
+          return (
+            <Part
+              key={`${part.step}:${step?.runId ?? ""}`}
+              part={part}
+              onCopy={onCopyPart ? () => onCopyPart(part.step) : undefined}
+              live={
+                step
+                  ? {
+                      editor,
+                      step,
+                      feedback: feedback[part.step] ?? NO_FEEDBACK,
+                      send: (req) => sendPart(part.step, req),
+                      onAgain: againPart ? () => againPart(part.step) : undefined,
+                      onEdited: (next) => setEdits((all) => ({ ...all, [part.step]: next })),
+                    }
+                  : undefined
+              }
+            />
+          );
+        })}
       </div>
 
       {run.decision ? (
@@ -303,9 +364,74 @@ function PackagePanel({ run, editor, decidedBy, busy, onDecide, onClear, onCopyP
   );
 }
 
-/** One part of a package, copyable, with its brand fit and flags. `plain` drops the fit and the flags (the client view). */
-export function Part({ part, plain = false, onCopy }: { part: PackageItem; plain?: boolean; onCopy?: () => void }) {
+/**
+ * What a part of a package can do on the run's own page: Edit in place (the
+ * picked item, or each item of a whole output), Try again (that step runs
+ * once more) and the thumbs, like a single result. Each is recorded on the
+ * step run the part came from.
+ */
+export type PartLive = {
+  editor: boolean;
+  /** The step the part came from: its whole output is what an edit is measured against. */
+  step: PublicStepRun;
+  feedback: RunFeedback;
+  send: (req: FeedbackRequest) => Promise<Result<RunFeedback>>;
+  /** Left out when the part cannot be tried again (the package was decided). */
+  onAgain?: () => Promise<unknown>;
+  /** Hears the part as the person kept it. */
+  onEdited: (part: PackageItem) => void;
+};
+
+/** One part of a package, copyable, with its brand fit and flags. `plain` drops the fit and the flags (the client view). `live` adds Edit, Try again and the thumbs. */
+export function Part({ part: given, plain = false, onCopy, live }: { part: PackageItem; plain?: boolean; onCopy?: () => void; live?: PartLive }) {
+  const { toast } = useToast();
+  // The person's version of the step's output while they are on this page; every Keep saves the whole of it as the step run's edit.
+  const [full, setFull] = useState<RunOutput | null>(live?.step.output ?? null);
+  const [part, setPart] = useState<PackageItem>(given);
+  const [open, setOpen] = useState<string | null>(null);
+  const [edited, setEdited] = useState<ReadonlySet<string>>(() => new Set());
+  const [fb, setFb] = useState<RunFeedback>(live?.feedback ?? NO_FEEDBACK);
   const text = partText(part);
+  const pickedAt = live && full && part.item && live.step.picked ? pickedPlace(full, live.step.picked.index) : null;
+  const editable = Boolean(live?.editor && full && (part.item ? pickedAt : part.output));
+
+  /** Keeps one changed item (`pick` for the picked one): the step's whole output with it goes in as the edit. */
+  async function keep(key: string, block: number, item: number, values: Record<string, string>): Promise<boolean> {
+    if (!live || !full) return false;
+    const next = editItem(full, block, item, values);
+    const r = await live.send({ action: "edit", text: copyAll(next) });
+    if (!r.ok) {
+      toast({ tone: "warning", title: r.error });
+      return false;
+    }
+    const picked = part.item && live.step.picked ? outputItems(next)[live.step.picked.index] : null;
+    const changed: PackageItem = part.item ? { ...part, item: picked ? { ...part.item, text: picked.text, fields: picked.fields } : part.item } : { ...part, output: next };
+    setFull(next);
+    setPart(changed);
+    setFb(r.value);
+    setOpen(null);
+    setEdited((all) => new Set(all).add(key));
+    live.onEdited(changed);
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(key === "pick" ? partText(changed) : itemText(resultView(next), block, item));
+      copied = true;
+    } catch {
+      /* The text stays on screen to select. */
+    }
+    toast({ tone: "success", title: "Kept your version", description: copied ? "Copied, ready to paste." : undefined });
+    return true;
+  }
+
+  const slot = (block: number, item: number): ItemSlot => {
+    const key = `${block}:${item}`;
+    const out: ItemSlot = { edited: edited.has(key) };
+    if (!editable || !full || !part.output) return out;
+    if (open === key) out.editor = <ItemEditor key={key} fields={editFields(full, block, item)} onKeep={(values) => keep(key, block, item, values)} onCancel={() => setOpen(null)} />;
+    else out.tools = <EditButton what={itemText(resultView(part.output), block, item)} onClick={() => setOpen(key)} />;
+    return out;
+  };
+
   return (
     <div className={p.part}>
       <div className={p.partHead}>
@@ -328,7 +454,9 @@ export function Part({ part, plain = false, onCopy }: { part: PackageItem; plain
         </div>
       )}
       {part.item ? (
-        part.item.fields ? (
+        open === "pick" && full && pickedAt ? (
+          <ItemEditor fields={editFields(full, pickedAt.block, pickedAt.item)} onKeep={(values) => keep("pick", pickedAt.block, pickedAt.item, values)} onCancel={() => setOpen(null)} />
+        ) : part.item.fields ? (
           <dl className={styles.kv}>
             {Object.entries(part.item.fields).map(([k, v]) => (
               <div key={k} style={{ display: "contents" }}>
@@ -341,8 +469,26 @@ export function Part({ part, plain = false, onCopy }: { part: PackageItem; plain
           <p className={p.partText}>{part.item.text}</p>
         )
       ) : part.output ? (
-        <ResultBody view={resultView(part.output)} />
+        <ResultBody view={resultView(part.output)} slot={live ? slot : undefined} />
       ) : null}
+      {live?.step.error && (live.step.status === "done" || live.step.status === "flagged") && (
+        <p className={styles.fine} role="status">
+          Trying again did not work, so this is the version from before. {live.step.error.message}
+        </p>
+      )}
+      {live && (
+        <ResultFeedback
+          compact
+          text={text}
+          state={fb}
+          onState={setFb}
+          send={live.send}
+          editor={live.editor}
+          editing={open !== null}
+          onEdit={editable ? () => setOpen((o) => (o ? null : part.item ? "pick" : "0:0")) : undefined}
+          onAgain={live.onAgain}
+        />
+      )}
     </div>
   );
 }

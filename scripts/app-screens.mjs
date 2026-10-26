@@ -200,7 +200,7 @@ async function fillBrand() {
   await typeLabel("Brand or business name", "Spoke and Chain");
   await typeLabel("What you do", "Bike repair shop in Bristol");
   await clickText("X");
-  await clickText("Reels");
+  await clickText("Instagram Reels");
   await sleep(200);
 }
 
