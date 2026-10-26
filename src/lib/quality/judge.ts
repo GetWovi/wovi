@@ -49,7 +49,7 @@ export const JUDGE_RULES = [
   "90 to 100: ready to post as it is. 70 to 89: good, with small fixes. 50 to 69: usable after real edits. Under 50: misses the job or breaks a rule.",
   "",
   "ANSWER",
-  'Answer with one JSON object and nothing else, with exactly two keys: "score", a whole number from 0 to 100, and "reasons", one to three short sentences in plain words, the most important first. Name what to fix when the score is under 90.',
+  'Answer with one JSON object and nothing else, with exactly two keys: "score", a whole number from 0 to 100, and "reasons", a JSON array of one to three short sentences in plain words, the most important first. Name what to fix when the score is under 90.',
 ].join("\n");
 
 /** The lines under the instructions' QUALITY RULES heading, up to the next heading. Empty when there is none. */
@@ -103,14 +103,19 @@ export function judgePrompt(input: QualityInput): ChatMessage[] {
   ];
 }
 
+/** The draft as the agent wrote it: without the engine's own `kind` tag, which the output contract never asks for. */
 function draftText(output: RunOutput): string {
-  return JSON.stringify(output, null, 2);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { kind, ...written } = output;
+  return JSON.stringify(written, null, 2);
 }
 
 /**
  * The judge's answer, read strictly: one JSON object (a ```json fence around
  * it is allowed) with exactly "score", a whole number from 0 to 100, and
- * "reasons", one to five non-empty short strings. Anything else is null.
+ * "reasons", one to five non-empty short strings. Models often send the
+ * reasons as one string of sentences, so a string is split into its
+ * sentences; an over-long reason is cut, not refused. Anything else is null.
  */
 export function parseJudgeAnswer(text: string): { score: number; reasons: string[] } | null {
   let body = text.trim();
@@ -126,11 +131,12 @@ export function parseJudgeAnswer(text: string): { score: number; reasons: string
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const keys = Object.keys(value).sort();
   if (keys.length !== 2 || keys[0] !== "reasons" || keys[1] !== "score") return null;
-  const { score, reasons } = value as { score: unknown; reasons: unknown };
+  const { score, reasons: raw } = value as { score: unknown; reasons: unknown };
   if (typeof score !== "number" || !Number.isInteger(score) || score < 0 || score > 100) return null;
-  if (!Array.isArray(reasons) || reasons.length < 1 || reasons.length > MAX_REASONS) return null;
-  if (!reasons.every((r) => typeof r === "string" && r.trim() && r.length <= REASON_CHARS)) return null;
-  return { score, reasons: (reasons as string[]).map((r) => r.trim()) };
+  const reasons = typeof raw === "string" ? raw.split(/(?<=[.!?])\s+/) : raw;
+  if (!Array.isArray(reasons) || !reasons.every((r) => typeof r === "string")) return null;
+  const kept = (reasons as string[]).map((r) => r.trim()).filter(Boolean).slice(0, MAX_REASONS).map((r) => (r.length > REASON_CHARS ? `${r.slice(0, REASON_CHARS - 3)}...` : r));
+  return kept.length ? { score, reasons: kept } : null;
 }
 
 /** The model judge on a provider that serves the `text-fast` route (OpenRouter in the app, the fake in tests). */

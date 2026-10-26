@@ -78,6 +78,9 @@ describe("the judge's rubric", () => {
     expect(text).toContain("Never call anything artisanal");
     expect(text).not.toContain('<data name="brand.references">');
     expect(text).toContain('<data name="gold_examples">\n- Gerald turns nine and still rises every night.\n</data>');
+    // The draft as the agent wrote it, in the contract's shape: the engine's own "kind" tag would read as a field the agent added.
+    expect(text).toContain('<data name="draft">\n{\n  "items": [');
+    expect(text).not.toContain('"kind"');
     expect(text).not.toContain("Level up your bakes!");
     expect(text).toContain('<data name="draft">');
     // A draft cannot close its block early.
@@ -118,16 +121,22 @@ describe("reading the judge's answer", () => {
       verdict(-1, "Too low."),
       JSON.stringify({ score: "80", reasons: ["A string score."] }),
       JSON.stringify({ score: 80, reasons: [] }),
-      JSON.stringify({ score: 80, reasons: ["", "Empty first."] }),
-      JSON.stringify({ score: 80, reasons: "Not a list." }),
-      JSON.stringify({ score: 80, reasons: ["1", "2", "3", "4", "5", "6"] }),
-      JSON.stringify({ score: 80, reasons: ["x".repeat(301)] }),
       JSON.stringify({ score: 80, reasons: ["Fine."], extra: true }),
       JSON.stringify({ score: 80 }),
       JSON.stringify([80, ["Fine."]]),
       '{"score": 80, "reasons": ["Fine."]',
     ];
     for (const text of bad) expect(parseJudgeAnswer(text), text).toBeNull();
+  });
+
+  it("reads the forms real models send: reasons as one string, empty or extra reasons, an over-long one", () => {
+    // A real judge answered like this on 26 October: the reasons as one string of sentences.
+    expect(parseJudgeAnswer(JSON.stringify({ score: 76, reasons: "Six relevant items. Replace one repeated term." }))).toEqual({ score: 76, reasons: ["Six relevant items.", "Replace one repeated term."] });
+    expect(parseJudgeAnswer(JSON.stringify({ score: 80, reasons: ["", "Empty first."] }))).toEqual({ score: 80, reasons: ["Empty first."] });
+    expect(parseJudgeAnswer(JSON.stringify({ score: 80, reasons: ["1", "2", "3", "4", "5", "6"] }))!.reasons).toHaveLength(5);
+    expect(parseJudgeAnswer(JSON.stringify({ score: 80, reasons: ["x".repeat(301)] }))!.reasons[0]).toHaveLength(300);
+    expect(parseJudgeAnswer(JSON.stringify({ score: 80, reasons: ["", " "] }))).toBeNull();
+    expect(parseJudgeAnswer(JSON.stringify({ score: 80, reasons: [1, 2] }))).toBeNull();
   });
 });
 
