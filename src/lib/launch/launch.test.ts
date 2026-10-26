@@ -132,9 +132,9 @@ describe("the golden samples", () => {
     }
   });
 
-  it("name launch Brand Brains, and the set spans seven kinds of business", () => {
+  it("name launch Brand Brains, and the set spans ten kinds of business", () => {
     for (const { sample } of allSamples) expect(LAUNCH_BRAIN_NAMES).toContain(sample.brain);
-    expect(new Set(allSamples.map(({ sample }) => sample.brain)).size).toBe(7);
+    expect(new Set(allSamples.map(({ sample }) => sample.brain)).size).toBe(10);
   });
 
   it.each(allSamples.map(({ agentId, sample }) => [agentId, sample.title, sample] as const))("%s / %s fits the form and the output shape", (agentId, _title, sample) => {

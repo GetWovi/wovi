@@ -218,11 +218,15 @@ describe("a phase 17 data dir", () => {
     for (const spec of LAUNCH_AGENTS.filter((a) => a.id !== "trend-scout" && a.id !== "hook-writer")) {
       expect(report.agents.find((a) => a.id === spec.id)).toMatchObject({ action: "updated", version: spec.version, status: "live" });
     }
-    // Trend Scout's samples keep their ids (benches point at them) and now cite a source; every other sample is byte for byte the same.
+    // Trend Scout's samples keep their ids (benches point at them) and now cite a source; every other sample is byte for byte the same,
+    // and the samples added since phase 17 come in beside them.
     const after = builderFile();
-    expect(after.samples.filter((s) => s.agentId === "trend-scout").map((s) => s.id).sort()).toEqual(scoutIds);
+    expect(after.samples.filter((s) => s.agentId === "trend-scout").map((s) => s.id)).toEqual(expect.arrayContaining(scoutIds));
     for (const s of after.samples.filter((x) => x.agentId === "trend-scout")) expect(s.idealOutput).toContain("Source: ");
-    expect(after.samples.filter((s) => s.agentId !== "trend-scout")).toEqual(otherSamples);
+    for (const old of otherSamples) expect(after.samples).toContainEqual(old);
+    const launchTotal = Object.values(LAUNCH_SAMPLES).flat().length;
+    expect(report.samples.added).toBe(launchTotal - otherSamples.length - scoutIds.length);
+    expect(after.samples.length).toBe(launchTotal);
 
     // Running it again changes nothing.
     const again = await install();

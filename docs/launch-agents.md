@@ -10,7 +10,7 @@ The code lives in `src/lib/launch/`.
 |---|---|
 | `specs.ts` | The seven launch specs (`LAUNCH_AGENTS`), their change notes, and the shared instruction blocks. |
 | `brains.ts` | The seven Brand Brains the samples run against: the three phase 7 examples plus four new ones. |
-| `samples/` | Five samples per agent (four gold, one bad), one file per agent, with typed ideal outputs. |
+| `samples/` | Eleven samples per agent (ten gold, one bad), one file per agent, with typed ideal outputs. |
 | `format.ts` | Turns a typed ideal output into the readable text the bench shows. |
 | `install.ts` | `installLaunchSet`: the idempotent installer behind `npm run agents:launch`. |
 | `launch.test.ts` | The tests (below). |
@@ -195,6 +195,14 @@ The doc's loop at levels 1 and 2 (instruction edits, checked against the samples
 | Hook Writer | Hooks ran past the 12-word check | Ask for at most 10 words; quoted phrases count in full | 4 of 5 samples pass; one sample full of quoted invoice wording still fails at times (format, not length), as it did on 23 October |
 
 Versions: trend-scout 3.0.1, idea-generator 1.0.1, hook-writer 1.1.1, script-writer 2.0.1, caption-writer 1.1.1, hashtag-picker 2.0.1, repurposer 2.0.1. The installer saves them on the next start unless a person has edited that agent in the builder; an edit that took the same patch number now reports "kept" too.
+
+## Tuning round 2 (2026-10-26): more examples
+
+The doc asks for 10 to 30 sample works per agent; the launch set had 5. Each run sees the three gold samples closest to the request, so more samples across more kinds of business means closer examples for more owners (the doc's level 3, retrieval).
+
+- Three new Brand Brains: Chair Nine (hair salon, Glasgow), Muddy Paws Grooming (dog groomer, Cornwall) and Kiln Street Ceramics (ceramics shop, online). The set now spans ten kinds of business.
+- Six new gold samples per agent, 42 in all, so every agent has 11 (ten gold, one bad), each passing every guardrail with its Brand Brain and every rule of tuning round 1.
+- Real run on all 77 samples, $1.83 on OpenRouter. On the 35 original inputs the scores held (each agent within a point or two, inside run-to-run noise); the 42 new inputs averaged 93 to 95. Hook Writer passed all 11, including the sample that failed before. Two Trend Scout runs stopped with "nothing current found" and cost nothing, as designed.
 
 ## One engine change
 

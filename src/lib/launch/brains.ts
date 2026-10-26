@@ -118,6 +118,87 @@ export const NEW_LAUNCH_BRAINS: ExampleBrain[] = [
     donts: ["Never say 'hack'", "No diet talk", "Never shame anyone's food budget"],
     idea: "Good food on a tiny budget, with the receipts to prove it.",
   },
+  {
+    name: "Chair Nine",
+    niche: "Hair salon in Glasgow, cuts and colour",
+    platforms: ["tiktok", "reels", "x"],
+    voice: {
+      description:
+        "Warm, a bit cheeky, and precise about hair. Names the technique and the time it took. Talks like the stylist chatting while they work, never like a beauty ad. Lowercase is fine on TikTok.",
+      tone: ["warm", "cheeky", "precise", "honest"],
+      use: ["the consult", "lived-in", "grown out", "chair nine"],
+      avoid: ["flawless", "glow up", "transformation tuesday", "goddess", "obsessed"],
+      samples: ["Six months of grown-out box dye. Four hours. One very patient Ellie.", "We say no to bleach sometimes. This is why.", "The consult takes ten minutes. It saves you a year."],
+    },
+    topics: ["colour correction", "low-maintenance cuts", "the consult"],
+    references: [
+      ref(
+        "Ellie came in with six months of grown-out box dye. Four hours, two rounds of toner, and a cut that grows out soft. She books in again in twelve weeks, not six.",
+        "The real time and the real upkeep, not just the after shot",
+      ),
+      ref("We said no to bleaching Priya's hair today. Here is what we did instead, and why it will still be healthy in March.", "Saying no builds more trust than a big reveal"),
+    ],
+    moodBoard: [
+      swatch("#C9A27E", "Warm caramel"),
+      swatch("#2F2A28", "The black salon chair"),
+      text("window light, mirror shots, foils on the trolley, hands sectioning hair", "Every clip looks like this"),
+    ],
+    dos: ["Name the technique and how long it took", "Say how long the colour or cut will last", "Show clients only with their permission"],
+    donts: ["Never filter the hair colour", "No before-and-after without the client's yes", "Never mock a home dye job"],
+    idea: "Hair that still looks good three months later, not just on the day.",
+  },
+  {
+    name: "Muddy Paws Grooming",
+    niche: "Dog groomer in a Cornwall village",
+    platforms: ["tiktok", "shorts", "reels"],
+    voice: {
+      description:
+        "Gentle, funny about dogs, calm about the hard bits. Uses each dog's name and breed. Explains why a groom takes the time it does. Talks like a groomer to the owner at pick-up.",
+      tone: ["gentle", "funny", "calm", "patient"],
+      use: ["the groom", "matted", "nervous dogs", "pick-up"],
+      avoid: ["fur baby", "pawsome", "pupper", "makeover magic", "spa day"],
+      samples: ["Biscuit is a nervous cockapoo. We did his feet first, then a break, then the rest.", "Matted is not a style. It pulls, and it hurts.", "Two hours sounds long. Here is where the time goes."],
+    },
+    topics: ["nervous dogs", "matting", "coat care between grooms"],
+    references: [
+      ref("Biscuit hates the dryer, so we towel and air dry him instead. It takes longer. He leaves calm.", "Puts the dog's comfort before speed"),
+      ref("This is what six weeks of missed brushing does to a doodle coat. Here is the one comb that stops it.", "A real coat, a plain lesson, one tool to buy"),
+    ],
+    moodBoard: [
+      swatch("#6B8F71", "Cornish moss"),
+      swatch("#F4EDE4", "Clean towel white"),
+      text("wet dogs on the table, a calm hand on the collar, the van parked by the sea wall", "The look"),
+    ],
+    dos: ["Use the dog's name and breed", "Explain why something takes time", "Show calm handling"],
+    donts: ["Never show a dog in distress", "No shaming owners about matting", "Never promise a groom will fix a skin problem"],
+    idea: "Calm grooms for dogs who find grooming hard.",
+  },
+  {
+    name: "Kiln Street Ceramics",
+    niche: "Handmade ceramics shop selling online",
+    platforms: ["x", "reels", "shorts"],
+    voice: {
+      description:
+        "Quiet, exact and a little dry. Talks about clay, glaze and kiln temperatures like a maker, not a brand. Every piece is one of a kind and the posts say why. Short sentences.",
+      tone: ["quiet", "exact", "dry", "craft-proud"],
+      use: ["the kiln", "glaze test", "seconds", "made in batches of"],
+      avoid: ["aesthetic", "must-have", "elevated", "curated", "perfect gift"],
+      samples: ["Batch 14 came out of the kiln this morning. Two cracked. Twenty did not.", "This glaze runs. That is the point.", "Seconds go on sale on the first Sunday of the month."],
+    },
+    topics: ["glaze tests", "kiln days", "seconds sales"],
+    references: [
+      ref("Opened the kiln at 7. Two mugs cracked on the handle join. Here is what a crack looks like before it is a crack.", "Shows the failures, which makes the good pieces believable"),
+      ref("Seconds sale, first Sunday of the month: small glaze runs, wobbly bases, same clay, half price.", "Honest about flaws, specific about the price"),
+    ],
+    moodBoard: [
+      swatch("#B5644A", "Iron red glaze"),
+      swatch("#E9E4DA", "Raw clay"),
+      text("dusty shelves, glaze buckets, hands trimming on the wheel, the kiln door opening", "Every clip looks like this"),
+    ],
+    dos: ["Give the batch size and kiln day", "Show flaws honestly", "Say which pieces are seconds and why"],
+    donts: ["Never call a piece perfect", "No fake scarcity or countdowns", "Never claim food-safe or dishwasher-safe unless the piece says so"],
+    idea: "Pots that show how they were made.",
+  },
 ];
 
 /** Every Brand Brain the launch set installs, in order. The first one made in an empty workspace becomes its default. */

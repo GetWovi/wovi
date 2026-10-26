@@ -130,4 +130,151 @@ export const PLATFORM_REPURPOSER_SAMPLES: LaunchSample[] = [
     }),
     note: "X is a copy with a weight-loss guarantee tacked on; TikTok invents results, a quote and before-and-after photos. Nothing in the original supports any of it.",
   },
+  {
+    title: "Copper over box dye, Reels to TikTok and X",
+    label: "gold",
+    brain: "Chair Nine",
+    inputs: {
+      post: "Jess wanted copper. Her hair had three old box dyes on it. We did a strand test at the consult, then two sessions three weeks apart instead of one long one. Copper on day one would have snapped. Now it is a soft, lived-in copper that fades to gold, not orange. Back in eight weeks for a gloss.",
+      posted_on: "reels",
+      to: ["tiktok", "x"],
+      keep: "strand test",
+    },
+    ideal: versions({
+      tiktok: short(
+        "jess wanted copper. three old box dyes said not yet.",
+        "so the strand test at the consult came first. copper on day one would have snapped. we split it into two sessions, three weeks apart, instead of one long one. now it is a soft, lived-in copper that fades to gold, not orange. she is back in eight weeks for a gloss.",
+        'Mirror shot at the consult, a strand of Jess\'s hair in foil on the trolley. Text: "strand test first". Cut to session two, hands sectioning in window light. Text: "3 weeks later". End on the copper in daylight, no filter.',
+        "copper over three old box dyes, in two sessions three weeks apart, because day one would have snapped. back in eight weeks for a gloss.",
+      ),
+      x: "Jess wanted copper over three old box dyes. Copper on day one would have snapped. So: a strand test at the consult, then two sessions three weeks apart. Now it is a soft, lived-in copper that fades to gold, not orange. Back in eight weeks for a gloss.",
+    }),
+    note: "TikTok goes lowercase and opens on the problem; X runs as text alone, every fact in order. The strand test kept word for word, the timings exact, no filter on screen, and no claim about hair health the original never made.",
+  },
+  {
+    title: "Pickle's slow groom, newsletter to video",
+    label: "gold",
+    brain: "Muddy Paws Grooming",
+    inputs: {
+      post: "Why does Pickle's groom take two and a half hours? Pickle is a rescue spaniel, nervous of the clippers. We start with ten minutes of just sitting on the table. Then feet, then a break outside by the van. The clippers come last, and only on his back. Rushing him once would undo a year of work. If your dog finds grooming hard, tell us at booking and we will plan the time.",
+      posted_on: "other",
+      to: ["tiktok", "shorts", "reels"],
+      keep: "two and a half hours",
+    },
+    ideal: versions({
+      tiktok: short(
+        "Pickle's groom takes two and a half hours. On purpose.",
+        "Pickle is a rescue spaniel, and the clippers make him nervous. So for the first ten minutes he just sits on the table. Then his feet. Then a break outside by the van. The clippers come last, and only on his back. Rushing him once would undo a year of work.",
+        'Pickle sitting on the table, a calm hand on his collar. Text: "10 minutes of just sitting". Cut to his feet, then Pickle sniffing about by the van. Last shot: clippers on his back only.',
+        "Two and a half hours for one nervous spaniel, clippers last. Does your dog find grooming hard? Tell us when you book and we will plan the time.",
+      ),
+      shorts: short(
+        "How we groom a rescue spaniel who is nervous of clippers",
+        "This is Pickle. Step one: ten minutes of just sitting on the table. Step two: feet. Step three: a break outside by the van. Step four: the clippers, and only on his back. It takes two and a half hours, because rushing him once would undo a year of work.",
+        'Wide shot of the grooming table as Pickle settles. Text on each step: "1. Sit", "2. Feet", "3. Break", "4. Clippers last". End on Pickle at pick-up.',
+        "Grooming a nervous rescue spaniel: where two and a half hours go\nTen minutes on the table, feet, a break by the van, clippers last. If your dog finds grooming hard, tell us at booking and we will plan the time.",
+      ),
+      reels: short(
+        "Pickle is nervous of the clippers. So they come last.",
+        "He is a rescue spaniel, and his groom takes two and a half hours. Ten minutes of just sitting on the table. Then his feet. Then a break outside by the van. Then the clippers, only on his back. Rush him once and a year of work is undone.",
+        'Close on a hand holding Pickle\'s paw while his feet are done. Cut to the break by the van. Text: "clippers last". End on the clippers on his back, a calm hand on his collar.',
+        "Two and a half hours for one nervous rescue spaniel, with the clippers last. If your dog finds grooming hard, tell us at booking and we will plan the time.",
+      ),
+    }),
+    note: "A newsletter piece turned into three different videos: TikTok opens on the time, Shorts is a searchable step by step, Reels opens on the clippers. Pickle's name and breed in each, calm handling only, the must-stay line exact, and nothing promised beyond planning the time.",
+  },
+  {
+    title: "Batch 22 seconds, from X to video",
+    label: "gold",
+    brain: "Kiln Street Ceramics",
+    inputs: {
+      post: "Batch 22: 30 mugs in the new speckled oatmeal glaze. The glaze test said 1240°C. The top shelf ran hotter, and six mugs came out with the glaze pooled at the foot. They are seconds now. Same clay, same mug, half price in the seconds sale.",
+      posted_on: "x",
+      to: ["reels", "shorts"],
+      keep: "Batch 22",
+    },
+    ideal: versions({
+      reels: short(
+        "Batch 22 opened. Six of 30 mugs ran at the foot.",
+        "The glaze test said 1240 degrees. The top shelf of the kiln ran hotter. On those six mugs, the speckled oatmeal glaze pooled at the foot. So they are seconds now. Same clay, same mug, half price in the seconds sale.",
+        'The kiln door opening on Batch 22. Hands lift a mug from the top shelf and turn it to show the glaze pooled at the foot. Text: "glaze test: 1240°C", then "top shelf ran hotter". End on the six seconds lined up beside the rest of the batch.',
+        "Batch 22: 30 mugs in speckled oatmeal. The top shelf ran hotter than the 1240°C glaze test, so six have glaze pooled at the foot. Seconds now: same clay, same mug, half price.",
+      ),
+      shorts: short(
+        "Same glaze, same clay. The top shelf ran hotter.",
+        "Batch 22 was 30 mugs in the new speckled oatmeal glaze, tested at 1240 degrees. The top shelf ran hotter, and six mugs came out with the glaze pooled at the foot. They go in the seconds sale. Same clay, same mug, half price.",
+        'Two mugs side by side, one from the middle shelf, one from the top, the pooled foot turned to camera. Text: "Batch 22", then "glaze test: 1240°C".',
+        "Glaze pooled at the foot: six seconds from Batch 22\nThe top shelf ran hotter than the 1240°C glaze test. Same clay, same mug, half price in the seconds sale.",
+      ),
+    }),
+    note: "Every number kept (22, 30, six, 1240°C, half price), the flaw shown rather than hidden, and no sale date or countdown added because the original gives none. Reels opens on the kiln, Shorts on the cause, with a title people could search.",
+  },
+  {
+    title: "2 a.m. decaf, reposted on X and Reels",
+    label: "gold",
+    brain: "Night Owl Coffee",
+    inputs: {
+      post: "2 a.m. and the decaf oat latte has outsold every other cup tonight. blame the nurses coming off the late shift. one more cup, no 4 a.m. regrets.",
+      posted_on: "x",
+      to: ["x", "reels"],
+      keep: "no 4 a.m. regrets",
+    },
+    ideal: versions({
+      x: "decaf oat latte. 2 a.m. nothing on the menu has sold more tonight.\nthat one's on the nurses off the late shift.\none more cup, no 4 a.m. regrets.",
+      reels: short(
+        "2 a.m. and the decaf oat latte is winning.",
+        "nothing else on the menu has sold more tonight. that is down to the nurses coming off the late shift. decaf, oat milk, still warm. one more cup, no 4 a.m. regrets.",
+        'a decaf oat latte set down under the lamp, steam rising. text: "2 a.m.". then the order screen, cup after cup. end on the cup by the dark window.',
+        "the decaf oat latte has outsold every other cup tonight. that one's on the late shift nurses. one more cup, no 4 a.m. regrets ☕",
+      ),
+    }),
+    note: "The X repost is a fresh take, not a copy, and both versions stay lowercase, short and with one emoji at most. The nurses and the 2 a.m. detail carry it, the must-stay line is exact, and no claim about sleep is added.",
+  },
+  {
+    title: "Boiler at 0.5 bar, TikTok to X and Shorts",
+    label: "gold",
+    brain: "Fernhill Plumbing",
+    inputs: {
+      post: "Boiler pressure dropping every week? Here is what we found in a flat in Easton. The gauge was at 0.5 bar, and it should sit between 1 and 1.5 when the heating is off. The cause was a weeping valve on a radiator in the back bedroom. A drip a day, all summer, straight into the carpet. Worth a look: check your gauge with the heating off, and look under each radiator valve with a torch. If it keeps dropping after you top it up, call us.",
+      posted_on: "tiktok",
+      to: ["x", "shorts"],
+      keep: "0.5 bar",
+    },
+    ideal: versions({
+      x: "Boiler pressure dropping every week? In a flat in Easton the gauge read 0.5 bar. The cause: a weeping radiator valve in the back bedroom, a drip a day all summer. Worth a look: check the gauge with the heating off (it should sit between 1 and 1.5), then a torch under each valve.",
+      shorts: short(
+        "Boiler at 0.5 bar again? Look under your radiator valves.",
+        "Here is what we found in a flat in Easton. The pressure was dropping every week. The gauge was at 0.5 bar, and with the heating off it should sit between 1 and 1.5. The cause was a weeping valve on a radiator in the back bedroom. A drip a day, all summer, straight into the carpet. Check your gauge with the heating off, then look under each valve with a torch. If it keeps dropping after you top it up, call us.",
+        'Close-up of the boiler gauge needle. Text: "0.5 bar". Cut to torchlight under the radiator valve and the damp carpet beneath it. Text: "1 to 1.5 with the heating off". End on a hand with a torch checking the next valve.',
+        "Boiler pressure keeps dropping? What to check first\nA weeping radiator valve in Easton took the gauge down to 0.5 bar. Check yours with the heating off, then a torch under each valve.",
+      ),
+    }),
+    note: "X leads with the question and fits the cause and the check into one post that works without the video; Shorts keeps the whole job and the call-us line, with a title that answers a search. The area named, no prices, no exclamation marks, nothing scary added.",
+  },
+  {
+    title: "Dev's first pull-up, Shorts to TikTok and Reels",
+    label: "gold",
+    brain: "Northside Strength",
+    inputs: {
+      post: "Dev's first pull-up took 14 weeks. Week 1 he could hang from the bar for 8 seconds. Then slow lowering from the top, three sets, twice a week. Week 14, one full pull-up, chin over the bar. His coach Sam filmed it. Form first, then the number.",
+      posted_on: "shorts",
+      to: ["tiktok", "reels"],
+      keep: "14 weeks",
+    },
+    ideal: versions({
+      tiktok: short(
+        "Dev's first pull-up took 14 weeks. Here is how.",
+        "Week 1, he could hang from the bar for 8 seconds. Then slow lowering from the top: three sets, twice a week. Week 14, one full pull-up, chin over the bar. His coach Sam filmed it. Form first, then the number.",
+        'The bar, chalk dust in the morning light. Text: "Week 1: 8-second hang". Cut to Dev lowering slowly from the top. Text: "3 sets, twice a week". End on Sam\'s clip, chin over the bar. Text: "Week 14"',
+        "Dev's first pull-up: 14 weeks from an 8-second hang to chin over the bar. Slow lowering, three sets, twice a week. What lift are you working towards?",
+      ),
+      reels: short(
+        "Chin over the bar. Week 14.",
+        "This is Dev's first full pull-up, filmed by his coach Sam. 14 weeks ago he could hang from the bar for 8 seconds. Since then, slow lowering from the top, three sets, twice a week. Form first, then the number.",
+        'Open on Sam\'s clip as Dev\'s chin clears the bar. Text: "14 weeks". Cut to Dev lowering slowly from the top while Sam watches his form. Text: "form first"',
+        "Dev's first pull-up took 14 weeks, starting from an 8-second hang. Slow lowering from the top, three sets, twice a week, and his coach Sam filming the day it landed.",
+      ),
+    }),
+    note: "The good twin of the bad Northside sample: real numbers kept exactly, no body talk, no before-and-after, no promise to the viewer. TikTok tells it in order, Reels opens on the finished rep and works back.",
+  },
 ];
