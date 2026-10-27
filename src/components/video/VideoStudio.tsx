@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { addScene, drawScene, editScene, removeScene, renderVideo, type VideoResult } from "@/app/app/video/actions";
+import { addScene, drawScene, editScene, removeScene, renderVideo, sendOwnMedia, type VideoResult } from "@/app/app/video/actions";
 import styles from "@/components/app/App.module.css";
 import { Mascot } from "@/components/brand/Mascot";
 import { Button } from "@/components/ui/Button";
@@ -158,6 +158,8 @@ export function VideoStudio({ csrf, initial, prices, editor }: { csrf: string; i
               onDraw={() => drawAll([i])}
               onRemove={() => run(`remove-${i}`, () => removeScene(csrf, video.id, i))}
               onAdd={() => run(`add-${i}`, () => addScene(csrf, video.id, i))}
+              onOwn={(form) => run(`own-${i}`, () => sendOwnMedia(csrf, video.id, i, form))}
+              uploading={busy === `own-${i}`}
             />
           ))}
         </ol>
@@ -219,6 +221,8 @@ function SceneCard({
   onDraw,
   onRemove,
   onAdd,
+  onOwn,
+  uploading,
 }: {
   index: number;
   scene: Scene;
@@ -234,6 +238,8 @@ function SceneCard({
   onDraw: () => void;
   onRemove: () => void;
   onAdd: () => void;
+  onOwn: (form: FormData) => Promise<VideoResult>;
+  uploading: boolean;
 }) {
   const [spoken, setSpoken] = useState(scene.spoken);
   const [onScreen, setOnScreen] = useState(scene.onScreen);
@@ -241,6 +247,16 @@ function SceneCard({
   const [bottom, setBottom] = useState(scene.bottom ?? "");
   const [seconds, setSeconds] = useState(String(scene.seconds));
   const [saved, setSaved] = useState<"" | "saving" | "saved">("");
+  const [ownFile, setOwnFile] = useState<File | null>(null);
+  const [rights, setRights] = useState(false);
+  async function sendOwn() {
+    if (!ownFile) return;
+    const form = new FormData();
+    form.set("file", ownFile);
+    if (rights) form.set("rights", "yes");
+    const r = await onOwn(form);
+    if (r.ok) setOwnFile(null);
+  }
   /** Saves the moment a field is left, only what changed. */
   async function save() {
     const edit: Partial<Pick<Scene, "spoken" | "onScreen" | "text" | "bottom" | "shape" | "seconds">> = {};
@@ -269,6 +285,8 @@ function SceneCard({
           </span>
         )}
         {drawing && <span className={v.overlay}>Drawing...</span>}
+        {uploading && <span className={v.overlay}>Uploading...</span>}
+        {scene.own && !drawing && <span className={v.ownBadge}>{scene.clipFileId ? "Your clip" : "Your photo"}</span>}
       </div>
       <div className={styles.stackTight}>
         <div className={v.sceneTools}>
@@ -296,6 +314,22 @@ function SceneCard({
           </>
         )}
         <Input label="Seconds (at least)" type="number" min={1} max={20} value={seconds} onChange={(e) => setSeconds(e.target.value)} onBlur={save} disabled={!editor} />
+        {!preview && (
+          <div className={v.own}>
+            <span className={v.ownLabel}>Or use your own photo or clip</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm" onChange={(e) => setOwnFile(e.target.files?.[0] ?? null)} disabled={!editor} />
+            {ownFile && (
+              <>
+                <label className={v.rights}>
+                  <input type="checkbox" checked={rights} onChange={(e) => setRights(e.target.checked)} /> I own this, or I have the rights to use it.
+                </label>
+                <Button size="sm" onClick={sendOwn} disabled={!editor || !rights || uploading} loading={uploading}>
+                  Use it in scene {index + 1}
+                </Button>
+              </>
+            )}
+          </div>
+        )}
         <div className={v.sceneTools}>
           {!preview && (
             <Button size="sm" variant="secondary" onClick={onDraw} disabled={!editor || drawing} leading={<Icon name="image" size={16} />}>

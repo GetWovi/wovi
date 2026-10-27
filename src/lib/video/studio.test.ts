@@ -216,3 +216,26 @@ describe("minimal motion", () => {
     }
   });
 });
+
+describe("own photos and clips", () => {
+  it("uses the person's own clip instead of a drawn picture, and a redraw puts the AI picture back", async () => {
+    const t = testAccounts();
+    const ada = (await t.signUp("ada@example.com")).user;
+    const me = { kind: "user" as const, userId: ada.id };
+    const ws = (await t.accounts.workspaces.create(me, "Team")).id;
+    const media = fakeVideoMedia();
+    const seen: unknown[] = [];
+    const studio = new VideoStudio({ accounts: t.accounts, store: memoryVideoStore(), files: memoryFileStorage(), media: { ...media, cut: async (scenes) => (seen.push(scenes.map((s) => Boolean(s.clip))), new Uint8Array([1])) } });
+    let v = await studio.create(me, ws, { scenes: SCENES });
+    v = await studio.useOwnMedia(me, ws, v.id, 0, { image: { name: "p.jpg", mimeType: "image/jpeg", bytes: new Uint8Array([1]) }, clip: { name: "c.mp4", mimeType: "video/mp4", bytes: new Uint8Array([2]) } });
+    expect(v.scenes[0]).toMatchObject({ own: true });
+    expect(v.scenes[0].clipFileId).toBeTruthy();
+    expect(await studio.file(me, ws, v.id, v.scenes[0].clipFileId!)).not.toBeNull();
+    v = await studio.useOwnMedia(me, ws, v.id, 1, { image: { name: "q.png", mimeType: "image/png", bytes: new Uint8Array([3]) } });
+    expect(v.stage).toBe("storyboard");
+    await studio.render(me, ws, v.id, "warm");
+    expect(seen).toEqual([[true, false]]);
+    v = await studio.drawScene(me, ws, v.id, 0);
+    expect(v.scenes[0]).toMatchObject({ own: false, clipFileId: null });
+  });
+});

@@ -7,6 +7,12 @@ import { appAction } from "@/lib/app/server";
 import { appBrands } from "@/lib/brand/server";
 import type { Voice } from "@/lib/video/media";
 import { appVideo, videoAllowed } from "@/lib/video/server";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { ffmpegMedia } from "@/lib/clips/media";
+import { RIGHTS_REFUSAL, recordRights, rightsGiven } from "@/lib/safety/rights";
+import { appSafetyStore } from "@/lib/safety/server";
 import { ASPECTS, KINDS, LENGTHS, VIBES, type Brief } from "@/lib/video/planner";
 import { VideoError, type Scene, type VideoProject } from "@/lib/video/studio";
 
@@ -86,6 +92,49 @@ export async function planVideo(csrf: string, brief: Brief): Promise<VideoResult
   });
   if (r.ok) redirect(`/app/video/${r.video.id}`);
   return r;
+}
+
+const OWN_IMAGES = ["image/jpeg", "image/png", "image/webp"];
+const OWN_CLIPS = ["video/mp4", "video/quicktime", "video/webm"];
+const OWN_MAX_MB = 40;
+
+/**
+ * The person's own photo or clip for one scene. The rights box is required
+ * and kept, like every upload. A clip is checked with ffmpeg (a real video,
+ * at most two minutes) and its first second becomes the panel's poster.
+ */
+export async function sendOwnMedia(csrf: string, id: string, index: number, form: FormData): Promise<VideoResult> {
+  return call(csrf, async (c) => {
+    const file = form.get("file");
+    if (!(file instanceof File) || !file.size) throw new VideoError("invalid_request", "Pick a photo or a clip first.");
+    if (!rightsGiven(form)) throw new VideoError("invalid_request", RIGHTS_REFUSAL);
+    if (file.size > OWN_MAX_MB * 1024 * 1024) throw new VideoError("invalid_request", `At most ${OWN_MAX_MB} MB. Trim the clip or send a smaller one.`);
+    const type = file.type.toLowerCase();
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const name = file.name.replace(/[^\w.-]+/g, "_").slice(-80) || "own";
+    let image: { name: string; mimeType: string; bytes: Uint8Array };
+    let clip: { name: string; mimeType: string; bytes: Uint8Array } | null = null;
+    if (OWN_IMAGES.includes(type)) image = { name, mimeType: type, bytes };
+    else if (OWN_CLIPS.includes(type)) {
+      const dir = mkdtempSync(join(tmpdir(), "wovi-own-"));
+      try {
+        writeFileSync(join(dir, "in"), bytes);
+        const media = ffmpegMedia();
+        const probe = await media.probe(join(dir, "in")).catch(() => null);
+        if (!probe || !probe.width) throw new VideoError("invalid_request", "That clip could not be read. Send an MP4 or MOV.");
+        if (probe.durationSec > 120) throw new VideoError("invalid_request", "Clips can be at most two minutes. Trim it first.");
+        await media.frame(join(dir, "in"), Math.min(1, probe.durationSec / 2), join(dir, "poster.jpg"), 1280);
+        image = { name: `${name}-poster.jpg`, mimeType: "image/jpeg", bytes: new Uint8Array(readFileSync(join(dir, "poster.jpg"))) };
+        clip = { name, mimeType: type, bytes };
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    } else throw new VideoError("invalid_request", "Send a JPG, PNG or WebP photo, or an MP4, MOV or WebM clip.");
+    const v = await appVideo().useOwnMedia(c.me, c.workspaceId, id, index, { image, clip });
+    const scene = v.scenes[index];
+    await recordRights(appSafetyStore(), { workspaceId: c.workspaceId, userId: c.me.kind === "user" ? c.me.userId : "api", subject: "video_scene", fileId: scene.clipFileId ?? scene.imageFileId!, fileName: name });
+    return v;
+  });
 }
 
 /** One scene's picture, so the storyboard fills in scene by scene. */

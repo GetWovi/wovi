@@ -31,7 +31,11 @@ export const VIDEO_LIMITS = { scenes: { min: 1, max: 8 }, spoken: 400, onScreen:
 export const VIDEO_RATE = { perUserHour: { max: 30, windowMs: 3_600_000 }, perWorkspaceDay: { max: 120, windowMs: 86_400_000 } } as const;
 
 /** `text` is the few big words on screen (the headline), for the kinds that show them. */
-export type Scene = { spoken: string; onScreen: string; text?: string; seconds: number; imageFileId: string | null; bottom?: string; shape?: Shape };
+/**
+ * `imageFileId` is the scene's picture: drawn by the image model, or the person's own photo (or the first frame of
+ * their own clip, as its poster). `clipFileId` is their own clip, used instead of the still when there is one.
+ */
+export type Scene = { spoken: string; onScreen: string; text?: string; seconds: number; imageFileId: string | null; bottom?: string; shape?: Shape; clipFileId?: string | null; own?: boolean };
 export type StageCharge = { stage: "plan" | "storyboard" | "redraw" | "video"; estimate: number; charged: number; costMicroUsd: number; at: string };
 export type VideoProject = {
   id: string;
@@ -259,12 +263,35 @@ export class VideoStudio {
     }
     return this.locked(id, async () => {
       const latest = (await this.opts.store.videos.get(id)) ?? v;
-      if (latest.scenes[index]) latest.scenes[index].imageFileId = fileId;
+      if (latest.scenes[index]) Object.assign(latest.scenes[index], { imageFileId: fileId, clipFileId: null, own: false });
       await this.settle(latest, stage, hold, estimate, true, cost);
       if (latest.scenes.every((s) => s.imageFileId) && latest.stage === "script") latest.stage = "storyboard";
       latest.updatedAt = this.now().toISOString();
       await this.opts.store.videos.update(latest);
       return latest;
+    });
+  }
+
+  /**
+   * The person's own photo or clip for a scene, instead of a drawn picture:
+   * the strongest way to make a video theirs. Free. A clip comes with its
+   * first frame as the poster the panel shows.
+   */
+  async useOwnMedia(caller: Principal, workspaceId: string, id: string, index: number, media: { image: { name: string; mimeType: string; bytes: Uint8Array }; clip?: { name: string; mimeType: string; bytes: Uint8Array } | null }): Promise<VideoProject> {
+    await this.row(caller, workspaceId, id, "run_agents");
+    const image = await this.opts.files.put(workspaceId, media.image);
+    const clip = media.clip ? await this.opts.files.put(workspaceId, media.clip) : null;
+    return this.locked(id, async () => {
+      const v = await this.row(caller, workspaceId, id, "run_agents");
+      const s = v.scenes[index];
+      if (!s) throw new VideoError("invalid_request", "No such scene.");
+      s.imageFileId = image.id;
+      s.clipFileId = clip?.id ?? null;
+      s.own = true;
+      if (v.scenes.every((x) => x.imageFileId) && v.stage === "script") v.stage = "storyboard";
+      v.updatedAt = this.now().toISOString();
+      await this.opts.store.videos.update(v);
+      return v;
     });
   }
 
@@ -391,6 +418,7 @@ export class VideoStudio {
       const motion = isMotion(v);
       const images = motion ? [] : await Promise.all(v.scenes.map(async (s) => (await this.opts.files.get(workspaceId, s.imageFileId!))?.bytes ?? null));
       if (!motion && images.some((b) => !b)) throw new MediaFailure("A scene's picture is missing; draw it again.");
+      const clips = motion ? [] : await Promise.all(v.scenes.map(async (s) => (s.clipFileId ? ((await this.opts.files.get(workspaceId, s.clipFileId))?.bytes ?? null) : null)));
       // One voice clip per scene, so each picture stays exactly as long as its lines take to say.
       const voiced = await Promise.all(
         v.scenes.map(async (s, i) => {
@@ -414,7 +442,7 @@ export class VideoStudio {
             AbortSignal.timeout(300_000),
           )
         : await this.opts.media.cut(
-        v.scenes.map((s, i) => ({ image: images[i]!, seconds: seconds[i], audio: voiced[i]?.bytes ?? null, words: s.spoken.trim(), headline: s.text, speechSeconds: voiced[i]?.seconds })),
+        v.scenes.map((s, i) => ({ image: images[i]!, clip: clips[i], seconds: seconds[i], audio: voiced[i]?.bytes ?? null, words: s.spoken.trim(), headline: s.text, speechSeconds: voiced[i]?.seconds })),
         AbortSignal.timeout(240_000),
         v.brief ? { aspect: v.brief.aspect, ...styleFor(v.brief) } : undefined,
       );
@@ -437,7 +465,7 @@ export class VideoStudio {
   /** A picture or the video, for members of the video's workspace only. */
   async file(caller: Principal, workspaceId: string, id: string, fileId: string) {
     const v = await this.row(caller, workspaceId, id);
-    const own = v.scenes.some((s) => s.imageFileId === fileId) || v.video?.fileId === fileId;
+    const own = v.scenes.some((s) => s.imageFileId === fileId || s.clipFileId === fileId) || v.video?.fileId === fileId;
     if (!own) throw new VideoError("not_found", "No such file.");
     return this.opts.files.get(workspaceId, fileId);
   }

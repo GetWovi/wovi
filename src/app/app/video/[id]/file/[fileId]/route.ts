@@ -18,7 +18,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     .catch(() => null);
   if (!file) notFound();
   const type = file.meta.mimeType;
-  if (!type.startsWith("image/") && type !== "video/mp4") notFound();
+  if (!type.startsWith("image/") && !["video/mp4", "video/quicktime", "video/webm"].includes(type)) notFound();
   const size = file.bytes.byteLength;
   const name = file.meta.name.replace(/["\r\n]/g, "");
   const download = new URL(req.url).searchParams.get("download") === "1";

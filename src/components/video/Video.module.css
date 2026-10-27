@@ -309,3 +309,38 @@
   height: 100%;
   display: block;
 }
+
+.ownBadge {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  background: var(--blaze);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+.own {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px dashed var(--hairline);
+  font-size: var(--fs-sm);
+}
+.ownLabel {
+  font-weight: var(--fw-semibold);
+}
+.own input[type="file"] {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  max-width: 100%;
+}
+.rights {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
