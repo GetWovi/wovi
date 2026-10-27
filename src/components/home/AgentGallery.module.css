@@ -142,3 +142,8 @@
   outline: 3px solid var(--blaze);
   outline-offset: 3px;
 }
+
+/* Every card in a row the same height, whether it sits in a link or not. */
+.grid > * > .card {
+  height: 100%;
+}

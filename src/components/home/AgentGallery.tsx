@@ -54,76 +54,7 @@ export function AgentGallery() {
           </p>
         </div>
 
-        <div className={styles.grid}>
-          {AGENTS.map((a, i) => {
-            const card = (
-              <article
-                className={[
-                  home.panel,
-                  home.panelTight,
-                  i % 2 ? home.panelAlt : "",
-                  styles.card,
-                  a.status !== "live" ? styles.next : "",
-                ].join(" ")}
-                data-card
-              >
-                <div className={styles.top}>
-                  <span
-                    className={[
-                      home.iconTile,
-                      a.status === "live" ? home.iconTileBlaze : "",
-                    ].join(" ")}
-                  >
-                    <Icon name={a.icon} size={22} />
-                  </span>
-                  {a.status === "live" ? (
-                    <Ring value={a.fit} size={44} />
-                  ) : (
-                    <span className={[home.chip, home.chipCobalt].join(" ")}>
-                      {a.status === "coming" ? "Coming" : "Next"}
-                    </span>
-                  )}
-                </div>
-                <h3 className={styles.name}>{a.name}</h3>
-                <p className={styles.job}>{a.job}</p>
-                <div className={styles.foot}>
-                  <span className={home.chip}>{a.tag}</span>
-                  {a.status === "live" ? (
-                    <span className={styles.state}>
-                      <span className={styles.stateIdle}>
-                        <Mascot pose="wait" size={36} label="" />
-                      </span>
-                      <span className={styles.stateRun}>
-                        <Mascot pose="move" size={36} label="" />
-                      </span>
-                      <span className={styles.stateText}>
-                        <span className={styles.stateIdle}>Waiting</span>
-                        <span className={styles.stateRun}>Run</span>
-                      </span>
-                    </span>
-                  ) : (
-                    <span className={styles.soon}>
-                      {a.status === "coming" ? "Coming soon" : "In the works"}
-                    </span>
-                  )}
-                </div>
-              </article>
-            );
-            // A live agent's card opens its form in the app (sign in first, then straight back to it).
-            return a.status === "live" && a.id ? (
-              <Link
-                key={a.name}
-                href={`/app/make/${a.id}`}
-                className={styles.cardLink}
-                aria-label={`Run ${a.name}`}
-              >
-                {card}
-              </Link>
-            ) : (
-              <div key={a.name}>{card}</div>
-            );
-          })}
-        </div>
+        <AgentCards />
         <p className={styles.note}>
           Brand fit shown is a sample. Real scores come from verified runs
           against your own Brand Brain.
@@ -152,5 +83,84 @@ export function AgentGallery() {
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * The agent cards, shared by the homepage and /agents. A live agent's card
+ * opens its public page (what it does, a real result, then "Use", which signs
+ * you in first); the agents still to come sit beside them without a link.
+ */
+export function AgentCards() {
+  return (
+    <div className={styles.grid}>
+      {AGENTS.map((a, i) => {
+        const card = (
+          <article
+            className={[
+              home.panel,
+              home.panelTight,
+              i % 2 ? home.panelAlt : "",
+              styles.card,
+              a.status !== "live" ? styles.next : "",
+            ].join(" ")}
+            data-card
+          >
+            <div className={styles.top}>
+              <span
+                className={[
+                  home.iconTile,
+                  a.status === "live" ? home.iconTileBlaze : "",
+                ].join(" ")}
+              >
+                <Icon name={a.icon} size={22} />
+              </span>
+              {a.status === "live" ? (
+                <Ring value={a.fit} size={44} />
+              ) : (
+                <span className={[home.chip, home.chipCobalt].join(" ")}>
+                  {a.status === "coming" ? "Coming" : "Next"}
+                </span>
+              )}
+            </div>
+            <h3 className={styles.name}>{a.name}</h3>
+            <p className={styles.job}>{a.job}</p>
+            <div className={styles.foot}>
+              <span className={home.chip}>{a.tag}</span>
+              {a.status === "live" ? (
+                <span className={styles.state}>
+                  <span className={styles.stateIdle}>
+                    <Mascot pose="wait" size={36} label="" />
+                  </span>
+                  <span className={styles.stateRun}>
+                    <Mascot pose="move" size={36} label="" />
+                  </span>
+                  <span className={styles.stateText}>
+                    <span className={styles.stateIdle}>Waiting</span>
+                    <span className={styles.stateRun}>Open</span>
+                  </span>
+                </span>
+              ) : (
+                <span className={styles.soon}>
+                  {a.status === "coming" ? "Coming soon" : "In the works"}
+                </span>
+              )}
+            </div>
+          </article>
+        );
+        return a.status === "live" && a.id ? (
+          <Link
+            key={a.name}
+            href={`/agents/${a.id}`}
+            className={styles.cardLink}
+            aria-label={`${a.name}: ${a.job}`}
+          >
+            {card}
+          </Link>
+        ) : (
+          <div key={a.name}>{card}</div>
+        );
+      })}
+    </div>
   );
 }

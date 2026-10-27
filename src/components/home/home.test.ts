@@ -54,7 +54,7 @@ describe("the homepage links", () => {
   const hrefs = anchors(html);
 
   it("has links into the product: sign in, the app, the agents, credits and the API", () => {
-    for (const want of ["/sign-in", "/app", "/app/make", "/app/credits", "/app/settings/api", "/api/v1/openapi.json"]) expect(hrefs).toContain(want);
+    for (const want of ["/sign-in", "/app", "/agents", "/app/credits", "/app/settings/api", "/api/v1/openapi.json"]) expect(hrefs).toContain(want);
   });
 
   it("every href goes to a real route, an anchor on the page, an https site or the contact address", () => {

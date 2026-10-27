@@ -1,0 +1,605 @@
+/* A live agent's public page. Built on the homepage vocabulary (home.module.css):
+   night ground, big rounded panels, orange eyebrows, cream headlines. */
+
+/* Hero */
+.hero {
+  padding: clamp(28px, 4vw, 56px) 0 clamp(24px, 3vw, 40px);
+}
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+}
+.heroCopy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+}
+.crumb:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+.bigTile {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blaze);
+  box-shadow: 0 0 0 3px var(--blaze-tint);
+}
+.h1 {
+  font-size: clamp(44px, 6vw, 84px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-weight: var(--fw-bold);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.lead {
+  font-size: clamp(18px, 1.6vw, 22px);
+  line-height: 1.45;
+  color: var(--text-muted);
+  max-width: 44ch;
+  text-wrap: pretty;
+}
+.platforms {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+}
+.platformsLabel {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--blaze-text);
+}
+.platformList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.platformList li {
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hairline-strong);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+}
+.signNote {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+}
+
+/* The facts panel beside the hero */
+.facts {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-4);
+}
+.factsWovi {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: var(--s-2);
+}
+.factsSparkle {
+  position: absolute;
+  top: 4px;
+  right: 22%;
+}
+.factList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+.fact {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s-4);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--hairline);
+}
+.fact dt {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.fact dd {
+  margin: 0;
+  font-weight: var(--fw-semibold);
+  text-align: right;
+}
+
+/* Cards: what you get, the checks */
+.getGrid,
+.checkGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.getCard,
+.check {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.cardTitle {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.cardText {
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+.checkNo {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  color: var(--blaze-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Two columns: the heading beside a panel */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: clamp(24px, 4vw, 64px);
+  align-items: start;
+}
+.split > :first-child {
+  margin-bottom: 0;
+  position: sticky;
+  top: calc(var(--header-h) + 24px);
+}
+
+/* The form, read-only */
+.form {
+  min-width: 0;
+}
+.fields {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-4) 0;
+  border-top: 1px solid var(--hairline);
+}
+.field:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.field:last-child {
+  padding-bottom: 0;
+}
+.fieldHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-3);
+}
+.fieldLabel {
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-lg);
+}
+.fakeInput {
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--hairline-strong);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  min-height: 46px;
+}
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.option {
+  padding: 7px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hairline-strong);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-muted);
+}
+.optionOn {
+  border-color: var(--blaze);
+  background: var(--blaze-tint);
+  color: var(--text);
+}
+.fieldKind {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* The real result */
+.result {
+  gap: var(--s-4);
+}
+.resultHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+.resultTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.resultTitle h3 {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.01em;
+}
+.asked {
+  display: flex;
+  flex-direction: column;
+}
+.askedList {
+  margin: 0;
+}
+
+/* Brand Brain parts */
+.parts {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+}
+.part {
+  display: flex;
+  gap: var(--s-4);
+  align-items: flex-start;
+  padding: var(--s-4) 0;
+  border-top: 1px solid var(--hairline);
+}
+.part:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.part:last-child {
+  padding-bottom: 0;
+}
+.partOff {
+  opacity: 0.55;
+}
+.partText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.partText b {
+  font-size: var(--fs-lg);
+}
+.partText span {
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* The gate: bar, rewrites, you approve */
+.gate {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+.gateTile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gateTile b {
+  font-size: var(--fs-lg);
+}
+.gateTile span:last-child {
+  line-height: 1.5;
+  opacity: 0.85;
+}
+.gateNum {
+  font-size: clamp(44px, 5vw, 64px);
+  line-height: 1;
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.gateIcon {
+  display: flex;
+  align-items: center;
+  height: clamp(44px, 5vw, 64px);
+}
+.rules {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-5);
+}
+.rulesLabel {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+  margin-right: var(--s-2);
+}
+
+/* Chains */
+.chainGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+.chainTwo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.chainOne {
+  grid-template-columns: minmax(0, 1fr);
+}
+.chain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  height: 100%;
+}
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: var(--s-2) 0 0;
+  padding: 0;
+}
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: var(--text-tint);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+}
+.steps li:not(:last-child)::after {
+  content: "→";
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-weight: var(--fw-regular);
+}
+.stepOn {
+  background: var(--blaze);
+  color: var(--on-blaze);
+}
+.stepOn:not(:last-child)::after {
+  color: var(--on-blaze);
+}
+.chainCopy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+/* Steps and the button sit at the bottom, so cards side by side line them up. */
+.chain > .steps {
+  margin-top: auto;
+  padding-top: var(--s-2);
+}
+.chainFoot {
+  padding-top: var(--s-2);
+}
+.stepNo,
+.stepLabel {
+  display: none;
+}
+/* One chain: the copy beside the steps, listed top to bottom with what each one does. */
+.chainOne .chain {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-areas: "copy steps" "foot steps";
+  grid-template-rows: auto 1fr;
+  gap: var(--s-3) clamp(24px, 4vw, 56px);
+}
+.chainOne .chainCopy {
+  grid-area: copy;
+}
+.chainOne .chainFoot {
+  grid-area: foot;
+}
+.chainOne .chain > .steps {
+  grid-area: steps;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: center;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+}
+.chainOne .step {
+  gap: var(--s-3);
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-md);
+}
+.chainOne .steps li::after {
+  content: none;
+}
+.chainOne .stepNo {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--text-tint);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+.chainOne .stepOn .stepNo {
+  background: rgb(11 18 48 / 0.18);
+}
+.chainOne .stepName {
+  color: var(--text);
+}
+.chainOne .stepOn .stepName {
+  color: var(--on-blaze);
+}
+.chainOne .stepLabel {
+  display: block;
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  text-align: right;
+}
+.nextLink {
+  display: block;
+  color: inherit;
+  border-radius: var(--r-lg);
+}
+.nextLink:hover {
+  text-decoration: none;
+}
+.nextLink:hover .chain {
+  border-color: var(--cobalt-glow);
+}
+.nextLink:focus-visible {
+  outline: 3px solid var(--blaze);
+  outline-offset: 3px;
+}
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  font-weight: var(--fw-semibold);
+  color: var(--blaze-text);
+}
+
+/* Closing */
+.closing {
+  padding: clamp(40px, 5vw, 80px) 0 clamp(48px, 6vw, 96px);
+}
+
+@media (max-width: 1000px) {
+  .heroGrid,
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .split > :first-child {
+    position: static;
+  }
+  .getGrid,
+  .checkGrid,
+  .chainGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .chainOne,
+  .chainOne .chain {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .chainOne .chain {
+    grid-template-areas: "copy" "steps" "foot";
+    grid-template-rows: auto;
+  }
+  .getGrid > :last-child:nth-child(odd),
+  .chainGrid > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 640px) {
+  .getGrid,
+  .checkGrid,
+  .chainGrid,
+  .chainTwo,
+  .gate {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fact {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .fact dd {
+    text-align: left;
+  }
+  /* The result's own panel gives the cards inside more of a phone's width. */
+  section .result {
+    padding: var(--s-4);
+    border-radius: var(--r-lg);
+  }
+  /* Labelled parts (trends, ideas, tags, video versions): the label over its text, so the text keeps the card's width. */
+  section .result dl {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 2px;
+  }
+  section .result dl dt {
+    white-space: normal;
+  }
+  section .result dl > div[style] + div[style] > dt {
+    margin-top: var(--s-2);
+  }
+  .chainOne .step {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .chainOne .stepLabel {
+    width: 100%;
+    margin-left: 38px;
+    text-align: left;
+  }
+}

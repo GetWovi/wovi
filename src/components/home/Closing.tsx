@@ -43,7 +43,7 @@ export function Closing() {
               <ButtonLink href="/sign-in" size="lg" className={styles.ctaButton} trailing={<Icon name="arrow-right" />}>
                 Get started
               </ButtonLink>
-              <ButtonLink href="/app/make" size="lg" variant="ghost" className={styles.ctaGhost}>
+              <ButtonLink href="/agents" size="lg" variant="ghost" className={styles.ctaGhost}>
                 Browse the agents
               </ButtonLink>
             </div>
@@ -65,7 +65,7 @@ export function Closing() {
             <div className={styles.col}>
               <span className={styles.colTitle}>Product</span>
               <Link href="/app">Open the app</Link>
-              <Link href="/app/make">Browse the agents</Link>
+              <Link href="/agents">Browse the agents</Link>
               <Link href="/app/credits">Credits</Link>
               <a href="#brand-brain">Brand Brain</a>
             </div>
