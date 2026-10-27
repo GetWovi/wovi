@@ -18,6 +18,7 @@ import type { FileRef } from "@/lib/runs/inputs";
 import styles from "./App.module.css";
 import { AGENT_GETS } from "./agent-icons";
 import { Asked, RunResult } from "./RunResult";
+import { VideoFromRun } from "@/components/video/NewVideo";
 import { BlockedNotice } from "@/components/safety/BlockedNotice";
 import { PlatformRules } from "@/components/safety/PlatformRules";
 import { RightsCheck } from "@/components/safety/RightsCheck";
@@ -41,8 +42,11 @@ export function AgentRun({
   reviewer,
   now,
   price = null,
+  videoOn = false,
 }: {
   csrf: string;
+  /** Make a video is open to this person: a Script Writer result offers to become a video. */
+  videoOn?: boolean;
   agent: PublicAgent;
   /** What a run costs before it starts, with the balance (phase 13). Null when nothing is billed. */
   price?: Price | null;
@@ -258,7 +262,19 @@ export function AgentRun({
   }
 
   if (phase.kind === "done") {
-    return <RunResult csrf={csrf} agent={agent} view={phase.view} editor={editor} reviewer={reviewer} now={now} onRerun={(id) => { setNowMs(0); setPhase({ kind: "running", runId: id, view: null, startedAt: Date.now() }); router.replace(`/app/make/${agent.id}?run=${id}`, { scroll: false }); window.scrollTo({ top: 0 }); }} onAnother={another} />;
+    const result = (
+      <RunResult csrf={csrf} agent={agent} view={phase.view} editor={editor} reviewer={reviewer} now={now} onRerun={(id) => { setNowMs(0); setPhase({ kind: "running", runId: id, view: null, startedAt: Date.now() }); router.replace(`/app/make/${agent.id}?run=${id}`, { scroll: false }); window.scrollTo({ top: 0 }); }} onAnother={another} />
+    );
+    if (!videoOn || agent.id !== "script-writer" || phase.view.run.output?.kind !== "script") return result;
+    return (
+      <div className={styles.stack}>
+        <div className={[styles.panel, styles.panelTight, styles.actions].join(" ")}>
+          <span>Turn this script into a video: a storyboard to approve, then the voice and the cut.</span>
+          <VideoFromRun csrf={csrf} runId={phase.view.run.id} />
+        </div>
+        {result}
+      </div>
+    );
   }
 
   return (

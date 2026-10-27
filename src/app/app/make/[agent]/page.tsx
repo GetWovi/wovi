@@ -18,6 +18,7 @@ import { AgentLiveStats } from "@/components/stats/LiveStats";
 import { appStats } from "@/lib/stats/server";
 import { pctOf } from "@/lib/stats/words";
 import { brainChoices } from "@/lib/team/brand-pick";
+import { videoAllowed } from "@/lib/video/server";
 
 export const metadata: Metadata = { title: "Make", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -69,7 +70,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           </a>
         </div>
       </div>
-      <AgentRun key={shown?.run.id ?? "form"} csrf={csrf} agent={spec} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={examples} initialRun={shown} reviewer={reviewer} now={currentTime()} price={price} />
+      <AgentRun key={shown?.run.id ?? "form"} csrf={csrf} agent={spec} brains={await brainChoices(me, workspaceId, brains)} editor={editor} examples={examples} initialRun={shown} reviewer={reviewer} now={currentTime()} price={price} videoOn={videoAllowed(info.user)} />
       <section className={[styles.panel, styles.section].join(" ")} id="live-stats" aria-label="Live stats from real runs">
         <AgentLiveStats stats={live} />
       </section>

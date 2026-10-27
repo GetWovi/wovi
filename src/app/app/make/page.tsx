@@ -5,6 +5,9 @@ import { AppShell } from "@/components/app/AppShell";
 import { PipelineCard } from "@/components/app/PipelineParts";
 import { groupLineup } from "@/lib/app/lineup";
 import { appPage } from "@/lib/app/server";
+import { videoAllowed } from "@/lib/video/server";
+import { ButtonLink } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
 import { appQuality } from "@/lib/quality/server";
 import { appStats } from "@/lib/stats/server";
 import { PLATFORM_WORKSPACE_ID } from "@/lib/agents/seeds";
@@ -28,6 +31,18 @@ export default async function MakePage() {
           <p className={styles.lead}>Each one does one thing well. Fill in a short form, no prompt to write, and the result comes back in your voice. Every result is scored before it is marked ready, and each agent shows its record.</p>
         </div>
       </div>
+      {videoAllowed(info.user) && (
+        <section className={[styles.panel, styles.panelTight, styles.section, styles.actions].join(" ")} aria-label="Make a video">
+          <div className={styles.headText}>
+            <span className="eyebrow">New</span>
+            <h2>Make a video</h2>
+            <p className={[styles.muted, styles.small].join(" ")}>From a script to a storyboard you approve, then the voiceover and the finished vertical video.</p>
+          </div>
+          <ButtonLink href="/app/video" trailing={<Icon name="arrow-right" size={18} />}>
+            Make a video
+          </ButtonLink>
+        </section>
+      )}
       {groups.map((g) => (
         <section key={g.id} className={styles.section}>
           <div className={styles.sectionHead}>
