@@ -9,6 +9,18 @@ import { GITHUB_URL, X_URL } from "@/lib/site";
 
 export type NavLink = { href: string; label: string };
 
+/** The main site's links: section jumps on the homepage, and the same places from every other page. */
+export function mainLinks(onHome = false): NavLink[] {
+  const at = (id: string) => (onHome ? `#${id}` : `/#${id}`);
+  return [
+    { href: onHome ? "#agents" : "/agents", label: "Agents" },
+    { href: at("pipeline"), label: "How it works" },
+    { href: at("brand-brain"), label: "Brand Brain" },
+    { href: at("plug-in"), label: "MCP and API" },
+    { href: at("creators"), label: "Creators" },
+  ];
+}
+
 /** Site chrome: logo left, links in the middle, sign in, GitHub (once a repo exists) and X top right. */
 export function SiteHeader({ active, links = [] }: { active?: "home" | "design" | "token"; links?: NavLink[] }) {
   // The $WOVI page (phase 17) is linked only while it is on.

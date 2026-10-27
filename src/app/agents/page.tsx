@@ -3,7 +3,7 @@ import { LOGO_FILES } from "@/components/brand/Logo";
 import { AgentCards } from "@/components/home/AgentGallery";
 import gallery from "@/components/home/AgentGallery.module.css";
 import home from "@/components/home/home.module.css";
-import { SiteFooter, SiteHeader } from "@/components/site/SiteHeader";
+import { SiteFooter, SiteHeader, mainLinks } from "@/components/site/SiteHeader";
 
 const description =
   "WOVI's AI agents for content: trends, ideas, hooks, scripts, captions, hashtags and repurposing. One agent, one job, each reading your Brand Brain first.";
@@ -18,8 +18,9 @@ export const metadata: Metadata = {
 /** Every live agent, as the homepage's cards; each opens its own page. */
 export default function AgentsIndexPage() {
   return (
-    <>
-      <SiteHeader links={[{ href: "/agents", label: "Agents" }]} />
+    // One wrapper first: Next scrolls a new page to its first element that is not sticky, so a bare sticky header would open the page scrolled past it.
+    <div>
+      <SiteHeader links={mainLinks()} />
       <main>
         <section className={home.section} aria-labelledby="agents-title">
           <div className="container">
@@ -38,6 +39,6 @@ export default function AgentsIndexPage() {
         </section>
       </main>
       <SiteFooter />
-    </>
+    </div>
   );
 }

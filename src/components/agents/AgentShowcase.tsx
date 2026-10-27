@@ -7,7 +7,7 @@ import { ResultBody, Sources } from "@/components/app/RunResult";
 import closing from "@/components/home/Closing.module.css";
 import home from "@/components/home/home.module.css";
 import q from "@/components/quality/Quality.module.css";
-import { SiteFooter, SiteHeader } from "@/components/site/SiteHeader";
+import { SiteFooter, SiteHeader, mainLinks } from "@/components/site/SiteHeader";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -42,8 +42,9 @@ export function AgentShowcase({ agent, example }: { agent: ShowcaseAgent; exampl
   const view = example ? resultView(example.output) : null;
 
   return (
-    <>
-      <SiteHeader links={[{ href: "/agents", label: "Agents" }]} />
+    // A wrapper first, so Next opens the page at the top instead of scrolled past the sticky header.
+    <div>
+      <SiteHeader links={mainLinks()} />
       <main>
         {/* 1. Hero */}
         <section className={s.hero} aria-labelledby="agent-title">
@@ -406,6 +407,6 @@ export function AgentShowcase({ agent, example }: { agent: ShowcaseAgent; exampl
         </section>
       </main>
       <SiteFooter />
-    </>
+    </div>
   );
 }

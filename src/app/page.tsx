@@ -1,5 +1,5 @@
 import dynamic from "next/dynamic";
-import { SiteHeader } from "@/components/site/SiteHeader";
+import { SiteHeader, mainLinks } from "@/components/site/SiteHeader";
 import { Hero } from "@/components/home/Hero";
 import { LiveDemo } from "@/components/home/LiveDemo";
 import { Pipeline } from "@/components/home/Pipeline";
@@ -15,16 +15,11 @@ const PlugIn = dynamic(() => import("@/components/home/PlugIn").then((m) => m.Pl
 
 export default function Home() {
   return (
-    <>
+    // A wrapper first, so Next opens the page at the top instead of scrolled past the sticky header.
+    <div>
       <SiteHeader
         active="home"
-        links={[
-          { href: "#agents", label: "Agents" },
-          { href: "#pipeline", label: "How it works" },
-          { href: "#brand-brain", label: "Brand Brain" },
-          { href: "#plug-in", label: "MCP and API" },
-          { href: "#creators", label: "Creators" },
-        ]}
+        links={mainLinks(true)}
       />
       <main>
         <Hero />
@@ -38,6 +33,6 @@ export default function Home() {
         <Closing />
         <HomeLegalStrip />
       </main>
-    </>
+    </div>
   );
 }
