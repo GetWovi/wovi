@@ -91,6 +91,12 @@ describe("the judge's rubric", () => {
     expect(bare).toContain('<data name="agent.quality_rules">\nNone given.\n</data>');
     expect(bare).not.toContain("brand.");
     expect(bare).not.toContain("gold_examples");
+    expect(bare).not.toContain("tool_findings");
+
+    // What a tool found counts as given material, so sourced dates and numbers are not marked as invented.
+    const found = judgePrompt(qualityInput({ toolFindings: "1. Silent cooking (published 2026-10-20): 143,700 videos. Source: https://example.com/a" }))[1].content;
+    expect(found).toContain('<data name="tool_findings">\n1. Silent cooking (published 2026-10-20): 143,700 videos.');
+    expect(found.indexOf('<data name="tool_findings">')).toBeLessThan(found.indexOf('<data name="draft">'));
   });
 
   it("finds the QUALITY RULES lines of every launch agent, and nothing from the section after", () => {

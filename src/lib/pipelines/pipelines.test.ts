@@ -227,7 +227,7 @@ describe("pipeline runs", () => {
     expect(hooks.suggested).not.toBeNull();
     expect(hooks.inputs).toMatchObject({ idea: IDEA, platform: "tiktok" });
     // The pinned version of "current".
-    expect(hooks.agent).toMatchObject({ workspaceId: PLATFORM_WORKSPACE_ID, id: "hook-writer", version: "1.1.1" });
+    expect(hooks.agent).toMatchObject({ workspaceId: PLATFORM_WORKSPACE_ID, id: "hook-writer", version: "1.1.2" });
 
     await t.api.pickInPipeline(t.me, t.team.id, run.id, "hooks", 3);
     run = await t.settle(run.id);
@@ -441,7 +441,7 @@ describe("pipeline runs", () => {
     const t = await bakery();
     const inputs = { post: "Gerald the starter turns nine, with a candle on the jar", platform: "tiktok" };
     const before = await t.start("caption-and-tags", inputs);
-    expect(before.steps.map((s) => s.agent.version)).toEqual(["1.1.1", "2.0.1"]);
+    expect(before.steps.map((s) => s.agent.version)).toEqual(["1.1.2", "2.0.1"]);
     const spec = (await t.registry.get(PLATFORM_WORKSPACE_ID, "hashtag-picker"))!;
     await t.registry.update(PLATFORM_WORKSPACE_ID, "hashtag-picker", {
       inputs: spec.inputs.map((i) => (i.key === "caption" ? { ...i, key: "post_text" } : i)),

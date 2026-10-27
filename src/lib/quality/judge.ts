@@ -43,7 +43,7 @@ export const JUDGE_RULES = [
   "- Job: it does the job in agent.job and keeps the shape and limits in agent.output_contract.",
   "- Quality rules: it keeps every line in agent.quality_rules.",
   "- Specific: it uses the person's inputs and names real details from them; no line could be posted by any other brand.",
-  "- Facts: it invents no numbers, names, prices, dates, results, reviews or claims that the inputs and the Brand Brain do not give.",
+  "- Facts: it invents no numbers, names, prices, dates, results, reviews or claims that the inputs and the Brand Brain do not give. When a tool_findings block is given, what it says (with its sources and dates) counts as given too.",
   "- Brand: it sounds like the Brand Brain's voice and breaks none of its don'ts or words to avoid. Skip this when no Brand Brain part is given.",
   "- Reference: when gold_examples are given, it is as good as they are in shape and specificity. It does not need to copy them.",
   "90 to 100: ready to post as it is. 70 to 89: good, with small fixes. 50 to 69: usable after real edits. Under 50: misses the job or breaks a rule.",
@@ -95,6 +95,7 @@ export function judgePrompt(input: QualityInput): ChatMessage[] {
     dataBlock("inputs", inputs || "None given."),
     ...parts.map((p) => dataBlock(`brand.${p}`, renderBrandPart(brain, p))),
     ...(gold.length ? [dataBlock("gold_examples", gold.join("\n"))] : []),
+    ...(input.toolFindings ? [dataBlock("tool_findings", input.toolFindings)] : []),
     dataBlock("draft", draftText(input.output)),
   ];
   return [

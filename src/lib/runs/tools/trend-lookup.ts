@@ -114,12 +114,22 @@ export function trendArgs(spec: Pick<AgentSpec, "inputs" | "platforms">, inputs:
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-/** The search query the web plugin searches for. */
+/**
+ * The search query the web plugin searches for. X is posts and threads, not
+ * sounds and video, so it gets its own words; asked like the video platforms,
+ * both lookups on X found nothing in 4 of 6 test niches. The wider lookup asks
+ * for the month, not the week, so a quiet week still finds something dated.
+ */
 export function searchQuery(args: Record<string, string>, now: Date): string {
   const where = PLATFORM_NAMES[args.platform] ?? "short video";
   const when = `${MONTHS[now.getUTCMonth()]} ${now.getUTCFullYear()}`;
+  if (args.platform === "x") {
+    return args.scope === "platform"
+      ? `Trending topics, post formats and threads on X in ${when} that brands and small businesses use`
+      : `What people on X are posting and talking about in ${when} around: ${queryText(args.niche)}. Trending topics, threads and post formats`;
+  }
   return args.scope === "platform"
-    ? `New trending formats, sounds and video ideas on ${where} this week (${when}) that small businesses use`
+    ? `Trending formats, sounds and video ideas on ${where} in ${when} that small businesses use`
     : `New trending formats, sounds and topics on ${where} this week (${when}) for: ${queryText(args.niche)}`;
 }
 

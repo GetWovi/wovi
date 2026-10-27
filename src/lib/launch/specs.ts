@@ -72,7 +72,7 @@ const BRAND_USE = {
 };
 
 const FACTS =
-  "Use only facts from the inputs and the Brand Brain. Never invent numbers, prices, dates, results, customers, reviews, quotes, awards or opening hours. If a detail would help but is missing, write around it.";
+  "Use only facts from the inputs and the Brand Brain. Never invent numbers, prices, dates, times, results, customers, reviews, quotes, awards or opening hours, and never invent events, reactions, feelings, outcomes or what someone said or did. A line may suggest what to film or show, but never says something happened unless the material says it did. If a detail would help but is missing, write around it.";
 
 const NO_SLOP =
   "No stock phrases. Never write: unlock, elevate, game-changer, level up, dive in, in today's fast-paced world, look no further, you won't believe, secret sauce, take it to the next level, this changes everything, stop scrolling. If a line could be posted by any other business, rewrite it until it could not.";
@@ -88,7 +88,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 1. Research */
   {
     id: "trend-scout",
-    version: "3.0.1",
+    version: "3.0.2",
     name: "Trend Scout",
     job: "Finds the formats rising in your niche this week and how you could use them.",
     category: "research",
@@ -125,7 +125,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       "2. Report only what the findings say. Every trend comes from one finding: its evidence says what that source shows, with its numbers and its date, and its source is that finding's address, copied exactly. Never report a trend from memory, and never add numbers the finding does not give.",
       "3. Keep the five that this business could make this week with a phone and the people it has. Drop anything that breaks a don't, needs a big budget, or rides on tragedy, politics or another brand's drama.",
       "4. A trend can be a format, a sound or a topic. When a finding is a sound, say how to use it without naming music the business would need a licence for.",
-      "5. If fewer than five findings fit well, use the strongest remaining ones and say plainly in the evidence that the signal is weak or older. Two items may come from the same source when it names two trends.",
+      "5. If fewer than five findings fit well, use the strongest remaining ones and say plainly in the evidence that the signal is weak or older. Two items may come from the same source when it names two trends. Leave out any trend the source says is fading or past its peak.",
       "",
       "HOW TO USE THE BRAND BRAIN",
       BRAND_USE.voice,
@@ -140,7 +140,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       NO_SLOP,
       "",
       "WHAT TO RETURN",
-      "Five items, strongest first. trend: the format's name in a few words. what_it_looks_like: what a viewer sees and hears, in one or two sentences. evidence: what the source says, with its numbers and its date, in one or two sentences. source: the finding's address, exactly as given, and nothing else. how_you_could_use_it: one post idea for this business, in one or two sentences.",
+      "Five items, strongest first. trend: the format's name in a few words. what_it_looks_like: what a viewer sees and hears, in one or two sentences. evidence: what the source says, with its numbers and its date, in one or two sentences. source: the finding's address, exactly as given, and nothing else. how_you_could_use_it: one post idea for this business, in one or two sentences, built only on details the inputs and the Brand Brain give.",
     ),
     owner,
     status: "live",
@@ -150,7 +150,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 2. Ideation */
   {
     id: "idea-generator",
-    version: "1.0.2",
+    version: "1.0.3",
     name: "Idea Generator",
     job: "Gives you a week of post ideas that only your business could post.",
     category: "ideation",
@@ -236,7 +236,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
       "No generic series names like Motivation Monday or Tips Tuesday.",
       "",
       "WHAT TO RETURN",
-      "Seven items, the strongest first. idea: the post in one or two sentences, written so the owner can picture it. format: how it is made, in a few words. why_it_fits: one sentence to the owner on why their audience will watch, share or act on it, saying in plain words which of their topics or past posts it builds on (like \"the same shape as the Gerald post\"). Never brief talk like \"as the dos ask\", \"the brand's own line\" or \"hits the dos\".",
+      "Seven items, the strongest first. idea: the post in one or two sentences, at most 35 words, written so the owner can picture it. format: how it is made, in a few words. why_it_fits: one sentence to the owner on why their audience will watch, share or act on it, saying in plain words which of their topics or past posts it builds on (like \"the same shape as the Gerald post\"). Never brief talk like \"as the dos ask\", \"the brand's own line\" or \"hits the dos\".",
     ),
     owner,
     status: "live",
@@ -246,7 +246,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 3. Writing: hooks */
   {
     id: "hook-writer",
-    version: "1.1.1",
+    version: "1.1.2",
     name: "Hook Writer",
     job: "Opens a post or a short with one line people stop for.",
     category: "writing",
@@ -323,7 +323,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 4. Writing: scripts */
   {
     id: "script-writer",
-    version: "2.0.1",
+    version: "2.0.2",
     name: "Script Writer",
     job: "Turns one idea into beats with a beginning, a turn and an end.",
     category: "writing",
@@ -447,7 +447,7 @@ export const LAUNCH_AGENTS: CreateInput[] = [
   /* 5. Writing: captions */
   {
     id: "caption-writer",
-    version: "1.1.1",
+    version: "1.1.2",
     name: "Caption Writer",
     job: "Writes the caption to match the clip, the format and your voice.",
     category: "writing",
@@ -725,13 +725,13 @@ export const LAUNCH_AGENTS: CreateInput[] = [
 
 /** The change note each launch version is saved with. */
 export const LAUNCH_NOTES: Record<string, string> = {
-  "trend-scout": "Tuning round 1: learns the shape of past posts but never reuses a whole sentence from them or the voice's sample lines.",
+  "trend-scout": "Tuning round 1: learns the shape of past posts but never reuses a whole sentence from them or the voice's sample lines. Tuning round 3: never invents events, reactions, feelings or outcomes; a line may suggest what to film but never says it happened. Leaves out trends the source calls fading, and each use builds only on given details.",
   "idea-generator":
-    "Tuning round 1: why_it_fits now tells the owner why their audience will watch, share or act, in plain words instead of brief talk; no whole sentences reused from past posts. Permission to film someone stays off camera: never written into an idea or anything a viewer sees or hears.",
+    "Tuning round 1: why_it_fits now tells the owner why their audience will watch, share or act, in plain words instead of brief talk; no whole sentences reused from past posts. Permission to film someone stays off camera: never written into an idea or anything a viewer sees or hears. Tuning round 3: never invents events, reactions, feelings or outcomes; a line may suggest what to film but never says it happened. Each idea at most 35 words.",
   "hook-writer":
-    "Tuning round 1: no hook reuses a whole sentence from the past posts or sample lines; at most one echoes the brand's best-known line, reworded. Asks for at most 10 words, two under the hard 12-word check, so long quotes no longer fail a run.",
-  "script-writer": "Tuning round 1: the business or product is named at most twice spoken and once on screen, shown in use instead of pitched; no whole sentences reused from past posts.",
-  "caption-writer": "Tuning round 1: no caption reuses a whole sentence from the past posts or sample lines.",
+    "Tuning round 1: no hook reuses a whole sentence from the past posts or sample lines; at most one echoes the brand's best-known line, reworded. Asks for at most 10 words, two under the hard 12-word check, so long quotes no longer fail a run. Tuning round 3: never invents events, reactions, feelings or outcomes; a line may suggest what to film but never says it happened.",
+  "script-writer": "Tuning round 1: the business or product is named at most twice spoken and once on screen, shown in use instead of pitched; no whole sentences reused from past posts. Tuning round 3: never invents events, reactions, feelings or outcomes; a line may suggest what to film but never says it happened.",
+  "caption-writer": "Tuning round 1: no caption reuses a whole sentence from the past posts or sample lines. Tuning round 3: never invents events, reactions, feelings or outcomes; a line may suggest what to film but never says it happened.",
   "hashtag-picker":
     "Tuning round 1: at most one broad hashtag, no two terms on the same main words, search words written the way people really type them, and each why names who searches it.",
   repurposer: "Tuning round 1: keeps the post's own lines, but never borrows whole sentences from other past posts or the sample lines.",

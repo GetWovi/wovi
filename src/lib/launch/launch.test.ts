@@ -220,11 +220,11 @@ describe("installing the launch set", () => {
     const t = await setup();
     const report = await t.install();
     expect(report.agents.map((a) => [a.id, a.action, a.version, a.status])).toEqual([
-      ["trend-scout", "updated", "3.0.1", "live"],
-      ["idea-generator", "created", "1.0.2", "live"],
-      ["hook-writer", "updated", "1.1.1", "live"],
-      ["script-writer", "updated", "2.0.1", "live"],
-      ["caption-writer", "updated", "1.1.1", "live"],
+      ["trend-scout", "updated", "3.0.2", "live"],
+      ["idea-generator", "created", "1.0.3", "live"],
+      ["hook-writer", "updated", "1.1.2", "live"],
+      ["script-writer", "updated", "2.0.2", "live"],
+      ["caption-writer", "updated", "1.1.2", "live"],
       ["hashtag-picker", "updated", "2.0.1", "live"],
       ["repurposer", "updated", "2.0.1", "live"],
     ]);

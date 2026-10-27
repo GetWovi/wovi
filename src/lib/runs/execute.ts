@@ -31,6 +31,7 @@ import { assemblePrompt, promptText } from "./prompt";
 import { ProviderError, asProviderError, type ChatMessage, type ModelProvider } from "./providers/types";
 import type { ModelCall, Run, RunFailureCode } from "./run";
 import { DEFAULT_TOOL_LIMITS, ToolAborted, runDeclaredTools, toolSourceChecks, type ToolCache, type ToolLimits, type ToolSet } from "./tools";
+import { renderTrendFindings } from "./tools/trend-lookup";
 
 export type ExecContext = {
   spec: AgentBody;
@@ -181,7 +182,8 @@ async function gateLoop(ctx: ExecContext, messages: ChatMessage[], first: { outp
 async function score(ctx: ExecContext, output: RunOutput, answer: Answer, bar: number): Promise<Scored> {
   const { spec, run, brain } = ctx;
   const guards = [...runAfterChecks({ spec, inputs: run.inputs, output, brain }), ...toolSourceChecks(output, run.tools)];
-  const input: QualityInput = { spec, inputs: run.inputs, output, brain, references: ctx.references ?? NO_REFERENCES };
+  const found = run.tools?.filter((u) => u.ok && u.findings.length) ?? [];
+  const input: QualityInput = { spec, inputs: run.inputs, output, brain, references: ctx.references ?? NO_REFERENCES, ...(found.length ? { toolFindings: renderTrendFindings(found) } : {}) };
   const checks = runDeterministicChecks(input);
   const second = ctx.judge ? await secondOpinion(ctx, ctx.judge, input) : null;
   if (second) checks.push(second);

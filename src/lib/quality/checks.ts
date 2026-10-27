@@ -29,6 +29,8 @@ export type QualityInput = {
   brain: BrandBrain | null;
   references: QualityReferences;
   language?: Language;
+  /** What the agent's tools found (Trend Scout's web lookup), as the agent saw it. Only the judge reads it. */
+  toolFindings?: string;
 };
 
 type Outcome = { status: QualityStatus; score: number | null; reasons: string[] };

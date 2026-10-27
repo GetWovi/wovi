@@ -211,7 +211,7 @@ describe("a phase 17 data dir", { timeout: 30_000 }, () => {
     const engine = localEngine({ dataDir: dir, fake: true, brandBrains: localBrandBrains(dir) });
     const install = () => installLaunchSet({ accounts, registry, builder: localBuilder(accounts, dir, engine), brands: jsonFileBrandStore(join(dir, "brand-brains.json")), files: localFileStorage(join(dir, "files")), images: exampleImages() });
     const report = await install();
-    expect(report.agents.find((a) => a.id === "trend-scout")).toMatchObject({ action: "updated", version: "3.0.1", status: "live" });
+    expect(report.agents.find((a) => a.id === "trend-scout")).toMatchObject({ action: "updated", version: "3.0.2", status: "live" });
     expect(report.agents.find((a) => a.id === "hook-writer")).toMatchObject({ action: "kept" });
     expect(report.samples.refreshed).toBe(5);
     // The person's edit stays exactly as it was; every untouched launch agent moves to its current launch version, still live.
