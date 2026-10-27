@@ -17,6 +17,25 @@ export function Hero() {
   const root = useRef<HTMLElement>(null);
 
   // Entrance: eyebrow, lines, lead and buttons rise; the panel settles; the stickers drop in.
+  // In-page links ("Meet the agents" and the header's sections) scroll to their section on every click: the router
+  // does nothing when the address already ends in that #section, and the pinned scenes above can throw the jump off.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest?.('a[href^="#"]');
+      const id = a?.getAttribute("href")?.slice(1);
+      const target = id ? document.getElementById(id) : null;
+      if (!target) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      history.replaceState(null, "", `#${id}`);
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
+
   useEffect(() => {
     const el = root.current;
     if (!el) return;
