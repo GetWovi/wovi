@@ -23,6 +23,7 @@ import type { FileStorage } from "@/lib/builder/storage";
 import type { RunCredits } from "@/lib/credits/types";
 import { BillingRefusal } from "@/lib/runs/billing";
 import { MediaFailure, VOICES, type VideoMedia, type Voice } from "./media";
+import { motionLook, SHAPES, type MotionLook, type MotionScene, type Shape } from "./motion";
 import { PLAN_ESTIMATE_MICRO_USD, styleFor, type Brief, type Planner } from "./planner";
 
 export const VIDEO_LIMITS = { scenes: { min: 1, max: 8 }, spoken: 400, onScreen: 300, title: 80, seconds: { min: 1, max: 20 }, pastedScript: 4000 } as const;
@@ -30,7 +31,7 @@ export const VIDEO_LIMITS = { scenes: { min: 1, max: 8 }, spoken: 400, onScreen:
 export const VIDEO_RATE = { perUserHour: { max: 30, windowMs: 3_600_000 }, perWorkspaceDay: { max: 120, windowMs: 86_400_000 } } as const;
 
 /** `text` is the few big words on screen (the headline), for the kinds that show them. */
-export type Scene = { spoken: string; onScreen: string; text?: string; seconds: number; imageFileId: string | null };
+export type Scene = { spoken: string; onScreen: string; text?: string; seconds: number; imageFileId: string | null; bottom?: string; shape?: Shape };
 export type StageCharge = { stage: "plan" | "storyboard" | "redraw" | "video"; estimate: number; charged: number; costMicroUsd: number; at: string };
 export type VideoProject = {
   id: string;
@@ -121,6 +122,8 @@ export type VideoOptions = {
   billing?: VideoBilling | null;
   /** Turns the guided start's answers into scenes. Without one, only a pasted script or a Script Writer result can start a video. */
   planner?: Planner | null;
+  /** Draws minimal motion videos frame by frame (motion-render.ts on the server, a fake in tests). */
+  animate?: ((scenes: (MotionScene & { audio: Uint8Array | null })[], look: MotionLook, signal: AbortSignal) => Promise<Uint8Array>) | null;
   now?: () => Date;
   /** Pictures made at the same time. */
   concurrency?: number;
@@ -170,8 +173,8 @@ export class VideoStudio {
     await this.opts.accounts.authorize(caller, workspaceId, "run_agents");
     const raw = input.scenes?.length ? input.scenes : scenesFromText(input.script ?? "");
     const scenes = raw
-      .map((s) => ({ spoken: clean(s.spoken, VIDEO_LIMITS.spoken), onScreen: clean(s.onScreen, VIDEO_LIMITS.onScreen), text: clean(s.text, 40), seconds: Math.round(Math.max(VIDEO_LIMITS.seconds.min, Math.min(VIDEO_LIMITS.seconds.max, Number(s.seconds) || secondsFor(clean(s.spoken, VIDEO_LIMITS.spoken))))), imageFileId: null }))
-      .filter((s) => s.spoken || s.onScreen)
+      .map((s) => ({ spoken: clean(s.spoken, VIDEO_LIMITS.spoken), onScreen: clean(s.onScreen, VIDEO_LIMITS.onScreen), text: clean(s.text, 60), bottom: clean(s.bottom, 60), shape: SHAPES.includes(s.shape as Shape) ? s.shape : undefined, seconds: Math.round(Math.max(VIDEO_LIMITS.seconds.min, Math.min(VIDEO_LIMITS.seconds.max, Number(s.seconds) || secondsFor(clean(s.spoken, VIDEO_LIMITS.spoken))))), imageFileId: null }))
+      .filter((s) => s.spoken || s.onScreen || s.text)
       .slice(0, VIDEO_LIMITS.scenes.max);
     if (scenes.length < VIDEO_LIMITS.scenes.min) throw new VideoError("invalid_request", "Paste a script first, or start from a Script Writer result.");
     const at = this.now().toISOString();
@@ -220,6 +223,8 @@ export class VideoStudio {
     await this.settle(draft, "plan", hold, estimate, true, made.costMicroUsd);
     const v = await this.create(caller, workspaceId, { title: idea, scenes: made.scenes, brief: { ...brief, idea } });
     v.charges = draft.charges;
+    // Minimal motion draws no pictures: the plan is the storyboard.
+    if (isMotion(v)) v.stage = "storyboard";
     await this.opts.store.videos.update(v);
     return v;
   }
@@ -307,16 +312,18 @@ export class VideoStudio {
   }
 
   /** Stage 3: change a scene's words, length or what it shows. A changed scene keeps its picture until it is drawn again. */
-  async editScene(caller: Principal, workspaceId: string, id: string, index: number, edit: Partial<Pick<Scene, "spoken" | "onScreen" | "text" | "seconds">>): Promise<VideoProject> {
+  async editScene(caller: Principal, workspaceId: string, id: string, index: number, edit: Partial<Pick<Scene, "spoken" | "onScreen" | "text" | "bottom" | "shape" | "seconds">>): Promise<VideoProject> {
     return this.locked(id, async () => {
       const v = await this.row(caller, workspaceId, id, "run_agents");
       const s = v.scenes[index];
       if (!s) throw new VideoError("invalid_request", "No such scene.");
       if (edit.spoken !== undefined) s.spoken = clean(edit.spoken, VIDEO_LIMITS.spoken);
       if (edit.onScreen !== undefined) s.onScreen = clean(edit.onScreen, VIDEO_LIMITS.onScreen);
-      if (edit.text !== undefined) s.text = clean(edit.text, 40);
+      if (edit.text !== undefined) s.text = clean(edit.text, 60);
+      if (edit.bottom !== undefined) s.bottom = clean(edit.bottom, 60);
+      if (edit.shape !== undefined && SHAPES.includes(edit.shape)) s.shape = edit.shape;
       if (edit.seconds !== undefined) s.seconds = Math.round(Math.max(VIDEO_LIMITS.seconds.min, Math.min(VIDEO_LIMITS.seconds.max, Number(edit.seconds) || s.seconds)));
-      if (!s.spoken && !s.onScreen) throw new VideoError("invalid_request", "A scene needs words to say or something to show.");
+      if (!s.spoken && !s.onScreen && !s.text) throw new VideoError("invalid_request", "A scene needs words to say or something to show.");
       v.updatedAt = this.now().toISOString();
       await this.opts.store.videos.update(v);
       return v;
@@ -371,22 +378,24 @@ export class VideoStudio {
   }
 
   /** Stage 4: the voiceover and the cut, once every scene has a picture. One credit job. */
-  async render(caller: Principal, workspaceId: string, id: string, voice: Voice): Promise<VideoProject> {
+  async render(caller: Principal, workspaceId: string, id: string, voice: Voice, accent?: string): Promise<VideoProject> {
     const v = await this.row(caller, workspaceId, id, "run_agents");
     if (!VOICES.some((x) => x.value === voice)) throw new VideoError("invalid_request", "Pick a voice.");
-    if (!v.scenes.every((s) => s.imageFileId)) throw new VideoError("invalid_request", "Every scene needs its picture first.");
+    if (!isMotion(v) && !v.scenes.every((s) => s.imageFileId)) throw new VideoError("invalid_request", "Every scene needs its picture first.");
+    if (isMotion(v) && !this.opts.animate) throw new VideoError("media", "Minimal motion is not set up here.");
     const userId = caller.kind === "user" ? caller.userId : null;
     await this.limit(userId, workspaceId);
     const { hold, estimate } = await this.hold(v, "video", userId, "Video: voiceover and cut");
     let cost = 0;
     try {
-      const images = await Promise.all(v.scenes.map(async (s) => (await this.opts.files.get(workspaceId, s.imageFileId!))?.bytes ?? null));
-      if (images.some((b) => !b)) throw new MediaFailure("A scene's picture is missing; draw it again.");
+      const motion = isMotion(v);
+      const images = motion ? [] : await Promise.all(v.scenes.map(async (s) => (await this.opts.files.get(workspaceId, s.imageFileId!))?.bytes ?? null));
+      if (!motion && images.some((b) => !b)) throw new MediaFailure("A scene's picture is missing; draw it again.");
       // One voice clip per scene, so each picture stays exactly as long as its lines take to say.
       const voiced = await Promise.all(
         v.scenes.map(async (s, i) => {
           const words = s.spoken.trim();
-          if (!words) return null;
+          if (!words || voice === "none") return null;
           // A clip far longer than its words take was not read as written (the model talked instead): made once more, then refused.
           for (let attempt = 0; attempt < 2; attempt++) {
             const clip = await this.opts.media.speech(words, voice, AbortSignal.timeout(120_000));
@@ -398,7 +407,13 @@ export class VideoStudio {
         }),
       );
       const seconds = v.scenes.map((s, i) => Math.min(VIDEO_LIMITS.seconds.max + 10, Math.max(s.seconds, voiced[i] ? Math.ceil((voiced[i]!.seconds + 0.4) * 10) / 10 : 0)));
-      const mp4 = await this.opts.media.cut(
+      const mp4 = motion
+        ? await this.opts.animate!(
+            v.scenes.map((s, i) => ({ top: s.text ?? "", bottom: s.bottom ?? "", shape: s.shape ?? "circle", seconds: Math.max(seconds[i] + 0.4, 3), audio: voiced[i]?.bytes ?? null })),
+            motionLook(v.brief!.vibe, v.brief!.aspect, accent),
+            AbortSignal.timeout(300_000),
+          )
+        : await this.opts.media.cut(
         v.scenes.map((s, i) => ({ image: images[i]!, seconds: seconds[i], audio: voiced[i]?.bytes ?? null, words: s.spoken.trim(), headline: s.text, speechSeconds: voiced[i]?.seconds })),
         AbortSignal.timeout(240_000),
         v.brief ? { aspect: v.brief.aspect, ...styleFor(v.brief) } : undefined,
@@ -461,6 +476,11 @@ export class VideoStudio {
 /** The longest a voice clip of these words may be: a slow reader is about 1.6 words a second, plus room to breathe. */
 export function maxSpeechSeconds(words: string): number {
   return words.split(/\s+/).filter(Boolean).length / 1.6 + 2;
+}
+
+/** Minimal motion: line animation drawn frame by frame, no pictures. */
+export function isMotion(v: Pick<VideoProject, "brief">): boolean {
+  return v.brief?.kind === "minimal";
 }
 
 /** Every scene's spoken lines, in order, as the voiceover reads them. */

@@ -174,3 +174,45 @@ describe("the voice check", () => {
     await expect(studio.render(me, ws, v.id, "warm")).rejects.toThrow("did not read the words as written");
   });
 });
+
+describe("minimal motion", () => {
+  it("plans top and bottom lines with a shape, needs no pictures, and animates instead of cutting", async () => {
+    const { fakePlanner, parsePlan } = await import("./planner");
+    const plan = parsePlan('{"scenes":[{"top":"if you do not plan","bottom":"you will be planned","shape":"orbit","spoken":"If you do not plan, you will be planned.","seconds":4},{"top":"x","bottom":"y","shape":"hexagon","seconds":3}]}', 15);
+    expect(plan?.[0]).toMatchObject({ text: "if you do not plan", bottom: "you will be planned", shape: "orbit" });
+    expect(plan?.[1].shape).toBe("circle");
+    const t = testAccounts();
+    const ada = (await t.signUp("ada@example.com")).user;
+    const me = { kind: "user" as const, userId: ada.id };
+    const ws = (await t.accounts.workspaces.create(me, "Team")).id;
+    const media = fakeVideoMedia();
+    const animated: { scenes: number; voiced: number; width: number }[] = [];
+    const studio = new VideoStudio({
+      accounts: t.accounts,
+      store: memoryVideoStore(),
+      files: memoryFileStorage(),
+      media,
+      planner: fakePlanner(),
+      animate: async (scenes, look) => (animated.push({ scenes: scenes.length, voiced: scenes.filter((s) => s.audio).length, width: look.width }), new Uint8Array([0, 0, 0, 0x18])),
+    });
+    let v = await studio.plan(me, ws, { idea: "Plan your week", kind: "minimal", customKind: "", vibe: "calm", seconds: 15, aspect: "16:9" });
+    expect(v.stage).toBe("storyboard");
+    expect(v.scenes.every((s) => s.shape && s.text && !s.imageFileId)).toBe(true);
+    v = await studio.editScene(me, ws, v.id, 0, { shape: "wave", bottom: "one step at a time" });
+    expect(v.scenes[0]).toMatchObject({ shape: "wave", bottom: "one step at a time" });
+    v = await studio.render(me, ws, v.id, "none");
+    expect(v.stage).toBe("done");
+    expect(animated).toEqual([{ scenes: 4, voiced: 0, width: 1920 }]);
+    expect(media.calls.filter((c) => c.startsWith("image"))).toEqual([]);
+  });
+
+  it("draws every shape as an SVG frame with the words escaped", async () => {
+    const { SHAPES, motionLook, sceneSvg } = await import("./motion");
+    const look = motionLook("calm", "9:16");
+    for (const shape of SHAPES) {
+      const svg = sceneSvg({ top: "a <b> & c", bottom: "d", shape, seconds: 4 }, 0.7, look);
+      expect(svg).toContain("a &lt;b&gt; &amp; c");
+      expect(svg).not.toContain("NaN");
+    }
+  });
+});

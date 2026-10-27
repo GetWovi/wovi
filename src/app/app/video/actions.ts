@@ -41,6 +41,19 @@ async function lookOf(c: Awaited<ReturnType<typeof ctx>>): Promise<string> {
   }
 }
 
+/** The brand's own colour for the glowing dot: the first colour swatch on the default Brand Brain's mood board. */
+async function accentOf(c: Awaited<ReturnType<typeof ctx>>): Promise<string | undefined> {
+  try {
+    const brains = await appBrands().list(c.me, c.workspaceId);
+    const b = brains.find((x) => x.isDefault) ?? brains[0];
+    if (!b) return undefined;
+    const swatch = (await appBrands().get(c.me, c.workspaceId, b.id)).body.moodBoard.find((m) => m.kind === "swatch" && /^#[0-9a-f]{6}$/i.test(m.color ?? ""));
+    return swatch?.color ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Stage 1 from a pasted script. */
 export async function createVideo(csrf: string, input: { title: string; script: string }): Promise<VideoResult> {
   const r = await call(csrf, (c) => appVideo().create(c.me, c.workspaceId, { title: input.title, script: input.script }));
@@ -102,7 +115,7 @@ export async function videoFromRun(csrf: string, runId: string): Promise<VideoRe
   return r;
 }
 
-export async function editScene(csrf: string, id: string, index: number, edit: Partial<Pick<Scene, "spoken" | "onScreen" | "text" | "seconds">>): Promise<VideoResult> {
+export async function editScene(csrf: string, id: string, index: number, edit: Partial<Pick<Scene, "spoken" | "onScreen" | "text" | "bottom" | "shape" | "seconds">>): Promise<VideoResult> {
   return call(csrf, (c) => appVideo().editScene(c.me, c.workspaceId, id, index, edit));
 }
 
@@ -118,5 +131,5 @@ export async function redrawScene(csrf: string, id: string, index: number): Prom
 
 /** Stage 4. */
 export async function renderVideo(csrf: string, id: string, voice: Voice): Promise<VideoResult> {
-  return call(csrf, (c) => appVideo().render(c.me, c.workspaceId, id, voice));
+  return call(csrf, async (c) => appVideo().render(c.me, c.workspaceId, id, voice, await accentOf(c)));
 }

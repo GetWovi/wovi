@@ -24,3 +24,15 @@ phone only plays video that way) and `src/components/video/`.
 
 **Later, per the doc.** A cloned "my voice" needs documented consent first, so it is not offered. Subtitles burned
 into the video and the long-to-short clipper are P1.
+
+## Minimal motion
+
+The kind Funkai pointed to with his reference: a calm frame, one short line on top, a shape that draws itself (circle,
+dotted circle, square, triangle, lines being written, wave, rays in a circle, a line with dots), a glowing dot that
+rides it with a hand close behind, and the answer below. No pictures: the plan is the storyboard. The model only
+picks the words and the shape (`MINIMAL_RULES` in `planner.ts`); every frame is SVG made by `motion.ts` from those
+fields (the same function draws the preview on the page), rasterised by resvg with the Outfit fonts in
+`assets/fonts` and piped into ffmpeg (`motion-render.ts`), 30 frames a second, with each scene's voice padded to its
+length. "No voice" gives the text-only look. The dot takes the brand's colour: the first colour swatch on the default
+Brand Brain's mood board. Measured on 27 Oct: a 34 second video renders in about 75 seconds on a laptop; the plan
+costs about $0.005 and the voice well under a cent.

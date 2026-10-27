@@ -39,6 +39,8 @@ export const VOICES = [
   { value: "warm", label: "Warm", model: "coral" },
   { value: "calm", label: "Calm", model: "sage" },
   { value: "bright", label: "Bright", model: "nova" },
+  /** Text only, no voiceover: the calm minimal motion look. */
+  { value: "none", label: "No voice", model: "" },
 ] as const;
 export type Voice = (typeof VOICES)[number]["value"];
 

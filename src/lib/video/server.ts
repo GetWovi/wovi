@@ -11,6 +11,7 @@ import { creditsEnabled, processCredits } from "@/lib/credits/local";
 import { isLocalApp } from "@/lib/runtime";
 import { providersFromEnv } from "@/lib/runs/providers";
 import { MediaFailure, fakeVideoMedia, openRouterMedia, type VideoMedia } from "./media";
+import { renderMotion } from "./motion-render";
 import { fakePlanner, modelPlanner, type Planner } from "./planner";
 import { VideoStudio, jsonFileVideoStore, videoAccess } from "./studio";
 
@@ -43,6 +44,7 @@ export function appVideo(): VideoStudio {
       files: localFileStorage(join(dir, "files")),
       media: mediaFromEnv(),
       planner: plannerFromEnv(),
+      animate: renderMotion,
       billing: creditsEnabled() ? processCredits() : null,
     });
   }
