@@ -81,7 +81,7 @@ export function Hero() {
             </span>
           </div>
           <div className={styles.wovi}>
-            <Mascot pose="hello" size={300} ink="cream" label="Wovi says hello" />
+            <Mascot pose="hello" size={300} label="Wovi says hello" />
           </div>
           <div className={styles.jobs} aria-label="What the agents do">
             {JOBS.map((j) => (
