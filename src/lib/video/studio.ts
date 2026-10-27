@@ -272,7 +272,7 @@ export class VideoStudio {
       );
       const seconds = v.scenes.map((s, i) => Math.min(VIDEO_LIMITS.seconds.max + 10, Math.max(s.seconds, voiced[i] ? Math.ceil((voiced[i]!.seconds + 0.4) * 10) / 10 : 0)));
       const mp4 = await this.opts.media.cut(
-        v.scenes.map((_, i) => ({ image: images[i]!, seconds: seconds[i], audio: voiced[i]?.bytes ?? null })),
+        v.scenes.map((s, i) => ({ image: images[i]!, seconds: seconds[i], audio: voiced[i]?.bytes ?? null, words: s.spoken.trim(), speechSeconds: voiced[i]?.seconds })),
         AbortSignal.timeout(180_000),
       );
       const stored = await this.opts.files.put(workspaceId, { name: `${slug(v.title)}.mp4`, mimeType: "video/mp4", bytes: mp4 });

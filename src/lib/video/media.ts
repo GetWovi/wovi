@@ -14,7 +14,17 @@ import { ffmpegPath } from "@/lib/clips/media";
 import { OPENROUTER_BASE_URL } from "@/lib/runs/providers/openrouter";
 
 export type Bytes = { bytes: Uint8Array; mimeType: string; costMicroUsd: number };
-export type CutScene = { image: Uint8Array; seconds: number; audio: Uint8Array | null };
+export type CutScene = {
+  image: Uint8Array;
+  seconds: number;
+  audio: Uint8Array | null;
+  /** The spoken words, burned in as subtitles. */
+  words?: string;
+  /** How long the voice speaks, so the subtitles follow it. */
+  speechSeconds?: number;
+  /** A moving clip for the scene, used instead of the still picture when there is one. */
+  clip?: Uint8Array | null;
+};
 
 /** The voices on offer, as the doc's Voice and Cut agent names them, and the model voice behind each. */
 export const VOICES = [
@@ -48,6 +58,10 @@ export class MediaFailure extends Error {
   }
 }
 
+/** Measured 27 Oct: one image about $0.067, the voice about $0.000005 a character. The estimates keep a margin. */
+const IMAGE_ESTIMATE = 80_000;
+const SPEECH_ESTIMATE_PER_CHAR = 20;
+
 const usd = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v * 1_000_000) : 0);
 
 function dataUrlBytes(url: string): { bytes: Uint8Array; mimeType: string } | null {
@@ -67,47 +81,111 @@ function ffmpeg(args: string[], signal: AbortSignal): Promise<void> {
 }
 
 const clampSec = (n: number) => Math.max(1, Math.min(60, n));
+/** The brand font the subtitles are drawn in (assets/fonts, SIL Open Font License). */
+const FONT = join(process.cwd(), "assets", "fonts", "Outfit-ExtraBold.ttf");
+/** Subtitle lines: a few words each, short enough to fit the width at the size drawn. */
+export function subtitleChunks(words: string, maxWords = 4, maxChars = 22): string[] {
+  const out: string[] = [];
+  let cur: string[] = [];
+  for (const w of words.split(/\s+/).filter(Boolean)) {
+    if (cur.length && (cur.length >= maxWords || [...cur, w].join(" ").length > maxChars)) {
+      out.push(cur.join(" "));
+      cur = [];
+    }
+    cur.push(w);
+  }
+  if (cur.length) out.push(cur.join(" "));
+  return out;
+}
 
-/** The cut: each image held for its seconds with its voice clip padded to the same length, scaled into 1080x1920. */
+/** Slow motion on a still picture, a different move per scene: in, out, a drift left, a drift right. */
+function moveFor(i: number, frames: number): string {
+  const step = (0.12 / frames).toFixed(6);
+  const zoomIn = `min(1+${step}*on,1.12)`;
+  const zoomOut = `max(1.12-${step}*on,1)`;
+  const centre = "x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'";
+  switch (i % 4) {
+    case 0:
+      return `zoompan=z='${zoomIn}':${centre}`;
+    case 1:
+      return `zoompan=z='${zoomOut}':${centre}`;
+    case 2:
+      return `zoompan=z='1.1':x='(iw-iw/zoom)*on/${frames}':y='ih/2-(ih/zoom/2)'`;
+    default:
+      return `zoompan=z='1.1':x='(iw-iw/zoom)*(1-on/${frames})':y='ih/2-(ih/zoom/2)'`;
+  }
+}
+
+/**
+ * The cut. Each scene becomes its own clip first: the picture with a slow move
+ * (or a moving clip, when one was made), a short fade in and out, its words as
+ * subtitles timed across its voice, and its voice padded to the same length.
+ * Then the clips are joined end to end into one 1080x1920 MP4.
+ */
 export async function ffmpegCut(scenes: CutScene[], signal: AbortSignal): Promise<Uint8Array> {
   if (!scenes.length) throw new MediaFailure("There are no scenes to cut.");
   const dir = mkdtempSync(join(tmpdir(), "wovi-cut-"));
+  const fps = 30;
   try {
-    const pics: string[] = [];
-    const sounds: string[] = [];
+    const parts: string[] = [];
     for (const [i, s] of scenes.entries()) {
-      const sec = clampSec(s.seconds).toFixed(2);
-      writeFileSync(join(dir, `s${i}.img`), s.image);
-      pics.push(`file 's${i}.img'`, `duration ${sec}`);
-      // Every scene's sound is exactly as long as its picture: its voice padded with silence, or silence alone.
-      const seg = join(dir, `a${i}.wav`);
+      const sec = clampSec(s.seconds);
+      const frames = Math.round(sec * fps);
+      const inputs: string[] = [];
+      let picture: string;
+      if (s.clip) {
+        // A moving clip: looped if it is shorter than the scene, then trimmed.
+        writeFileSync(join(dir, `c${i}.mp4`), s.clip);
+        inputs.push("-stream_loop", "-1", "-i", join(dir, `c${i}.mp4`));
+        picture = `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=${fps}`;
+      } else {
+        writeFileSync(join(dir, `s${i}.img`), s.image);
+        inputs.push("-i", join(dir, `s${i}.img`));
+        // Drawn larger first, so the move stays smooth.
+        picture = `scale=1620:2880:force_original_aspect_ratio=increase,crop=1620:2880,setsar=1,${moveFor(i, frames)}:d=${frames}:s=1080x1920:fps=${fps}`;
+      }
       if (s.audio) {
         writeFileSync(join(dir, `v${i}.mp3`), s.audio);
-        await ffmpeg(["-hide_banner", "-loglevel", "error", "-y", "-i", join(dir, `v${i}.mp3`), "-af", "apad", "-t", sec, "-ar", "44100", "-ac", "1", seg], signal);
+        inputs.push("-i", join(dir, `v${i}.mp3`));
       } else {
-        await ffmpeg(["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono", "-t", sec, seg], signal);
+        inputs.push("-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono");
       }
-      sounds.push(`file 'a${i}.wav'`);
+      const fade = Math.min(0.25, sec / 4);
+      const filters = [picture, `fade=t=in:st=0:d=${fade.toFixed(2)}`, `fade=t=out:st=${(sec - fade).toFixed(2)}:d=${fade.toFixed(2)}`];
+      // Subtitles: the words in short lines, spread across the time the voice speaks.
+      const lines = s.words ? subtitleChunks(s.words) : [];
+      if (lines.length) {
+        const speak = Math.max(0.5, Math.min(sec, s.speechSeconds ?? sec));
+        const total = lines.reduce((n, l) => n + l.split(" ").length, 0);
+        let t = 0;
+        lines.forEach((line, j) => {
+          const len = (speak * line.split(" ").length) / total;
+          writeFileSync(join(dir, `t${i}_${j}.txt`), line);
+          filters.push(
+            `drawtext=fontfile='${FONT}':textfile='${join(dir, `t${i}_${j}.txt`)}':expansion=none:fontsize=78:fontcolor=white:borderw=7:bordercolor=black@0.9:x=(w-text_w)/2:y=h*0.70:enable='between(t,${t.toFixed(2)},${(t + len).toFixed(2)})'`,
+          );
+          t += len;
+        });
+      }
+      filters.push("format=yuv420p");
+      const part = join(dir, `p${i}.mp4`);
+      await ffmpeg(
+        [
+          "-hide_banner", "-loglevel", "error", "-y",
+          ...inputs,
+          "-filter_complex", `[0:v]${filters.join(",")}[v];[1:a]apad,aresample=44100,aformat=channel_layouts=mono[a]`,
+          "-map", "[v]", "-map", "[a]",
+          "-t", sec.toFixed(2),
+          "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-r", String(fps),
+          "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "1",
+          part,
+        ],
+        signal,
+      );
+      parts.push(`file 'p${i}.mp4'`);
     }
-    // The concat format reads the last duration only when the last file is named again.
-    pics.push(`file 's${scenes.length - 1}.img'`);
-    writeFileSync(join(dir, "pics.txt"), pics.join("\n") + "\n");
-    writeFileSync(join(dir, "sounds.txt"), sounds.join("\n") + "\n");
-    const total = scenes.reduce((n, s) => n + clampSec(s.seconds), 0);
-    await ffmpeg(
-      [
-        "-hide_banner", "-loglevel", "error", "-y",
-        "-f", "concat", "-safe", "0", "-i", join(dir, "pics.txt"),
-        "-f", "concat", "-safe", "0", "-i", join(dir, "sounds.txt"),
-        "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30,format=yuv420p",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
-        "-c:a", "aac", "-b:a", "128k",
-        "-movflags", "+faststart",
-        "-t", total.toFixed(2),
-        join(dir, "out.mp4"),
-      ],
-      signal,
-    );
+    writeFileSync(join(dir, "parts.txt"), parts.join("\n") + "\n");
+    await ffmpeg(["-hide_banner", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0", "-i", join(dir, "parts.txt"), "-c", "copy", "-movflags", "+faststart", join(dir, "out.mp4")], signal);
     return new Uint8Array(readFileSync(join(dir, "out.mp4")));
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -142,8 +220,7 @@ export function openRouterMedia(opts: { apiKey: string; fetch?: typeof fetch; ap
   const headers = { authorization: `Bearer ${opts.apiKey}`, "content-type": "application/json", "x-title": "WOVI", ...(opts.appUrl ? { "http-referer": opts.appUrl } : {}) };
   return {
     provider: "openrouter",
-    // Measured 27 Oct: one image about $0.067, the voice about $0.000005 a character; estimates keep a margin.
-    estimate: { imageMicroUsd: 80_000, speechMicroUsdPerChar: 20 },
+    estimate: { imageMicroUsd: IMAGE_ESTIMATE, speechMicroUsdPerChar: SPEECH_ESTIMATE_PER_CHAR },
     async image(prompt, signal) {
       const res = await doFetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
         method: "POST",
@@ -157,7 +234,8 @@ export function openRouterMedia(opts: { apiKey: string; fetch?: typeof fetch; ap
       const url = body?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
       const img = url ? dataUrlBytes(url) : null;
       if (!img || !img.mimeType.startsWith("image/")) throw new MediaFailure("The image model answered without an image.", cost);
-      return { ...img, costMicroUsd: cost };
+      // A missing price never makes a picture free: it counts at the estimate, so the credits always cover it.
+      return { ...img, costMicroUsd: cost || IMAGE_ESTIMATE };
     },
     async speech(text, voice, signal) {
       const v = VOICES.find((x) => x.value === voice)?.model ?? "coral";
@@ -199,7 +277,7 @@ export function openRouterMedia(opts: { apiKey: string; fetch?: typeof fetch; ap
         }
       }
       if (!chunks.length) throw new MediaFailure("The voice model answered without sound.", cost);
-      return { bytes: await pcmToMp3(Buffer.concat(chunks), signal), mimeType: "audio/mpeg", costMicroUsd: cost };
+      return { bytes: await pcmToMp3(Buffer.concat(chunks), signal), mimeType: "audio/mpeg", costMicroUsd: cost || text.length * SPEECH_ESTIMATE_PER_CHAR };
     },
     duration: ffmpegDuration,
     cut: ffmpegCut,

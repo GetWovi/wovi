@@ -98,3 +98,12 @@ describe("Make a video", () => {
     expect(videoAccess({ WOVI_VIDEO: "OFF" })).toBe("off");
   });
 });
+
+describe("subtitles", () => {
+  it("splits the words into short lines that fit the width", async () => {
+    const { subtitleChunks } = await import("./media");
+    expect(subtitleChunks("Every croissant on this counter started three days ago.")).toEqual(["Every croissant on", "this counter started", "three days ago."]);
+    expect(subtitleChunks("")).toEqual([]);
+    expect(subtitleChunks("Supercalifragilisticexpialidocious word")).toEqual(["Supercalifragilisticexpialidocious", "word"]);
+  });
+});
