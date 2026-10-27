@@ -396,6 +396,8 @@ describe("results per output kind", () => {
     ]);
     expect(brandFitOf({ checks })).toBe(61);
     expect(brandFitOf({ checks: [] })).toBeNull();
+    // Without a Brand Brain the check is only a note that nothing was read, never "unlike your voice".
+    expect(explainChecks([{ guardrail: "brand_voice_check", check: "brand_fit", status: "note", message: "No Brand Brain, so brand fit was not read." }])).toEqual([]);
     expect(runState({ status: "succeeded", needsReview: true }, null)).toBe("needs_review");
     expect(runState({ status: "succeeded", needsReview: true }, { decision: "approved" })).toBe("approved");
     expect(runState({ status: "running", needsReview: false }, null)).toBe("running");

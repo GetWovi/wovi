@@ -284,6 +284,8 @@ export function explainCheck(check: CheckResult): CheckExplanation | null {
   if (check.status === "pass") return null;
   if (check.status === "note" && check.check !== "ai_label" && check.check !== "brand_fit") return null;
   if (check.check === "brand_fit" && check.status === "note") {
+    // No score means no Brand Brain was read, so there is no voice to fall short of.
+    if (typeof check.score !== "number") return null;
     return { title: "Reads a little unlike your voice", detail: "Compared with the sample lines in your Brand Brain. A quick edit for your brand usually fixes it.", findings: check.findings ?? [], tone: "note" };
   }
   return {
