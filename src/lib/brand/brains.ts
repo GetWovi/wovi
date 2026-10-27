@@ -395,13 +395,13 @@ export class BrandBrains {
       try {
         const text = await this.opts.fetcher.fetchText(p.url!, AbortSignal.timeout(10_000));
         if (text?.trim()) p.text = text.trim().slice(0, L.postText);
-        else unread.push(`${p.url}: no text could be read.`);
+        else unread.push(`${p.url}: only X posts are read, so it is kept as a reference only.`);
       } catch {
         unread.push(`${p.url}: could not be read.`);
       }
     }
     const texts = posts.map((p) => p.text).filter(Boolean);
-    if (!texts.length) throw new BrandError("invalid_request", "Paste the text of at least one post. Links alone are not read yet.");
+    if (!texts.length) throw new BrandError("invalid_request", "Paste the text of at least one post, or a link to a post on X.");
 
     const platforms = (input.platforms ?? []).filter((p): p is Platform => PLATFORMS.includes(p as Platform));
     const proposalId = newId("prp");

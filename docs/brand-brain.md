@@ -49,7 +49,7 @@ The phase 4 policy decides every call: members read (`view`), editors, admins an
 
 The onboarding flow from the product doc: paste 3 to 5 past posts (or links), get a proposed **Brand Profile** (voice, topics, dos and don'ts), review and edit it, then save.
 
-1. **`propose(caller, ws, { name, niche, platforms, posts, brainId? })`** takes 3 to 5 items. An item that is only a link is a link. Links are read only when a `LinkFetcher` is set up; none is, so they are kept as references and listed as not read. At least one post needs its text.
+1. **`propose(caller, ws, { name, niche, platforms, posts, brainId? })`** takes 3 to 5 items. An item that is only a link is a link. Links are read only when a `LinkFetcher` is set up. The app sets up `xPostFetcher` (`link-fetcher.ts`): a link to a post on X is read through X's own embed lookup (publish.twitter.com/oembed, no key); any other link is kept as a reference and listed as not read. At least one post needs its text.
 2. **`heuristicProfile`** reads the posts with plain counts: words per sentence (hashtags and list items left out), emoji and hashtags per post, exclamation and question marks, lowercase starts, ALL CAPS words, lines per post, "you" and "I/we", words and two-word phrases that come back in two or more posts, hashtags as words (`#SupplyChain` reads "supply chain"), and how posts open (question, number, personal, command, quote, statement). From those it writes the voice in plain sentences, picks tone tags, words to use, generic words to avoid that the posts never use, the first sentences as sample lines, topics, dos ("Open with a number or a list, like 3 of your 3 posts do.") and don'ts ("No hashtags.", "No emoji.").
 3. **`ProfileProposer`** sends that proposal to a model through the phase 3 provider layer as the example to improve, with each post in its own `<data>` block, under a spend cap ($0.05 by default) checked before each call. On the **fake provider** (the default without `OPENROUTER_API_KEY` on a local app) the answer is the proposal itself, so tests and local work are deterministic and free. A model answer that does not fit gets one repair; then the counts stand. Tokens and cost are kept on the proposal row; the screen never sees them.
 
@@ -109,6 +109,6 @@ In the builder, the test bench has a **Brand Brain** picker: the default of `ws_
 
 ## Not yet
 
-- **Reading links.** `LinkFetcher` is an interface with no implementation. A real one needs a safe fetch (no private addresses, size and time caps) and is the owner's call.
+- **Reading links.** Only X posts are read. The fetcher only ever calls publish.twitter.com, never the pasted address itself, so no private address can be reached; the read stops after 10 seconds. TikTok's embed lookup no longer carries the caption and Instagram's needs an app key, so neither is read.
 - **Onboarding and the run screen** are phase 9 ([app.md](app.md)): onboarding runs this proposal flow for a new person, and the agent form sets the idea per run (`brandIdea`).
 - **Quality gates** (LLM judge, embeddings, publish only above a score) are phase 12.

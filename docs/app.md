@@ -40,7 +40,7 @@ The chrome (`AppShell`): logo left, Home, Make, History (with how many runs wait
 
 1. **Welcome.** Wovi waves. What the three steps are, "Let's go" or "Skip for now".
 2. **Your brand.** Name, what you do, platforms. Skippable.
-3. **Your posts.** Paste 3 to 5 posts (a link on its own line is kept as a reference). "Read my posts" runs the phase 7 profile proposal. "Skip, start without posts" makes a blank Brand Brain from the name when one was given.
+3. **Your posts.** Paste 3 to 5 posts (a link to a post on X is read through X's embed lookup, `src/lib/brand/link-fetcher.ts`; other links are kept as references). "Read my posts" runs the phase 7 profile proposal. "Skip, start without posts" makes a blank Brand Brain from the name when one was given.
 4. **Your voice.** The proposed description, tone, words to use and avoid, sample lines, topics, dos and don'ts, and an optional idea, all editable, beside "What I noticed" from the plain counts. "Save and start" saves the first Brand Brain with the posts as references and lands on the home with Wovi celebrating.
 
 Progress is saved after every step per person and workspace (`onboarding` rows), so a person can leave and come back. New posts drop a stale proposal. The review step cannot be opened without a proposal. Viewers see a hello and a note that someone with edit rights sets up the Brand Brain.

@@ -2,7 +2,8 @@
  * Brand Brains on the local stores in .data/ (or WOVI_DATA_DIR): the tables in
  * .data/brand-brains.json, mood board images under .data/files/<workspace>/
  * (the same FileStorage as the builder), and the profile proposer on the
- * fake provider unless OPENROUTER_API_KEY is set. No link fetcher.
+ * fake provider unless OPENROUTER_API_KEY is set. Links to X posts are read
+ * through X's embed lookup; other links stay references.
  *
  * The AI read of past posts costs credits like a run, from paid credits,
  * shown before it runs (product doc: "no general free trial"). Without
@@ -17,6 +18,7 @@ import { creditsEnabled, processCredits } from "@/lib/credits/local";
 import { providersFromEnv } from "@/lib/runs/providers";
 import { isLocalApp } from "@/lib/runtime";
 import { BrandBrains } from "./brains";
+import { xPostFetcher } from "./link-fetcher";
 import { ProfileProposer } from "./profile";
 import { jsonFileBrandStore } from "./store";
 
@@ -33,6 +35,7 @@ export function localBrands(accounts: Accounts, dataDir = dataDirFromEnv()): Bra
     store: jsonFileBrandStore(join(dataDir, "brand-brains.json")),
     files: localFileStorage(join(dataDir, "files")),
     proposer: localProposer(),
+    fetcher: xPostFetcher(),
     billing: creditsEnabled() ? processCredits() : null,
     freeModelReads: isLocalApp(),
   });

@@ -251,7 +251,7 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor, quo
             <div className={styles.headText}>
               <span className="eyebrow">{progressLabel(step)}</span>
               <h1 className={styles.h1}>Paste 3 to 5 posts you were happy with</h1>
-              <p className={styles.lead}>As they went out, emoji and hashtags included. A link on its own line is kept as a reference. I read the voice from them and you check it next.</p>
+              <p className={styles.lead}>As they went out, emoji and hashtags included, or a link to the post on X and I read it for you. Other links are kept as references. I read the voice from them and you check it next.</p>
             </div>
             <div className={styles.posts}>
               {posts.map((p, i) => (
@@ -264,7 +264,7 @@ export function Onboarding({ csrf, start, proposal: initialProposal, editor, quo
                       </Button>
                     )}
                   </div>
-                  <Textarea aria-label={`Post ${i + 1}`} rows={Math.min(7, Math.max(3, p.split("\n").length + 1))} value={p} onChange={(e) => setPosts(posts.map((x, j) => (j === i ? e.target.value : x)))} maxLength={BRAND_LIMITS.postText} placeholder={i === 0 ? "Paste the whole post" : "Another post, or a link"} />
+                  <Textarea aria-label={`Post ${i + 1}`} rows={Math.min(7, Math.max(3, p.split("\n").length + 1))} value={p} onChange={(e) => setPosts(posts.map((x, j) => (j === i ? e.target.value : x)))} maxLength={BRAND_LIMITS.postText} placeholder={i === 0 ? "Paste the whole post, or a link to it on X" : "Another post, or a link to it on X"} />
                 </div>
               ))}
               {posts.length < BRAND_LIMITS.postsMax && (

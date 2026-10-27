@@ -69,7 +69,7 @@ export function PastePosts({ csrf, start, quote = { mode: "free" } }: { csrf: st
     return (
       <div className={styles.split}>
         <Card title="Your past posts" className={shell.section}>
-          <p className={shell.sectionNote}>Paste posts that did well, as they went out. A link on its own line works too; it is kept as a reference.</p>
+          <p className={shell.sectionNote}>Paste posts that did well, as they went out, or a link to the post on X and it is read for you. Other links are kept as references.</p>
           <div className={shell.fieldGrid}>
             <Input label="Brand name" value={name} onChange={(e) => setName(e.target.value)} maxLength={BRAND_LIMITS.name} placeholder="Crumb and Co" />
             <Input label="Niche" value={niche} onChange={(e) => setNiche(e.target.value)} maxLength={BRAND_LIMITS.niche} placeholder="Small bakery in Leeds" />
@@ -86,7 +86,7 @@ export function PastePosts({ csrf, start, quote = { mode: "free" } }: { csrf: st
                     </Button>
                   )}
                 </div>
-                <Textarea aria-label={`Post ${i + 1}`} rows={Math.min(8, Math.max(3, p.split("\n").length + 1))} value={p} onChange={(e) => setPosts(posts.map((x, j) => (j === i ? e.target.value : x)))} maxLength={BRAND_LIMITS.postText} placeholder={i === 0 ? "Paste the whole post, emoji and hashtags included" : "Another post, or a link"} />
+                <Textarea aria-label={`Post ${i + 1}`} rows={Math.min(8, Math.max(3, p.split("\n").length + 1))} value={p} onChange={(e) => setPosts(posts.map((x, j) => (j === i ? e.target.value : x)))} maxLength={BRAND_LIMITS.postText} placeholder={i === 0 ? "Paste the whole post, emoji and hashtags included, or a link to it on X" : "Another post, or a link to it on X"} />
               </div>
             ))}
           </div>

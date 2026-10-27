@@ -127,7 +127,7 @@ describe("the profile flow", () => {
     const p = await brands.propose(as(ada.id), team.id, { posts: [CASUAL[0], "https://a.com/1", "https://a.com/2"] });
     expect(seen).toEqual(["https://a.com/1", "https://a.com/2"]);
     expect(p.posts[1].text).toBe(CASUAL[3]);
-    expect(p.unread).toEqual(["https://a.com/2: no text could be read."]);
+    expect(p.unread).toEqual(["https://a.com/2: only X posts are read, so it is kept as a reference only."]);
   });
 
   it("saves only what the person reviewed, with their edits, once", async () => {
