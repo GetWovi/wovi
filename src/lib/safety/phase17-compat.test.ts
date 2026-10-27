@@ -62,7 +62,8 @@ function hashes(dir: string): Record<string, string> {
   return out;
 }
 
-describe("a phase 17 data dir", () => {
+// These install the whole launch set into a data dir: about 4 seconds each alone, over the 5-second default when the full suite runs in parallel.
+describe("a phase 17 data dir", { timeout: 30_000 }, () => {
   it("reads unchanged: accounts, agents, runs, credits, review, and nothing is rewritten by reading", async () => {
     const dir = copy();
     const before = hashes(dir);

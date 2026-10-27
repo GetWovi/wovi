@@ -74,3 +74,23 @@ export function utcWords(ms: number): string {
   const d = new Date(ms);
   return `${d.toLocaleString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })}, ${d.toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC`;
 }
+
+/** ETH from wei with every digit that matters, nothing rounded: "0.007468421052631578". */
+export function ethExact(wei: string | bigint): string {
+  const v = BigInt(wei);
+  const frac = (v % TEN18).toString().padStart(18, "0").replace(/0+$/, "");
+  return `${(v / TEN18).toLocaleString("en-US")}${frac ? `.${frac}` : ""}`;
+}
+
+/** ETH from wei rounded UP to `places` decimals, for an amount that is missing: never says less than is needed. */
+export function ethUpWords(wei: string | bigint, places = 6): string {
+  const step = BigInt(10) ** BigInt(18 - places);
+  const v = BigInt(wei);
+  return ethWords(((v + step - BigInt(1)) / step) * step, places);
+}
+
+/** Dollars for an amount of wei at an ETH price with 8 decimals, to the cent, rounded down: "$30.00". */
+export function usdWords(wei: string | bigint, ethUsd8: string | bigint): string {
+  const cents = (BigInt(wei) * BigInt(ethUsd8)) / BigInt("1000000000000000000000000");
+  return `$${(cents / BigInt(100)).toLocaleString("en-US")}.${(cents % BigInt(100)).toString().padStart(2, "0")}`;
+}

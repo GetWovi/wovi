@@ -285,6 +285,82 @@ that a phone with no wallet is sent to MetaMask's link. Paying runs before the c
 checked against its price's window by the block's time. Screenshots go to `~/WOVI-token-screens/`. Kill anvil when
 done.
 
+# The launch page (`/token/launch`)
+
+Where Funkai launches $WOVI from his own MetaMask, with no private key anywhere: the server builds the exact
+transaction `contracts/token-launch.sh` would send, checks everything against the chain, runs it once on the node
+from the launch wallet (an `eth_call`: no signature, nothing sent), and hands exactly that to his wallet. It is
+linked from nowhere, not indexed, and a 404 unless switched on. The code: `src/lib/token/launch-plan.ts` (the call
+and the `launch.json` checks), `launch.ts` (every check, the transaction, the outcome), `launch-chain.ts` (the reads),
+`launch-server.ts`, `src/app/token/launch/` and `src/components/token/LaunchPanel.tsx`.
+
+| Setting | Meaning |
+|---|---|
+| `WOVI_LAUNCH_PAGE` | `on`: the page exists. Anything else: 404, and its two server steps refuse. Switch it off again after the launch. |
+| `WOVI_LAUNCH_OPENING_BUY_WEI` | The dev buy, in whole wei, digits only (`10000000000000000` is 0.01 ETH). Missing, zero or anything but digits: "The dev buy is not set yet" and no button. It cannot be typed or changed on the page. |
+| `WOVI_BURN_POT_ADDRESS`, `WOVI_SPLITTER_ADDRESS` | The two contracts, as for `/token`. |
+| `WOVI_TOKEN_RPC_URL` | The node every check reads (falls back to `WOVI_X402_RPC_URL`, then the public node). |
+
+**The call.** To the burn pot, `launch(params, 0, [])` with the name, ticker, logo, description, website and X link
+from `contracts/launch.json` (read from disk on every request; the other three socials empty), the fee settings left
+zero (the pot forces its own), `expectedEconomics` = Pons' `previewLaunchEconomics(0, address(0))` read fresh and
+`salt` = `keccak256(bytes(symbol))`; value = Pons' `launchFee()` + the dev buy. The browser never builds calldata: it
+sends `{from, to, data, value, gas}` exactly as the server returned it, the gas being `eth_estimateGas` plus a quarter.
+
+**Checked on every load, and again right before the transaction is handed to the wallet**, each a plain sentence and
+no button when it fails: the node is Robinhood Chain (4663); the burn pot has code; `token()` is zero (otherwise the
+page shows the token, its Pons page and the explorer instead, never a button); the pot's `splitter()` is
+`WOVI_SPLITTER_ADDRESS`, its `factory()` Pons' factory, its pool manager and hook Pons' own, its tax 300; the
+splitter's `burnPot()` is the pot, its escrow Pons', its two shares above zero and adding up to 10,000, its owner a
+wallet of its own; Pons' `launchFee()` equals `launchFeeWei` in `launch.json`; `launch.json` passes every check
+`token-launch.sh` makes (no REPLACE placeholder, ticker WOVI, an https logo that answers 200 with an image, no
+"Robinhood" as one word, no long dashes, no percentages in the description, the number fields as digits) and has
+https website and X links; Pons' launch terms are read; the dev buy is set and smaller than the launch curve's
+graduation threshold (a bigger one would leave part of it in the burn pot).
+
+**With the wallet**: MetaMask connected (on a phone, the MetaMask app through its link, which connects by itself on
+arrival) and moved to Robinhood Chain; the address must be the pot's `launcher()` in any letter case, or "This wallet
+is not the launch wallet" with both addresses; nothing waiting from it; its balance must cover the value and the gas
+at twice the gas price, or the page says how much ETH is missing; then the run on the node must go through and
+return the token's address, which is shown. A revert shows the pot's or Pons' error in words and no button.
+
+**The click.** Once only: the button locks the moment it is pressed, the account and network are read again, and the
+server builds the transaction again; it must be byte for byte the one shown. After sending: the hash with an explorer
+link, then the receipt and the pot's `token()`, `openingBuyTokens()` and `openingBuyEth()`: the token address (copy),
+its Pons page, the explorer, and the tokens in the wallet. A failed or dropped transaction is said plainly with its
+hash. A sent hash is kept in the browser, so a reload follows it instead of offering the button again. The page never
+shows how the fees are split.
+
+## Rehearsing the launch page on a fork
+
+```
+scripts/launch-rehearsal.sh                # with screenshots (headless Chrome), into ~/WOVI-launch-screens/
+scripts/launch-rehearsal.sh --no-screens   # the chain part only
+```
+
+It starts anvil on a fork of the live chain (127.0.0.1:8652, `FORK_PORT`), deploys the burn pot and the splitter onto
+it with `contracts/token-deploy.sh` (a throwaway deployer made for the fork, its key typed into forge's prompt by
+`expect`; a throwaway owner; the real launcher `0x78ad50C84A1C58bf56BE8fD86D779e454f180FcD`; the shares from
+`contracts/split.local.json`), funds the launcher with `anvil_setBalance` and sets a dev buy of $30 at Chainlink's
+price (`WOVI_REHEARSAL_BUY_WEI` to choose). Then, with the site's own settings pointed at the fork:
+
+1. before (`scripts/launch-rehearsal.ts before`): a short wallet told what is missing, another wallet refused, the
+   page's call run from the launcher, the same call from another wallet reverting `NotLauncher` (simulated and sent),
+   and the page's calldata and value compared byte for byte with `LaunchToken.s.sol`'s dry run on the same fork;
+2. the browser (`scripts/launch-screens.mjs pre`, a dev server on port 3911 and a wallet injected into the page,
+   answered through the fork's impersonation): start, wrong wallet, short of ETH and ready at 1440x900 and 390x844,
+   then the button pressed on a snapshot of the fork, the launched view, and the snapshot rolled back;
+3. the launch (`launch`): the page's server builds it and the launcher sends exactly that, impersonated by the fork
+   (Funkai pressing the button);
+4. after (`after`, then `launch-screens.mjs post`): the token's name and ticker, `token()` set and as predicted, the
+   launcher holding exactly `openingBuyTokens` (above zero), `openingBuyEth` equal to the dev buy, 300 basis points on
+   Pons' record, a buy and a sell from another wallet, the keeper's sweep splitting to the owner and the pot to the
+   wei by the splitter's shares, a keeper `burn()` lowering `totalSupply` by exactly what it burned, a second launch
+   refused by the page and reverting on chain, and the page showing the token instead of a button.
+
+Anvil and the server are stopped at the end. The fork's addresses land in `contracts/broadcast/token.fork.env`, never
+the live `token.env`.
+
 ## Later
 
 - Holding time in the tiers (the doc's "tiered by holding size and holding time") and per-person caps across accounts
