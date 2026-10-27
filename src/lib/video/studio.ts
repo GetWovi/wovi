@@ -384,11 +384,17 @@ export class VideoStudio {
       if (images.some((b) => !b)) throw new MediaFailure("A scene's picture is missing; draw it again.");
       // One voice clip per scene, so each picture stays exactly as long as its lines take to say.
       const voiced = await Promise.all(
-        v.scenes.map(async (s) => {
-          if (!s.spoken.trim()) return null;
-          const clip = await this.opts.media.speech(s.spoken.trim(), voice, AbortSignal.timeout(120_000));
-          cost += clip.costMicroUsd;
-          return { bytes: clip.bytes, seconds: await this.opts.media.duration(clip.bytes, AbortSignal.timeout(30_000)) };
+        v.scenes.map(async (s, i) => {
+          const words = s.spoken.trim();
+          if (!words) return null;
+          // A clip far longer than its words take was not read as written (the model talked instead): made once more, then refused.
+          for (let attempt = 0; attempt < 2; attempt++) {
+            const clip = await this.opts.media.speech(words, voice, AbortSignal.timeout(120_000));
+            cost += clip.costMicroUsd;
+            const seconds = await this.opts.media.duration(clip.bytes, AbortSignal.timeout(30_000));
+            if (seconds <= maxSpeechSeconds(words)) return { bytes: clip.bytes, seconds };
+          }
+          throw new MediaFailure(`Scene ${i + 1}: the voice did not read the words as written. Make the video again.`);
         }),
       );
       const seconds = v.scenes.map((s, i) => Math.min(VIDEO_LIMITS.seconds.max + 10, Math.max(s.seconds, voiced[i] ? Math.ceil((voiced[i]!.seconds + 0.4) * 10) / 10 : 0)));
@@ -450,6 +456,11 @@ export class VideoStudio {
     if (hold && this.opts.billing) charged = (await this.opts.billing.settleJob(v.workspaceId, hold, { done, costMicroUsd })).charged ?? 0;
     v.charges.push({ stage, estimate, charged, costMicroUsd, at: this.now().toISOString() });
   }
+}
+
+/** The longest a voice clip of these words may be: a slow reader is about 1.6 words a second, plus room to breathe. */
+export function maxSpeechSeconds(words: string): number {
+  return words.split(/\s+/).filter(Boolean).length / 1.6 + 2;
 }
 
 /** Every scene's spoken lines, in order, as the voiceover reads them. */

@@ -272,8 +272,15 @@ export function openRouterMedia(opts: { apiKey: string; fetch?: typeof fetch; ap
           stream: true,
           usage: { include: true },
           messages: [
-            { role: "system", content: "You are a voiceover artist. Read the user's text aloud exactly as written, word for word, in a natural, friendly pace. Do not add, skip or change any words." },
-            { role: "user", content: text },
+            // The model must read, never reply: a script line that is a question was once answered instead of read.
+            {
+              role: "system",
+              content:
+                "You are a text-to-speech engine, not an assistant. You never answer, explain, comment or greet. You only speak the exact words of the script you are given, word for word, at a natural, friendly pace, and then stop. If the script is a question, you read the question aloud and do not answer it.",
+            },
+            { role: "user", content: `Script to read aloud, exactly as written:\n\n${text}` },
+            { role: "assistant", content: "Reading it exactly as written." },
+            { role: "user", content: "Go." },
           ],
         }),
       });

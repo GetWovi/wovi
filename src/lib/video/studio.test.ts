@@ -157,3 +157,20 @@ describe("the guided start", () => {
     await expect(studio.plan(me, ws, { ...brief, idea: "x" })).rejects.toThrow("Write your idea");
   });
 });
+
+describe("the voice check", () => {
+  it("refuses a clip that is far longer than its words take to say", async () => {
+    const { maxSpeechSeconds } = await import("./studio");
+    // "Why do our croissants take three whole days? Let's unfold it." is 11 words: about 4 seconds, at most 8.9.
+    expect(maxSpeechSeconds("Why do our croissants take three whole days? Let's unfold it.")).toBeCloseTo(8.875);
+    const t = testAccounts();
+    const ada = (await t.signUp("ada@example.com")).user;
+    const me = { kind: "user" as const, userId: ada.id };
+    const ws = (await t.accounts.workspaces.create(me, "Team")).id;
+    const media = { ...fakeVideoMedia(), duration: async () => 30 };
+    const studio = new VideoStudio({ accounts: t.accounts, store: memoryVideoStore(), files: memoryFileStorage(), media });
+    let v = await studio.create(me, ws, { scenes: SCENES });
+    v = await studio.storyboard(me, ws, v.id);
+    await expect(studio.render(me, ws, v.id, "warm")).rejects.toThrow("did not read the words as written");
+  });
+});
