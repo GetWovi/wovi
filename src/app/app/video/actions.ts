@@ -2,10 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { AccountError } from "@/lib/accounts/errors";
+import { AppError } from "@/lib/app/api";
 import { appAction } from "@/lib/app/server";
 import { appBrands } from "@/lib/brand/server";
 import type { Voice } from "@/lib/video/media";
 import { appVideo, videoAllowed } from "@/lib/video/server";
+import { ASPECTS, KINDS, LENGTHS, VIBES, type Brief } from "@/lib/video/planner";
 import { VideoError, type Scene, type VideoProject } from "@/lib/video/studio";
 
 export type VideoResult = { ok: true; video: VideoProject } | { ok: false; error: string };
@@ -20,7 +22,7 @@ async function call(csrf: string, fn: (c: Awaited<ReturnType<typeof ctx>>) => Pr
   try {
     return { ok: true, video: await fn(await ctx(csrf)) };
   } catch (err) {
-    if (err instanceof VideoError || err instanceof AccountError) return { ok: false, error: err.message };
+    if (err instanceof VideoError || err instanceof AccountError || err instanceof AppError) return { ok: false, error: err.message };
     throw err;
   }
 }
@@ -46,6 +48,46 @@ export async function createVideo(csrf: string, input: { title: string; script: 
   return r;
 }
 
+/** The brand as material for the plan: the default Brand Brain's name, niche, voice and topics. */
+async function brandOf(c: Awaited<ReturnType<typeof ctx>>): Promise<string> {
+  try {
+    const brains = await appBrands().list(c.me, c.workspaceId);
+    const b = brains.find((x) => x.isDefault) ?? brains[0];
+    if (!b) return "";
+    const body = (await appBrands().get(c.me, c.workspaceId, b.id)).body;
+    return [`Name: ${body.name}`, body.niche ? `What they do: ${body.niche}` : "", body.voice.description ? `Voice: ${body.voice.description}` : "", body.topics.length ? `Topics: ${body.topics.join(", ")}` : "", body.dos.length ? `Do: ${body.dos.join(" ")}` : "", body.donts.length ? `Don't: ${body.donts.join(" ")}` : ""]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, 2000);
+  } catch {
+    return "";
+  }
+}
+
+/** Stage 1 from the guided start: the idea and the answers become a scene plan, then the studio opens on it. */
+export async function planVideo(csrf: string, brief: Brief): Promise<VideoResult> {
+  const r = await call(csrf, async (c) => {
+    const ok = KINDS.some((k) => k.value === brief.kind) || brief.kind === "custom";
+    if (!ok || !VIBES.some((v) => v.value === brief.vibe) || !(LENGTHS as readonly number[]).includes(brief.seconds) || !ASPECTS.some((a) => a.value === brief.aspect)) throw new VideoError("invalid_request", "Pick the kind, vibe, length and format.");
+    return appVideo().plan(c.me, c.workspaceId, brief, await brandOf(c));
+  });
+  if (r.ok) redirect(`/app/video/${r.video.id}`);
+  return r;
+}
+
+/** One scene's picture, so the storyboard fills in scene by scene. */
+export async function drawScene(csrf: string, id: string, index: number): Promise<VideoResult> {
+  return call(csrf, async (c) => appVideo().drawScene(c.me, c.workspaceId, id, index, await lookOf(c)));
+}
+
+export async function addScene(csrf: string, id: string, after: number): Promise<VideoResult> {
+  return call(csrf, (c) => appVideo().addScene(c.me, c.workspaceId, id, after));
+}
+
+export async function removeScene(csrf: string, id: string, index: number): Promise<VideoResult> {
+  return call(csrf, (c) => appVideo().removeScene(c.me, c.workspaceId, id, index));
+}
+
 /** Stage 1 from a Script Writer result: its sections become the scenes. */
 export async function videoFromRun(csrf: string, runId: string): Promise<VideoResult> {
   const r = await call(csrf, async (c) => {
@@ -60,7 +102,7 @@ export async function videoFromRun(csrf: string, runId: string): Promise<VideoRe
   return r;
 }
 
-export async function editScene(csrf: string, id: string, index: number, edit: Partial<Pick<Scene, "spoken" | "onScreen" | "seconds">>): Promise<VideoResult> {
+export async function editScene(csrf: string, id: string, index: number, edit: Partial<Pick<Scene, "spoken" | "onScreen" | "text" | "seconds">>): Promise<VideoResult> {
   return call(csrf, (c) => appVideo().editScene(c.me, c.workspaceId, id, index, edit));
 }
 

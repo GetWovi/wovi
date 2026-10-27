@@ -9,7 +9,9 @@ import { accounts } from "@/lib/accounts/server";
 import { localFileStorage } from "@/lib/builder/storage";
 import { creditsEnabled, processCredits } from "@/lib/credits/local";
 import { isLocalApp } from "@/lib/runtime";
+import { providersFromEnv } from "@/lib/runs/providers";
 import { MediaFailure, fakeVideoMedia, openRouterMedia, type VideoMedia } from "./media";
+import { fakePlanner, modelPlanner, type Planner } from "./planner";
 import { VideoStudio, jsonFileVideoStore, videoAccess } from "./studio";
 
 const g = globalThis as { __woviVideo?: VideoStudio };
@@ -25,6 +27,13 @@ function mediaFromEnv(): VideoMedia {
   return { provider: "none", estimate: { imageMicroUsd: 80_000, speechMicroUsdPerChar: 20 }, image: off, speech: off, duration: off, cut: off };
 }
 
+/** The planner on OpenRouter with a key, the fake on a local app without one. */
+function plannerFromEnv(): Planner | null {
+  const providers = providersFromEnv();
+  if (providers.openrouter) return modelPlanner(providers.openrouter);
+  return isLocalApp() ? fakePlanner() : null;
+}
+
 export function appVideo(): VideoStudio {
   if (!g.__woviVideo) {
     const dir = dataDirFromEnv();
@@ -33,6 +42,7 @@ export function appVideo(): VideoStudio {
       store: jsonFileVideoStore(join(dir, "videos.json")),
       files: localFileStorage(join(dir, "files")),
       media: mediaFromEnv(),
+      planner: plannerFromEnv(),
       billing: creditsEnabled() ? processCredits() : null,
     });
   }

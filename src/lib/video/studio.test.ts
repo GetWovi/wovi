@@ -107,3 +107,53 @@ describe("subtitles", () => {
     expect(subtitleChunks("Supercalifragilisticexpialidocious word")).toEqual(["Supercalifragilisticexpialidocious", "word"]);
   });
 });
+
+describe("the guided start", () => {
+  it("reads a plan strictly and spreads the length over the scenes", async () => {
+    const { parsePlan } = await import("./planner");
+    const plan = parsePlan('Here: {"scenes":[{"spoken":"Hi there.","shows":"A shop door","text":"Open now","seconds":5},{"spoken":"Come in.","shows":"A counter","text":"","seconds":5}]}', 30);
+    expect(plan).toEqual([
+      { spoken: "Hi there.", onScreen: "A shop door", text: "Open now", seconds: 15 },
+      { spoken: "Come in.", onScreen: "A counter", text: "", seconds: 15 },
+    ]);
+    expect(parsePlan("no json", 30)).toBeNull();
+    expect(parsePlan('{"scenes":[]}', 30)).toBeNull();
+  });
+
+  it("gives every kind its own look, voice and cut", async () => {
+    const { styleFor } = await import("./planner");
+    expect(styleFor({ kind: "infographic", customKind: "", vibe: "fun" })).toMatchObject({ motion: "lively", headline: true, subtitles: true, voice: "bright" });
+    expect(styleFor({ kind: "realistic", customKind: "", vibe: "calm" })).toMatchObject({ motion: "slow", headline: false, voice: "calm" });
+    expect(styleFor({ kind: "teaser", customKind: "", vibe: "bold" })).toMatchObject({ motion: "punchy", subtitles: false });
+    expect(styleFor({ kind: "custom", customKind: "claymation", vibe: "premium" }).picture).toContain("claymation");
+  });
+
+  it("plans from an idea, then draws scene by scene without losing a picture, then cuts in the format asked", async () => {
+    const { fakePlanner } = await import("./planner");
+    const t = testAccounts();
+    const ada = (await t.signUp("ada@example.com")).user;
+    const me = { kind: "user" as const, userId: ada.id };
+    const ws = (await t.accounts.workspaces.create(me, "Team")).id;
+    const media = fakeVideoMedia();
+    const studio = new VideoStudio({ accounts: t.accounts, store: memoryVideoStore(), files: memoryFileStorage(), media, planner: fakePlanner() });
+    const brief = { idea: "Our new chilli oil", kind: "infographic" as const, customKind: "", vibe: "bold" as const, seconds: 15 as const, aspect: "1:1" as const };
+    let v = await studio.plan(me, ws, brief);
+    expect(v.scenes).toHaveLength(4);
+    expect(v.brief).toMatchObject({ aspect: "1:1" });
+    expect(v.voice).toBe("warm");
+    expect(v.charges[0].stage).toBe("plan");
+    // All four at once, as the screen asks for them: none may undo another.
+    await Promise.all(v.scenes.map((_, i) => studio.drawScene(me, ws, v.id, i)));
+    v = await studio.get(me, ws, v.id);
+    expect(v.scenes.every((s) => s.imageFileId)).toBe(true);
+    expect(v.stage).toBe("storyboard");
+    v = await studio.addScene(me, ws, v.id, 0);
+    expect(v.scenes).toHaveLength(5);
+    expect(v.stage).toBe("script");
+    v = await studio.removeScene(me, ws, v.id, 1);
+    expect(v.stage).toBe("storyboard");
+    v = await studio.render(me, ws, v.id, "warm");
+    expect(media.calls.at(-1)).toBe("cut:4:4 voiced:1:1");
+    await expect(studio.plan(me, ws, { ...brief, idea: "x" })).rejects.toThrow("Write your idea");
+  });
+});

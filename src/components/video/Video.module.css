@@ -71,6 +71,7 @@
   justify-self: center;
   width: min(100%, 236px);
   aspect-ratio: 9 / 16;
+  max-height: 420px;
   border-radius: var(--r-md);
   overflow: hidden;
   background: var(--surface);
@@ -136,6 +137,8 @@
 .player {
   width: 100%;
   aspect-ratio: 9 / 16;
+  max-height: 70vh;
+  object-fit: contain;
   border-radius: var(--r-lg);
   background: #000;
 }
@@ -167,4 +170,131 @@
     max-width: 320px;
     margin: 0 auto;
   }
+}
+
+.planning {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 0;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.chip {
+  display: inline-grid;
+  gap: 2px;
+  padding: 10px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hairline);
+  background: var(--surface-alt);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  text-align: left;
+  cursor: pointer;
+}
+.chip small {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+}
+.chipOn {
+  border-color: var(--blaze);
+  background: var(--blaze);
+  color: #fff;
+}
+.chipOn small {
+  color: rgb(255 255 255 / 0.85);
+}
+.link {
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 14px;
+}
+.card {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 18px;
+  border-radius: var(--r-lg);
+  border: 2px solid var(--hairline);
+  background: var(--surface-alt);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.card b {
+  font-size: var(--fs-lg);
+}
+.card span {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.cardOn {
+  border-color: var(--blaze);
+}
+.choice {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.choice legend {
+  font-weight: var(--fw-semibold);
+  margin-bottom: 8px;
+}
+.actionBar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  border: 1px solid var(--blaze);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+}
+.actionBar p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+.sceneTools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.iconBtn {
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  color: var(--text-muted);
+  padding: 6px 12px;
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.saved {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
 }

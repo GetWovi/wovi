@@ -5,10 +5,10 @@ one jump, and the person approves each stage before the next one costs more. `/a
 
 | Stage | What happens | Cost |
 |---|---|---|
-| 1. Script | Scenes from a Script Writer result ("Make this into a video" on the result) or a pasted script, one scene per paragraph, at most 8. | Free |
-| 2. Storyboard | One 9:16 picture per scene on the catalog's `image-standard` route, drawn from what the scene shows and the default Brand Brain's niche and mood board. No text, no real or famous person. | One credit job for all pictures |
-| 3. Approve | Change any scene's words, what it shows or its seconds; draw one picture again; pick a voice (warm, calm, bright). | Free, a redraw is one small job |
-| 4. Video | The voiceover per scene on the `audio-standard` route, each picture held as long as its words take (at least its own seconds), cut by ffmpeg into a 1080x1920 H.264 MP4 with AAC sound. Play it, download it. | One credit job |
+| 1. Plan | The guided start (Funkai's flow): the idea, then the kind of video (2D animated infographic, hyper-realistic product video, teaser, or the person's own words), then the vibe (fun, calm, bold, premium), the length (15, 30, 60 seconds) and the format (9:16, 1:1, 16:9). `planner.ts` turns them into 4, 6 or 8 scenes on `text-standard` with the default Brand Brain as material: what is said, what each picture shows, a few words on screen. Or a pasted script, or a Script Writer result ("Make this into a video"). | One small job (about $0.007), the others free |
+| 2. Storyboard | Drawn scene by scene, three at a time, each picture shown as it lands (`drawScene`, one small job each; a per-video lock keeps pictures landing together from undoing each other). One picture per scene in the video's format and the kind's style (`styleFor`) on the catalog's `image-standard` route, drawn from what the scene shows and the default Brand Brain's niche and mood board. No text, no real or famous person. | One credit job for all pictures |
+| 3. Approve | Every field saves when it is left; add or remove scenes; change any scene's words, what it shows, its words on screen or its seconds; draw one picture again; pick a voice (warm, calm, bright). | Free, a redraw is one small job |
+| 4. Video | The voiceover per scene on the `audio-standard` route, each picture held as long as its words take (at least its own seconds), cut by ffmpeg in the format asked (1080x1920, 1080x1080 or 1920x1080) with the kind's motion (slow, lively or a punchy push-in), the words on screen as a headline that fades in, and subtitles timed to the voice (not on a teaser). Play it, download it. | One credit job |
 
 Credits work like the Brand Brain's AI read: estimated and shown on the button first, held before the call, settled
 to what it really cost, refunded when nothing was made. Without billing (a local app, or with credits switched off)

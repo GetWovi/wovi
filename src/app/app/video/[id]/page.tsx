@@ -22,7 +22,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   if (!video) notFound();
   const role = await accounts().roleIn(me, workspaceId);
   const editor = role ? can(role, "run_agents") : false;
-  const prices = { storyboard: studio.price(video, "storyboard"), redraw: studio.price(video, "redraw"), video: studio.price(video, "video") };
+  const prices = { redraw: studio.price(video, "redraw"), video: studio.price(video, "video") };
 
   return (
     <AppShell info={info} active="make">

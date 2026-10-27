@@ -23,13 +23,15 @@ import type { FileStorage } from "@/lib/builder/storage";
 import type { RunCredits } from "@/lib/credits/types";
 import { BillingRefusal } from "@/lib/runs/billing";
 import { MediaFailure, VOICES, type VideoMedia, type Voice } from "./media";
+import { PLAN_ESTIMATE_MICRO_USD, styleFor, type Brief, type Planner } from "./planner";
 
 export const VIDEO_LIMITS = { scenes: { min: 1, max: 8 }, spoken: 400, onScreen: 300, title: 80, seconds: { min: 1, max: 20 }, pastedScript: 4000 } as const;
 /** Media jobs per person per hour and per workspace per day, so nobody can run up a bill by clicking. */
 export const VIDEO_RATE = { perUserHour: { max: 30, windowMs: 3_600_000 }, perWorkspaceDay: { max: 120, windowMs: 86_400_000 } } as const;
 
-export type Scene = { spoken: string; onScreen: string; seconds: number; imageFileId: string | null };
-export type StageCharge = { stage: "storyboard" | "redraw" | "video"; estimate: number; charged: number; costMicroUsd: number; at: string };
+/** `text` is the few big words on screen (the headline), for the kinds that show them. */
+export type Scene = { spoken: string; onScreen: string; text?: string; seconds: number; imageFileId: string | null };
+export type StageCharge = { stage: "plan" | "storyboard" | "redraw" | "video"; estimate: number; charged: number; costMicroUsd: number; at: string };
 export type VideoProject = {
   id: string;
   workspaceId: string;
@@ -39,6 +41,8 @@ export type VideoProject = {
   title: string;
   /** The Script Writer run the scenes came from, when they did. */
   fromRunId: string | null;
+  /** The guided start's answers: the idea, the kind, the vibe, the length and the format. Null for a pasted script. */
+  brief?: Brief | null;
   scenes: Scene[];
   /** script: scenes only. storyboard: every scene has a picture. done: the video is made. */
   stage: "script" | "storyboard" | "done";
@@ -97,12 +101,12 @@ export function scenesFromText(text: string): Omit<Scene, "imageFileId">[] {
 }
 
 /** The picture's brief: the scene, the brand's look, and the rules every picture keeps. */
-export function imagePrompt(scene: Pick<Scene, "spoken" | "onScreen">, look: string): string {
+export function imagePrompt(scene: Pick<Scene, "spoken" | "onScreen">, look: string, style?: string): string {
   return [
-    "A vertical 9:16 photo for one scene of a short social video made by a small business.",
+    style ? `One scene of a short social video made by a small business. ${style}` : "A vertical 9:16 photo for one scene of a short social video made by a small business.",
     scene.onScreen ? `What the scene shows: ${scene.onScreen}` : `What is said over this scene: ${scene.spoken}`,
     look ? `The brand's look: ${look}` : "",
-    "Realistic phone-camera photo, natural light, nothing staged or glossy.",
+    style ? "" : "Realistic phone-camera photo, natural light, nothing staged or glossy.",
     "No text, letters, captions, logos or watermarks anywhere in the picture. No real or famous person, and no face that looks like one.",
   ]
     .filter(Boolean)
@@ -115,6 +119,8 @@ export type VideoOptions = {
   files: FileStorage;
   media: VideoMedia;
   billing?: VideoBilling | null;
+  /** Turns the guided start's answers into scenes. Without one, only a pasted script or a Script Writer result can start a video. */
+  planner?: Planner | null;
   now?: () => Date;
   /** Pictures made at the same time. */
   concurrency?: number;
@@ -124,6 +130,20 @@ export type StagePrice = { credits: number; free: boolean };
 
 export class VideoStudio {
   constructor(private readonly opts: VideoOptions) {}
+
+  /** One write at a time per video, so pictures landing together never undo each other. */
+  private locks = new Map<string, Promise<unknown>>();
+  private async locked<T>(id: string, fn: () => Promise<T>): Promise<T> {
+    const before = this.locks.get(id) ?? Promise.resolve();
+    const run = before.then(fn, fn);
+    const done = run.catch(() => undefined);
+    this.locks.set(id, done);
+    try {
+      return await run;
+    } finally {
+      if (this.locks.get(id) === done) this.locks.delete(id);
+    }
+  }
 
   private now() {
     return (this.opts.now ?? (() => new Date()))();
@@ -146,11 +166,11 @@ export class VideoStudio {
   }
 
   /** Stage 1: a new video from scenes (a Script Writer result) or a pasted script. Free. */
-  async create(caller: Principal, workspaceId: string, input: { title?: string; scenes?: Omit<Scene, "imageFileId">[]; script?: string; fromRunId?: string | null }): Promise<VideoProject> {
+  async create(caller: Principal, workspaceId: string, input: { title?: string; scenes?: Omit<Scene, "imageFileId">[]; script?: string; fromRunId?: string | null; brief?: Brief | null }): Promise<VideoProject> {
     await this.opts.accounts.authorize(caller, workspaceId, "run_agents");
     const raw = input.scenes?.length ? input.scenes : scenesFromText(input.script ?? "");
     const scenes = raw
-      .map((s) => ({ spoken: clean(s.spoken, VIDEO_LIMITS.spoken), onScreen: clean(s.onScreen, VIDEO_LIMITS.onScreen), seconds: Math.round(Math.max(VIDEO_LIMITS.seconds.min, Math.min(VIDEO_LIMITS.seconds.max, Number(s.seconds) || secondsFor(clean(s.spoken, VIDEO_LIMITS.spoken))))), imageFileId: null }))
+      .map((s) => ({ spoken: clean(s.spoken, VIDEO_LIMITS.spoken), onScreen: clean(s.onScreen, VIDEO_LIMITS.onScreen), text: clean(s.text, 40), seconds: Math.round(Math.max(VIDEO_LIMITS.seconds.min, Math.min(VIDEO_LIMITS.seconds.max, Number(s.seconds) || secondsFor(clean(s.spoken, VIDEO_LIMITS.spoken))))), imageFileId: null }))
       .filter((s) => s.spoken || s.onScreen)
       .slice(0, VIDEO_LIMITS.scenes.max);
     if (scenes.length < VIDEO_LIMITS.scenes.min) throw new VideoError("invalid_request", "Paste a script first, or start from a Script Writer result.");
@@ -163,9 +183,10 @@ export class VideoStudio {
       updatedAt: at,
       title: clean(input.title, VIDEO_LIMITS.title) || clean(scenes[0].spoken || scenes[0].onScreen, 60) || "My video",
       fromRunId: input.fromRunId ?? null,
+      brief: input.brief ?? null,
       scenes,
       stage: "script",
-      voice: null,
+      voice: input.brief ? styleFor(input.brief).voice : null,
       video: null,
       charges: [],
     };
@@ -173,33 +194,133 @@ export class VideoStudio {
     return v;
   }
 
+  /**
+   * Stage 1 from the guided start: the idea and the answers become a scene
+   * plan (what is said, what each picture shows, the words on screen), one
+   * small credit job. The person checks and edits it before any picture.
+   */
+  async plan(caller: Principal, workspaceId: string, brief: Brief, brand = ""): Promise<VideoProject> {
+    await this.opts.accounts.authorize(caller, workspaceId, "run_agents");
+    if (!this.opts.planner) throw new VideoError("media", "Planning from an idea is not set up here. Paste a script instead.");
+    const idea = clean(brief.idea, 1000);
+    if (idea.length < 3) throw new VideoError("invalid_request", "Write your idea in a few words first.");
+    if (brief.kind === "custom" && !clean(brief.customKind, 200)) throw new VideoError("invalid_request", "Say what kind of video you want, or pick one.");
+    const userId = caller.kind === "user" ? caller.userId : null;
+    await this.limit(userId, workspaceId);
+    const at = this.now().toISOString();
+    const draft: VideoProject = { id: newId("vid"), workspaceId, createdBy: userId ?? "api", createdAt: at, updatedAt: at, title: idea.slice(0, 80), fromRunId: null, brief, scenes: [], stage: "script", voice: null, video: null, charges: [] };
+    const { hold, estimate } = await this.hold(draft, "plan", userId, "Video: the plan from your idea");
+    let made;
+    try {
+      made = await this.opts.planner({ ...brief, idea, customKind: clean(brief.customKind, 200) }, brand, AbortSignal.timeout(120_000));
+    } catch (err) {
+      await this.settle(draft, "plan", hold, estimate, false, (err as { costMicroUsd?: number })?.costMicroUsd ?? 0);
+      throw new VideoError("media", `${err instanceof Error ? err.message : "The plan could not be made."} Nothing was charged.`);
+    }
+    await this.settle(draft, "plan", hold, estimate, true, made.costMicroUsd);
+    const v = await this.create(caller, workspaceId, { title: idea, scenes: made.scenes, brief: { ...brief, idea } });
+    v.charges = draft.charges;
+    await this.opts.store.videos.update(v);
+    return v;
+  }
+
+  /**
+   * One scene's picture, for the storyboard drawn scene by scene (the screen
+   * asks for a few at a time and shows each as it lands). The row is read
+   * again right before it is written, so pictures landing together never undo
+   * each other.
+   */
+  async drawScene(caller: Principal, workspaceId: string, id: string, index: number, look = ""): Promise<VideoProject> {
+    const v = await this.row(caller, workspaceId, id, "run_agents");
+    const scene = v.scenes[index];
+    if (!scene) throw new VideoError("invalid_request", "No such scene.");
+    const userId = caller.kind === "user" ? caller.userId : null;
+    await this.limit(userId, workspaceId);
+    const stage = scene.imageFileId ? "redraw" : "storyboard";
+    const { hold, estimate } = await this.hold(v, "redraw", userId, `Storyboard: scene ${index + 1}`);
+    let cost = 0;
+    let fileId: string;
+    try {
+      const img = await this.opts.media.image(imagePrompt(scene, look, v.brief ? styleFor(v.brief).picture : undefined), AbortSignal.timeout(120_000), v.brief?.aspect);
+      cost = img.costMicroUsd;
+      fileId = (await this.opts.files.put(workspaceId, { name: `scene-${index + 1}.${img.mimeType.split("/")[1] ?? "png"}`, mimeType: img.mimeType, bytes: img.bytes })).id;
+    } catch (err) {
+      await this.locked(id, async () => {
+        const latest = (await this.opts.store.videos.get(id)) ?? v;
+        await this.settle(latest, stage, hold, estimate, false, err instanceof MediaFailure ? err.costMicroUsd : 0);
+        await this.opts.store.videos.update(latest);
+      });
+      throw new VideoError("media", `Scene ${index + 1}: ${err instanceof Error ? err.message : "the picture could not be made"} Nothing was charged.`);
+    }
+    return this.locked(id, async () => {
+      const latest = (await this.opts.store.videos.get(id)) ?? v;
+      if (latest.scenes[index]) latest.scenes[index].imageFileId = fileId;
+      await this.settle(latest, stage, hold, estimate, true, cost);
+      if (latest.scenes.every((s) => s.imageFileId) && latest.stage === "script") latest.stage = "storyboard";
+      latest.updatedAt = this.now().toISOString();
+      await this.opts.store.videos.update(latest);
+      return latest;
+    });
+  }
+
+  /** Adds an empty scene after `index` (or at the end), or removes one. Free. A video keeps 1 to 8 scenes. */
+  async addScene(caller: Principal, workspaceId: string, id: string, after: number): Promise<VideoProject> {
+    return this.locked(id, async () => {
+      const v = await this.row(caller, workspaceId, id, "run_agents");
+      if (v.scenes.length >= VIDEO_LIMITS.scenes.max) throw new VideoError("invalid_request", `A video has at most ${VIDEO_LIMITS.scenes.max} scenes.`);
+      const at = Math.max(0, Math.min(v.scenes.length, after + 1));
+      v.scenes.splice(at, 0, { spoken: "", onScreen: "New scene: describe what it shows", text: "", seconds: 3, imageFileId: null });
+      if (v.stage === "storyboard") v.stage = "script";
+      v.updatedAt = this.now().toISOString();
+      await this.opts.store.videos.update(v);
+      return v;
+    });
+  }
+
+  async removeScene(caller: Principal, workspaceId: string, id: string, index: number): Promise<VideoProject> {
+    return this.locked(id, async () => {
+      const v = await this.row(caller, workspaceId, id, "run_agents");
+      if (!v.scenes[index]) throw new VideoError("invalid_request", "No such scene.");
+      if (v.scenes.length <= VIDEO_LIMITS.scenes.min) throw new VideoError("invalid_request", "A video needs at least one scene.");
+      v.scenes.splice(index, 1);
+      if (v.scenes.every((s) => s.imageFileId) && v.stage === "script") v.stage = "storyboard";
+      v.updatedAt = this.now().toISOString();
+      await this.opts.store.videos.update(v);
+      return v;
+    });
+  }
+
   /** What a stage will cost, in credits, before anything runs. */
-  price(v: VideoProject, stage: "storyboard" | "redraw" | "video"): StagePrice {
+  price(v: VideoProject | null, stage: "plan" | "storyboard" | "redraw" | "video"): StagePrice {
     const b = this.opts.billing;
     const micro = this.stageMicroUsd(v, stage);
     if (!b) return { credits: 0, free: true };
     return { credits: b.estimateJob(micro, micro * 2), free: false };
   }
 
-  private stageMicroUsd(v: VideoProject, stage: "storyboard" | "redraw" | "video"): number {
+  private stageMicroUsd(v: VideoProject | null, stage: "plan" | "storyboard" | "redraw" | "video"): number {
     const e = this.opts.media.estimate;
+    if (stage === "plan" || !v) return PLAN_ESTIMATE_MICRO_USD;
     if (stage === "redraw") return e.imageMicroUsd;
     if (stage === "storyboard") return e.imageMicroUsd * Math.max(1, v.scenes.filter((s) => !s.imageFileId).length);
     return e.speechMicroUsdPerChar * Math.max(1, spokenText(v).length) + 1_000;
   }
 
   /** Stage 3: change a scene's words, length or what it shows. A changed scene keeps its picture until it is drawn again. */
-  async editScene(caller: Principal, workspaceId: string, id: string, index: number, edit: Partial<Pick<Scene, "spoken" | "onScreen" | "seconds">>): Promise<VideoProject> {
-    const v = await this.row(caller, workspaceId, id, "run_agents");
-    const s = v.scenes[index];
-    if (!s) throw new VideoError("invalid_request", "No such scene.");
-    if (edit.spoken !== undefined) s.spoken = clean(edit.spoken, VIDEO_LIMITS.spoken);
-    if (edit.onScreen !== undefined) s.onScreen = clean(edit.onScreen, VIDEO_LIMITS.onScreen);
-    if (edit.seconds !== undefined) s.seconds = Math.round(Math.max(VIDEO_LIMITS.seconds.min, Math.min(VIDEO_LIMITS.seconds.max, Number(edit.seconds) || s.seconds)));
-    if (!s.spoken && !s.onScreen) throw new VideoError("invalid_request", "A scene needs words to say or something to show.");
-    v.updatedAt = this.now().toISOString();
-    await this.opts.store.videos.update(v);
-    return v;
+  async editScene(caller: Principal, workspaceId: string, id: string, index: number, edit: Partial<Pick<Scene, "spoken" | "onScreen" | "text" | "seconds">>): Promise<VideoProject> {
+    return this.locked(id, async () => {
+      const v = await this.row(caller, workspaceId, id, "run_agents");
+      const s = v.scenes[index];
+      if (!s) throw new VideoError("invalid_request", "No such scene.");
+      if (edit.spoken !== undefined) s.spoken = clean(edit.spoken, VIDEO_LIMITS.spoken);
+      if (edit.onScreen !== undefined) s.onScreen = clean(edit.onScreen, VIDEO_LIMITS.onScreen);
+      if (edit.text !== undefined) s.text = clean(edit.text, 40);
+      if (edit.seconds !== undefined) s.seconds = Math.round(Math.max(VIDEO_LIMITS.seconds.min, Math.min(VIDEO_LIMITS.seconds.max, Number(edit.seconds) || s.seconds)));
+      if (!s.spoken && !s.onScreen) throw new VideoError("invalid_request", "A scene needs words to say or something to show.");
+      v.updatedAt = this.now().toISOString();
+      await this.opts.store.videos.update(v);
+      return v;
+    });
   }
 
   /** Stage 2: a picture for every scene that has none. One credit job for the lot. */
@@ -229,7 +350,7 @@ export class VideoStudio {
     const worker = async () => {
       for (let i = queue.shift(); i !== undefined; i = queue.shift()) {
         try {
-          const img = await this.opts.media.image(imagePrompt(v.scenes[i], look), AbortSignal.timeout(120_000));
+          const img = await this.opts.media.image(imagePrompt(v.scenes[i], look, v.brief ? styleFor(v.brief).picture : undefined), AbortSignal.timeout(120_000), v.brief?.aspect);
           cost += img.costMicroUsd;
           const stored = await this.opts.files.put(v.workspaceId, { name: `scene-${i + 1}.${img.mimeType.split("/")[1] ?? "png"}`, mimeType: img.mimeType, bytes: img.bytes });
           v.scenes[i].imageFileId = stored.id;
@@ -272,8 +393,9 @@ export class VideoStudio {
       );
       const seconds = v.scenes.map((s, i) => Math.min(VIDEO_LIMITS.seconds.max + 10, Math.max(s.seconds, voiced[i] ? Math.ceil((voiced[i]!.seconds + 0.4) * 10) / 10 : 0)));
       const mp4 = await this.opts.media.cut(
-        v.scenes.map((s, i) => ({ image: images[i]!, seconds: seconds[i], audio: voiced[i]?.bytes ?? null, words: s.spoken.trim(), speechSeconds: voiced[i]?.seconds })),
-        AbortSignal.timeout(180_000),
+        v.scenes.map((s, i) => ({ image: images[i]!, seconds: seconds[i], audio: voiced[i]?.bytes ?? null, words: s.spoken.trim(), headline: s.text, speechSeconds: voiced[i]?.seconds })),
+        AbortSignal.timeout(240_000),
+        v.brief ? { aspect: v.brief.aspect, ...styleFor(v.brief) } : undefined,
       );
       const stored = await this.opts.files.put(workspaceId, { name: `${slug(v.title)}.mp4`, mimeType: "video/mp4", bytes: mp4 });
       v.video = { fileId: stored.id, seconds: Math.round(seconds.reduce((a, b) => a + b, 0)), sizeBytes: mp4.byteLength, voice, at: this.now().toISOString() };
