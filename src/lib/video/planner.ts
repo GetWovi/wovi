@@ -35,7 +35,9 @@ export const ASPECTS = [
 export type Kind = (typeof KINDS)[number]["value"] | "custom";
 export type Vibe = (typeof VIBES)[number]["value"];
 export type Aspect = (typeof ASPECTS)[number]["value"];
-export type Brief = { idea: string; kind: Kind; customKind: string; vibe: Vibe; seconds: (typeof LENGTHS)[number]; aspect: Aspect };
+/** What WOVI read from the person's reference video: the closest kind, the vibe, the colours, the pace and the look. */
+export type Reference = { kind: Kind; vibe: Vibe; bg?: string; fg?: string; accent?: string; pace: number; style: string };
+export type Brief = { idea: string; kind: Kind; customKind: string; vibe: Vibe; seconds: (typeof LENGTHS)[number]; aspect: Aspect; reference?: Reference | null };
 export type PlannedScene = { spoken: string; onScreen: string; text: string; seconds: number; bottom?: string; shape?: Shape };
 
 /** Scenes per length: enough cuts to keep it moving, few enough to draw quickly. */
@@ -52,7 +54,14 @@ const VIBE_LOOK: Record<Vibe, string> = {
 };
 const VIBE_VOICE: Record<Vibe, Voice> = { fun: "bright", calm: "calm", bold: "warm", premium: "calm" };
 
-export function styleFor(brief: Pick<Brief, "kind" | "customKind" | "vibe">): Style {
+export function styleFor(brief: Pick<Brief, "kind" | "customKind" | "vibe" | "reference">): Style {
+  const base = styleForKind(brief);
+  // A reference video's look leads the pictures; the kind still sets the motion and the words on screen.
+  if (brief.reference?.style && brief.kind !== "minimal") return { ...base, picture: `In the style of the person's reference video: ${brief.reference.style}` };
+  return base;
+}
+
+function styleForKind(brief: Pick<Brief, "kind" | "customKind" | "vibe">): Style {
   const look = VIBE_LOOK[brief.vibe] ?? "";
   const voice = VIBE_VOICE[brief.vibe] ?? "warm";
   switch (brief.kind) {
@@ -94,12 +103,18 @@ export const MINIMAL_RULES = [
   'Answer with one JSON object and nothing else: {"scenes":[{"top":"...","bottom":"...","shape":"circle","spoken":"...","seconds":4}]}',
 ].join("\n");
 
+/** The reference's pace and look, as material for the plan. */
+function referenceBlock(brief: Brief): string {
+  const r = brief.reference;
+  return r ? dataBlock("reference_style", `Follow the pace and feel of the person's reference video: about ${r.pace} seconds a scene. Its look: ${r.style}`) : "";
+}
+
 export function plannerPrompt(brief: Brief, brand: string) {
   if (brief.kind === "minimal") {
     const n = scenesFor(brief.seconds);
     return [
       { role: "system" as const, content: MINIMAL_RULES },
-      { role: "user" as const, content: [`Plan ${KIND_WORDS.minimal}. Vibe: ${brief.vibe}. Length: ${brief.seconds} seconds in exactly ${n} scenes.`, dataBlock("idea", brief.idea), brand ? dataBlock("brand", brand) : ""].filter(Boolean).join("\n\n") },
+      { role: "user" as const, content: [`Plan ${KIND_WORDS.minimal}. Vibe: ${brief.vibe}. Length: ${brief.seconds} seconds in exactly ${n} scenes.`, dataBlock("idea", brief.idea), brand ? dataBlock("brand", brand) : "", referenceBlock(brief)].filter(Boolean).join("\n\n") },
     ];
   }
   const kind = brief.kind === "custom" ? `this kind of video: ${brief.customKind}` : KIND_WORDS[brief.kind];
@@ -107,7 +122,7 @@ export function plannerPrompt(brief: Brief, brand: string) {
   const ask = `Plan ${kind}. Vibe: ${brief.vibe}. Length: ${brief.seconds} seconds in exactly ${n} scenes. Format: ${brief.aspect}.`;
   return [
     { role: "system" as const, content: PLANNER_RULES },
-    { role: "user" as const, content: [ask, dataBlock("idea", brief.idea), brand ? dataBlock("brand", brand) : ""].filter(Boolean).join("\n\n") },
+    { role: "user" as const, content: [ask, dataBlock("idea", brief.idea), brand ? dataBlock("brand", brand) : "", referenceBlock(brief)].filter(Boolean).join("\n\n") },
   ];
 }
 

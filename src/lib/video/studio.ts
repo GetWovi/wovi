@@ -322,6 +322,36 @@ export class VideoStudio {
     });
   }
 
+  /**
+   * A small paid job outside a video, like reading a reference clip before
+   * the plan: held at its estimate, settled to what it cost, refunded when it
+   * fails. Free without billing.
+   */
+  async paidJob<T>(caller: Principal, workspaceId: string, label: string, estimateMicroUsd: number, fn: () => Promise<{ value: T; costMicroUsd: number }>): Promise<T> {
+    await this.opts.accounts.authorize(caller, workspaceId, "run_agents");
+    const userId = caller.kind === "user" ? caller.userId : null;
+    await this.limit(userId, workspaceId);
+    const b = this.opts.billing;
+    let hold: RunCredits | null = null;
+    if (b) {
+      const estimate = b.estimateJob(estimateMicroUsd, estimateMicroUsd * 2);
+      try {
+        hold = await b.reserveJob({ workspaceId, jobId: newId("vjb"), estimate, userId, label });
+      } catch (err) {
+        if (err instanceof BillingRefusal) throw new VideoError("credits", `This step needs up to ${estimate} credit${estimate === 1 ? "" : "s"}: ${err.message}`);
+        throw err;
+      }
+    }
+    try {
+      const r = await fn();
+      if (hold && b) await b.settleJob(workspaceId, hold, { done: true, costMicroUsd: r.costMicroUsd });
+      return r.value;
+    } catch (err) {
+      if (hold && b) await b.settleJob(workspaceId, hold, { done: false, costMicroUsd: 0 });
+      throw err;
+    }
+  }
+
   /** What a stage will cost, in credits, before anything runs. */
   price(v: VideoProject | null, stage: "plan" | "storyboard" | "redraw" | "video"): StagePrice {
     const b = this.opts.billing;
@@ -438,7 +468,7 @@ export class VideoStudio {
       const mp4 = motion
         ? await this.opts.animate!(
             v.scenes.map((s, i) => ({ top: s.text ?? "", bottom: s.bottom ?? "", shape: s.shape ?? "circle", seconds: Math.max(seconds[i] + 0.4, 3), audio: voiced[i]?.bytes ?? null })),
-            motionLook(v.brief!.vibe, v.brief!.aspect, accent),
+            { ...motionLook(v.brief!.vibe, v.brief!.aspect, accent ?? v.brief!.reference?.accent), ...(v.brief!.reference?.bg ? { bg: v.brief!.reference.bg } : {}), ...(v.brief!.reference?.fg ? { fg: v.brief!.reference.fg } : {}) },
             AbortSignal.timeout(300_000),
           )
         : await this.opts.media.cut(

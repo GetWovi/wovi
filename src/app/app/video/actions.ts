@@ -13,7 +13,8 @@ import { join } from "node:path";
 import { ffmpegMedia } from "@/lib/clips/media";
 import { RIGHTS_REFUSAL, recordRights, rightsGiven } from "@/lib/safety/rights";
 import { appSafetyStore } from "@/lib/safety/server";
-import { ASPECTS, KINDS, LENGTHS, VIBES, type Brief } from "@/lib/video/planner";
+import { ASPECTS, KINDS, LENGTHS, VIBES, type Brief, type Reference } from "@/lib/video/planner";
+import { REFERENCE_ESTIMATE_MICRO_USD, readReference } from "@/lib/video/reference";
 import { VideoError, type Scene, type VideoProject } from "@/lib/video/studio";
 
 export type VideoResult = { ok: true; video: VideoProject } | { ok: false; error: string };
@@ -88,7 +89,9 @@ export async function planVideo(csrf: string, brief: Brief): Promise<VideoResult
   const r = await call(csrf, async (c) => {
     const ok = KINDS.some((k) => k.value === brief.kind) || brief.kind === "custom";
     if (!ok || !VIBES.some((v) => v.value === brief.vibe) || !(LENGTHS as readonly number[]).includes(brief.seconds) || !ASPECTS.some((a) => a.value === brief.aspect)) throw new VideoError("invalid_request", "Pick the kind, vibe, length and format.");
-    return appVideo().plan(c.me, c.workspaceId, brief, await brandOf(c));
+    const ref = brief.reference;
+    const reference = ref && typeof ref.style === "string" ? { ...ref, style: ref.style.slice(0, 400) } : null;
+    return appVideo().plan(c.me, c.workspaceId, { ...brief, reference }, await brandOf(c));
   });
   if (r.ok) redirect(`/app/video/${r.video.id}`);
   return r;
@@ -135,6 +138,32 @@ export async function sendOwnMedia(csrf: string, id: string, index: number, form
     await recordRights(appSafetyStore(), { workspaceId: c.workspaceId, userId: c.me.kind === "user" ? c.me.userId : "api", subject: "video_scene", fileId: scene.clipFileId ?? scene.imageFileId!, fileName: name });
     return v;
   });
+}
+
+/**
+ * "Make it like this": reads the style of the person's reference video (a
+ * small paid job). Only the style comes back; the clip is not kept.
+ */
+export async function readReferenceVideo(csrf: string, form: FormData): Promise<{ ok: true; reference: Reference } | { ok: false; error: string }> {
+  try {
+    const c = await ctx(csrf);
+    const file = form.get("file");
+    if (!(file instanceof File) || !file.size) throw new VideoError("invalid_request", "Pick your reference video first.");
+    if (!rightsGiven(form)) throw new VideoError("invalid_request", "Tick the box to confirm you may use this video as a reference.");
+    if (file.size > OWN_MAX_MB * 1024 * 1024) throw new VideoError("invalid_request", `At most ${OWN_MAX_MB} MB.`);
+    if (!OWN_CLIPS.includes(file.type.toLowerCase())) throw new VideoError("invalid_request", "Send an MP4, MOV or WebM video.");
+    const key = process.env.OPENROUTER_API_KEY;
+    if (!key) throw new VideoError("media", "Reading a reference is not set up on this server.");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const reference = await appVideo().paidJob(c.me, c.workspaceId, "Video: read your reference", REFERENCE_ESTIMATE_MICRO_USD, async () => {
+      const r = await readReference(bytes, key, AbortSignal.timeout(120_000));
+      return { value: r.reference, costMicroUsd: r.costMicroUsd };
+    });
+    return { ok: true, reference };
+  } catch (err) {
+    if (err instanceof VideoError || err instanceof AccountError || err instanceof AppError) return { ok: false, error: err.message };
+    throw err;
+  }
 }
 
 /** One scene's picture, so the storyboard fills in scene by scene. */

@@ -36,3 +36,16 @@ fields (the same function draws the preview on the page), rasterised by resvg wi
 length. "No voice" gives the text-only look. The dot takes the brand's colour: the first colour swatch on the default
 Brand Brain's mood board. Measured on 27 Oct: a 34 second video renders in about 75 seconds on a laptop; the plan
 costs about $0.005 and the voice well under a cent.
+
+## Your own photos and clips, and "make it like this"
+
+Each panel of a picture video takes the person's own photo (JPG, PNG, WebP) or clip (MP4, MOV, WebM, up to 40 MB and
+two minutes) instead of the drawn picture; the rights box is required and kept (`video_scene` in the safety store).
+A clip's first second is its poster, and the cut uses the clip itself, looped or trimmed to the scene. Drawing the
+scene again puts the AI picture back.
+
+"Like my reference video" on the kind step reads a video the person likes (`reference.ts`): six frames to
+`text-standard`, which answers the closest kind, the vibe, three colours, the pace and one or two sentences on the
+look. The brief keeps it: the plan follows the pace and feel, the pictures follow the look, and minimal motion takes
+the colours. Only the style is described; the clip and its frames are not kept. Measured on 27 Oct: about $0.006 a
+read. It is one small credit job (`paidJob`).

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { createVideo, planVideo, videoFromRun } from "@/app/app/video/actions";
+import { createVideo, planVideo, readReferenceVideo, videoFromRun } from "@/app/app/video/actions";
 import styles from "@/components/app/App.module.css";
 import { Mascot } from "@/components/brand/Mascot";
 import { Button } from "@/components/ui/Button";
 import { Input, Textarea } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
-import { ASPECTS, KINDS, LENGTHS, VIBES, type Aspect, type Kind, type Vibe } from "@/lib/video/planner";
+import { ASPECTS, KINDS, LENGTHS, VIBES, type Aspect, type Kind, type Reference, type Vibe } from "@/lib/video/planner";
 import v from "./Video.module.css";
 
 const IDEAS = ["Why our croissants take three days", "Three ways to use our new chilli oil", "Launching our autumn menu this Friday"];
@@ -26,6 +26,26 @@ export function NewVideo({ csrf, editor, planPrice }: { csrf: string; editor: bo
   const [seconds, setSeconds] = useState<(typeof LENGTHS)[number]>(30);
   const [aspect, setAspect] = useState<Aspect>("9:16");
   const [script, setScript] = useState("");
+  const [reference, setReference] = useState<Reference | null>(null);
+  const [refFile, setRefFile] = useState<File | null>(null);
+  const [refRights, setRefRights] = useState(false);
+  const [reading, setReading] = useState(false);
+
+  async function readRef() {
+    if (!refFile) return;
+    setReading(true);
+    setError(null);
+    const form = new FormData();
+    form.set("file", refFile);
+    if (refRights) form.set("rights", "yes");
+    const r = await readReferenceVideo(csrf, form);
+    setReading(false);
+    if (!r.ok) return setError(r.error);
+    setReference(r.reference);
+    setKind(r.reference.kind);
+    if (r.reference.kind === "custom") setCustomKind("Like my reference video");
+    setVibe(r.reference.vibe);
+  }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +53,7 @@ export function NewVideo({ csrf, editor, planPrice }: { csrf: string; editor: bo
     if (!kind) return;
     setBusy(true);
     setError(null);
-    const r = await planVideo(csrf, { idea, kind, customKind, vibe, seconds, aspect });
+    const r = await planVideo(csrf, { idea, kind, customKind, vibe, seconds, aspect, reference });
     // On success the action opens the studio.
     setBusy(false);
     if (!r.ok) setError(r.error);
@@ -121,6 +141,40 @@ export function NewVideo({ csrf, editor, planPrice }: { csrf: string; editor: bo
               <Input label="Describe it" value={customKind} onFocus={() => setKind("custom")} onChange={(e) => (setKind("custom"), setCustomKind(e.target.value))} maxLength={200} placeholder="A cosy behind-the-scenes look" />
             </div>
           </div>
+          <div className={[v.card, reference ? v.cardOn : ""].join(" ")}>
+            <b>Like my reference video</b>
+            <span>Drop a video you like. WOVI reads its style (colours, pace, look) and makes yours the same way. Only the style is used.</span>
+            {reference ? (
+              <div className={styles.stackTight}>
+                <div className={v.chips}>
+                  <span className={styles.chip}>{reference.kind === "custom" ? "Its own style" : KINDS.find((k) => k.value === reference.kind)?.label}</span>
+                  <span className={styles.chip}>{VIBES.find((x) => x.value === reference.vibe)?.label}</span>
+                  <span className={styles.chip}>about {reference.pace} s a scene</span>
+                  {[reference.bg, reference.fg, reference.accent].filter(Boolean).map((c) => (
+                    <span key={c} className={v.swatch} style={{ background: c }} title={c} />
+                  ))}
+                </div>
+                <span className={v.fine}>{reference.style}</span>
+                <button type="button" className={v.link} onClick={() => (setReference(null), setRefFile(null))}>
+                  Use another reference
+                </button>
+              </div>
+            ) : (
+              <div className={styles.stackTight}>
+                <input type="file" accept="video/mp4,video/quicktime,video/webm" onChange={(e) => setRefFile(e.target.files?.[0] ?? null)} disabled={!editor || reading} />
+                {refFile && (
+                  <>
+                    <label className={v.rights}>
+                      <input type="checkbox" checked={refRights} onChange={(e) => setRefRights(e.target.checked)} /> I may use this video as a reference.
+                    </label>
+                    <Button size="sm" onClick={readRef} loading={reading} disabled={!editor || !refRights || reading}>
+                      {reading ? "Reading its style..." : "Read its style"}
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
           <div className={styles.actions}>
             <Button variant="ghost" onClick={() => setStep("idea")} leading={<Icon name="arrow-left" size={18} />}>
               Back
@@ -135,6 +189,7 @@ export function NewVideo({ csrf, editor, planPrice }: { csrf: string; editor: bo
       {step === "details" && (
         <div className={styles.stack}>
           <h2 className={v.h2}>A few details</h2>
+          {reference && <p className={v.fine}>Following your reference: {reference.style}</p>}
           <Choice label="Vibe" options={VIBES.map((x) => ({ value: x.value, label: x.label }))} value={vibe} onPick={(x) => setVibe(x as Vibe)} />
           <Choice label="Length" options={LENGTHS.map((x) => ({ value: String(x), label: `${x} seconds` }))} value={String(seconds)} onPick={(x) => setSeconds(Number(x) as (typeof LENGTHS)[number])} />
           <Choice label="Format" options={ASPECTS.map((x) => ({ value: x.value, label: x.label, hint: x.hint }))} value={aspect} onPick={(x) => setAspect(x as Aspect)} />

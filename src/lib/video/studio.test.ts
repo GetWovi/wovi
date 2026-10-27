@@ -239,3 +239,14 @@ describe("own photos and clips", () => {
     expect(v.scenes[0]).toMatchObject({ own: false, clipFileId: null });
   });
 });
+
+describe("make it like this", () => {
+  it("reads a reference's style strictly, with safe fallbacks", async () => {
+    const { parseReference } = await import("./reference");
+    expect(parseReference('{"kind":"minimal","vibe":"calm","bg":"#000000","fg":"#FFFFFF","accent":"#ffaa00","pace":4,"style":"White line drawings on black."}')).toEqual({ kind: "minimal", vibe: "calm", bg: "#000000", fg: "#FFFFFF", accent: "#ffaa00", pace: 4, style: "White line drawings on black." });
+    expect(parseReference('{"kind":"anime","vibe":"loud","bg":"black","pace":99,"style":"x"}')).toMatchObject({ kind: "custom", vibe: "calm", bg: undefined, pace: 8 });
+    expect(parseReference('{"kind":"minimal"}')).toBeNull();
+    const { styleFor } = await import("./planner");
+    expect(styleFor({ kind: "realistic", customKind: "", vibe: "calm", reference: { kind: "realistic", vibe: "calm", pace: 3, style: "Grainy film look." } }).picture).toContain("Grainy film look.");
+  });
+});
