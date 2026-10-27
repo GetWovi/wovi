@@ -65,11 +65,14 @@ export async function renderMotion(scenes: (MotionScene & { audio: Uint8Array | 
       ],
       signal,
       async (stdin) => {
-        for (const s of scenes) {
+        // The finale's row: the shapes the video used before it, in order, at most three.
+        const row = [...new Set(scenes.map((x) => x.shape).filter((x) => x !== "row"))].slice(-3);
+        for (const [i, s] of scenes.entries()) {
           const frames = Math.max(1, Math.round(s.seconds * FPS));
+          const ctx = { prev: scenes[i - 1] ?? null, next: scenes[i + 1] ?? null, row };
           for (let f = 0; f < frames; f++) {
             if (signal.aborted) throw new MediaFailure("The video was stopped.");
-            const png = renderFrame(sceneSvg(s, f / (frames - 1 || 1), look), look.width);
+            const png = renderFrame(sceneSvg(s, f / (frames - 1 || 1), look, ctx), look.width);
             if (!stdin.write(png)) await new Promise((r) => stdin.once("drain", r));
           }
         }

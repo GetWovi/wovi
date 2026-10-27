@@ -19,7 +19,7 @@ const VOICES: { value: Voice; label: string }[] = [
   { value: "calm", label: "Calm" },
   { value: "bright", label: "Bright" },
 ];
-const SHAPE_WORDS: Record<Shape, string> = { circle: "Circle", orbit: "Dotted circle", square: "Square", triangle: "Triangle", lines: "Lines being written", wave: "Wave", rays: "Rays in a circle", dots: "Line with dots" };
+const SHAPE_WORDS: Record<Shape, string> = { circle: "Circle", orbit: "Dotted circle", square: "Square", triangle: "Triangle", lines: "Lines being written", wave: "Wave", flow: "Flowing lines", rays: "Rays in a circle", dots: "Line with dots", row: "Finale: all the shapes in a row" };
 const ASPECT_CSS: Record<string, string> = { "9:16": "9 / 16", "1:1": "1 / 1", "16:9": "16 / 9" };
 
 const creditWords = (n: number) => `${n} credit${n === 1 ? "" : "s"}`;
@@ -148,7 +148,7 @@ export function VideoStudio({ csrf, initial, prices, editor }: { csrf: string; i
               index={i}
               scene={s}
               aspect={ASPECT_CSS[aspect]}
-              preview={look ? sceneSvg({ top: s.text ?? "", bottom: s.bottom ?? "", shape: s.shape ?? "circle", seconds: s.seconds }, 0.8, look, { fadeOut: false }) : null}
+              preview={look ? sceneSvg({ top: s.text ?? "", bottom: s.bottom ?? "", shape: s.shape ?? "circle", seconds: s.seconds }, 0.8, look, { fadeOut: false, row: [...new Set(video.scenes.slice(0, i).map((x) => x.shape ?? "circle").filter((x) => x !== "row"))].slice(-3) }) : null}
               src={s.imageFileId ? `${file(s.imageFileId)}?v=${stamp}` : null}
               editor={editor && !working}
               drawing={drawing.has(i)}
