@@ -9,12 +9,14 @@ import { reveal, useScrollScene } from "./scroll";
 import home from "./home.module.css";
 import styles from "./LiveDemo.module.css";
 
-type Phase = "typing" | "working" | "hooks" | "caption" | "frames" | "done";
-const ORDER: Phase[] = ["typing", "working", "hooks", "caption", "frames", "done"];
+// One step at a time, top to bottom: each agent runs only on its turn, and the brand fit is scored last.
+type Phase = "typing" | "hook" | "caption" | "script" | "checking" | "done";
+const ORDER: Phase[] = ["typing", "hook", "caption", "script", "checking", "done"];
 
 /**
- * A job, start to finish: an idea is typed, three agents run, and hooks, a
- * caption and a script land one after another. Deterministic and local.
+ * A job, start to finish: an idea is typed, then Hook Writer, Caption Writer
+ * and Script Writer run one after another, each result landing as its agent
+ * finishes, and last the brand fit is checked and counts up. Deterministic and local.
  */
 export function LiveDemo() {
   const [run, setRun] = useState(0);
@@ -68,15 +70,15 @@ export function LiveDemo() {
       const chars = data.idea.split("");
       chars.forEach((_, i) => later(() => setTyped(data.idea.slice(0, i + 1)), 300 + i * 24));
       const typedBy = 300 + chars.length * 24;
-      later(() => setPhase("working"), typedBy + 400);
-      later(() => setPhase("hooks"), typedBy + 1600);
-      later(() => setPhase("caption"), typedBy + 2600);
-      later(() => setPhase("frames"), typedBy + 3500);
-      later(() => {
-        setPhase("done");
-        setFit(data.fit);
-      }, typedBy + 4400);
-      later(() => setRun((r) => r + 1), typedBy + 10500);
+      later(() => setPhase("hook"), typedBy + 400);
+      later(() => setPhase("caption"), typedBy + 1600);
+      later(() => setPhase("script"), typedBy + 2700);
+      later(() => setPhase("checking"), typedBy + 3800);
+      // The score counts up once the check is done, then the job is ready.
+      const scoreAt = typedBy + 4800;
+      for (let i = 1; i <= 10; i++) later(() => setFit(Math.round((data.fit * i) / 10)), scoreAt + i * 60);
+      later(() => setPhase("done"), scoreAt + 650);
+      later(() => setRun((r) => r + 1), typedBy + 11000);
     }
     return () => {
       timers.current.forEach((id) => clearTimeout(id));
@@ -86,11 +88,13 @@ export function LiveDemo() {
 
   const data = DEMO_RUNS[run % DEMO_RUNS.length];
   const at = (p: Phase) => ORDER.indexOf(phase) >= ORDER.indexOf(p);
+  // An agent is on the move only during its own phase and done once the next one starts.
   const agents = [
-    { name: "Hook Writer", done: at("hooks") },
-    { name: "Caption Writer", done: at("caption") },
-    { name: "Script Writer", done: at("frames") },
+    { name: "Hook Writer", turn: "hook" as Phase, next: "caption" as Phase },
+    { name: "Caption Writer", turn: "caption" as Phase, next: "script" as Phase },
+    { name: "Script Writer", turn: "script" as Phase, next: "checking" as Phase },
   ];
+  const scored = phase === "done" || (phase === "checking" && fit > 0);
 
   return (
     <section ref={ref} id="demo" className={home.section} aria-labelledby="demo-title">
@@ -124,7 +128,7 @@ export function LiveDemo() {
             </div>
             <ul className={styles.agents}>
               {agents.map((a) => {
-                const state = a.done ? "done" : at("working") ? "running" : "waiting";
+                const state = at(a.next) ? "done" : phase === a.turn ? "running" : "waiting";
                 return (
                   <li key={a.name} className={[styles.agent, styles[state]].join(" ")}>
                     <span className={styles.agentWovi}>
@@ -137,16 +141,16 @@ export function LiveDemo() {
               })}
             </ul>
             <div className={styles.fit}>
-              <Ring value={fit} size={48} />
+              <Ring value={fit} size={48} shown={scored ? undefined : phase === "checking" ? "..." : "-"} />
               <span className={styles.fitText}>
                 <strong>Brand fit</strong>
-                <span className={styles.fitHint}>{phase === "done" ? "Ready for your approval" : at("working") ? "Agents running" : "Scored before you see it"}</span>
+                <span className={styles.fitHint}>{phase === "done" ? "Ready for your approval" : phase === "checking" ? "Checking against your Brand Brain" : at("hook") ? "Scored when the agents are done" : "Scored before you see it"}</span>
               </span>
             </div>
           </div>
 
           <div className={styles.results}>
-            <div className={[styles.card, at("hooks") ? styles.cardIn : ""].join(" ")}>
+            <div className={[styles.card, at("caption") ? styles.cardIn : ""].join(" ")}>
               <div className={styles.cardHead}>
                 <span className={styles.cardTitle}>Hooks</span>
                 <span className={home.chip}>3 options</span>
@@ -159,14 +163,14 @@ export function LiveDemo() {
                 ))}
               </ol>
             </div>
-            <div className={[styles.card, at("caption") ? styles.cardIn : ""].join(" ")}>
+            <div className={[styles.card, at("script") ? styles.cardIn : ""].join(" ")}>
               <div className={styles.cardHead}>
                 <span className={styles.cardTitle}>Caption</span>
                 <span className={home.chip}>In your voice</span>
               </div>
               <p className={styles.caption}>{data.caption}</p>
             </div>
-            <div className={[styles.card, styles.cardWide, at("frames") ? styles.cardIn : ""].join(" ")}>
+            <div className={[styles.card, styles.cardWide, at("checking") ? styles.cardIn : ""].join(" ")}>
               <div className={styles.cardHead}>
                 <span className={styles.cardTitle}>Script</span>
                 <span className={[home.chip, home.chipCobalt].join(" ")}>On screen</span>
