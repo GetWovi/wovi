@@ -71,14 +71,15 @@ export const SLOP_LINES: { text: string; slop: boolean }[] = [
  */
 export type AgentCardStatus = "live" | "coming" | "next";
 
-export const AGENTS: { name: string; job: string; tag: string; fit: number; icon: "bulb" | "bolt" | "film" | "spark" | "hash" | "copy" | "search" | "play"; status: AgentCardStatus }[] = [
-  { name: "Idea Generator", job: "Gives you a week of post ideas that only your business could post.", tag: "Ideas", fit: 91, icon: "bulb", status: "live" },
-  { name: "Hook Writer", job: "Opens a post or a short with one line people stop for.", tag: "Hooks", fit: 94, icon: "bolt", status: "live" },
-  { name: "Script Writer", job: "Turns one idea into beats with a beginning, a turn and an end.", tag: "Scripts", fit: 93, icon: "film", status: "live" },
-  { name: "Caption Writer", job: "Writes the caption to match the clip, the format and your voice.", tag: "Captions", fit: 92, icon: "spark", status: "live" },
-  { name: "Hashtag Optimizer", job: "Picks the few tags and search words that help the right people find the post.", tag: "Reach", fit: 90, icon: "hash", status: "live" },
-  { name: "Platform Repurposer", job: "Turns one post that worked into a native version for each of your other platforms.", tag: "Repurposing", fit: 89, icon: "copy", status: "live" },
-  { name: "Trend Scout", job: "Finds the formats rising in your niche this week and how you could use them.", tag: "Research", fit: 93, icon: "search", status: "live" },
+/** `id` is the live agent the card opens in the app; cards for agents still to come have none. */
+export const AGENTS: { name: string; job: string; tag: string; fit: number; icon: "bulb" | "bolt" | "film" | "spark" | "hash" | "copy" | "search" | "play"; status: AgentCardStatus; id?: string }[] = [
+  { name: "Idea Generator", job: "Gives you a week of post ideas that only your business could post.", tag: "Ideas", fit: 91, icon: "bulb", status: "live", id: "idea-generator" },
+  { name: "Hook Writer", job: "Opens a post or a short with one line people stop for.", tag: "Hooks", fit: 94, icon: "bolt", status: "live", id: "hook-writer" },
+  { name: "Script Writer", job: "Turns one idea into beats with a beginning, a turn and an end.", tag: "Scripts", fit: 93, icon: "film", status: "live", id: "script-writer" },
+  { name: "Caption Writer", job: "Writes the caption to match the clip, the format and your voice.", tag: "Captions", fit: 92, icon: "spark", status: "live", id: "caption-writer" },
+  { name: "Hashtag Optimizer", job: "Picks the few tags and search words that help the right people find the post.", tag: "Reach", fit: 90, icon: "hash", status: "live", id: "hashtag-picker" },
+  { name: "Platform Repurposer", job: "Turns one post that worked into a native version for each of your other platforms.", tag: "Repurposing", fit: 89, icon: "copy", status: "live", id: "repurposer" },
+  { name: "Trend Scout", job: "Finds the formats rising in your niche this week and how you could use them.", tag: "Research", fit: 93, icon: "search", status: "live", id: "trend-scout" },
   { name: "Storyboarder", job: "Frames, shots and on-screen text for every beat of the script.", tag: "Storyboards", fit: 0, icon: "film", status: "next" },
   { name: "Voice and Cut", job: "Narration in your voice and a first cut from the storyboard.", tag: "Video", fit: 0, icon: "play", status: "next" },
 ];
