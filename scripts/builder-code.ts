@@ -43,6 +43,15 @@ async function main() {
     return;
   }
 
+  // On the host at start: stores the code in WOVI_BUILDER_INVITE once. Prints only its last characters.
+  if (flag("--from-env")) {
+    const invite = process.env.WOVI_BUILDER_INVITE?.trim();
+    if (!invite) return;
+    const view = await codes.issueKnown(invite, process.env.WOVI_BUILDER_INVITE_LABEL ?? null);
+    console.log(view ? `Builder invite ...${view.suffix} stored as ${view.id}, expires ${day(view.expiresAt)}.` : `Builder invite ...${invite.slice(-6)} is already stored.`);
+    return;
+  }
+
   const { code, view } = await codes.issue(value("--label"));
   const base = process.env.WOVI_APP_URL ?? "http://localhost:3900";
   console.log("");

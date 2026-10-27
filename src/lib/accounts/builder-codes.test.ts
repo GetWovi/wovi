@@ -19,6 +19,18 @@ async function join(t: ReturnType<typeof testAccounts>, code: string, name = "Fu
 }
 
 describe("builder codes", () => {
+  it("stores a code made elsewhere once, so a host can store it on every start", async () => {
+    const t = testAccounts();
+    const code = `${BUILDER_CODE_PREFIX}${"k".repeat(40)}`;
+    const view = await t.accounts.builderCodes.issueKnown(code, "Funkai");
+    expect(view).toMatchObject({ label: "Funkai", state: "open", suffix: code.slice(-6) });
+    expect(await t.accounts.builderCodes.issueKnown(code, "Funkai")).toBeNull();
+    expect(await t.store.builderCodes.find()).toHaveLength(1);
+    await join(t, code);
+    expect(await t.accounts.builderCodes.issueKnown(code)).toBeNull();
+    await expect(t.accounts.builderCodes.issueKnown("short")).rejects.toThrow();
+  });
+
   it("issues a long random code and stores only its hash", async () => {
     const { accounts, store } = testAccounts();
     const { code, view } = await accounts.builderCodes.issue("Funkai");

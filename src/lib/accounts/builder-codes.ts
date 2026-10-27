@@ -57,6 +57,30 @@ export class BuilderCodes {
     return { code, view: this.view(row) };
   }
 
+  /**
+   * Stores a code made somewhere else (a hidden server variable, for a host
+   * with no shell). Safe to call on every start: a code already stored, used
+   * or revoked is left alone and null comes back.
+   */
+  async issueKnown(code: string, label: string | null = null): Promise<BuilderCodeView | null> {
+    const trimmed = code.trim();
+    if (!trimmed.startsWith(BUILDER_CODE_PREFIX) || trimmed.length < 40 || trimmed.length > 120) throw new Error(`A builder code starts with ${BUILDER_CODE_PREFIX} and is 40 to 120 characters long.`);
+    if ((await this.a.store.builderCodes.find({ codeHash: sha256(trimmed) })).length) return null;
+    const row: BuilderCode = {
+      id: newId("bcd"),
+      codeHash: sha256(trimmed),
+      suffix: trimmed.slice(-6),
+      label: label?.trim().slice(0, 60) || null,
+      createdAt: this.a.iso(),
+      expiresAt: this.a.iso(this.a.cfg.builderCodeTtlMs),
+      usedAt: null,
+      usedBy: null,
+      revokedAt: null,
+    };
+    await this.a.store.builderCodes.insert(row);
+    return this.view(row);
+  }
+
   async list(): Promise<BuilderCodeView[]> {
     return (await this.a.store.builderCodes.find()).sort((x, y) => y.createdAt.localeCompare(x.createdAt)).map((r) => this.view(r));
   }
