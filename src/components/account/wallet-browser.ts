@@ -62,7 +62,9 @@ export async function toRobinhoodChain(eth: Eip1193): Promise<void> {
   try {
     await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: ROBINHOOD_CHAIN_HEX }] });
   } catch (err) {
-    if ((err as { code?: number })?.code !== 4902) throw err;
+    // MetaMask on a phone wraps "unknown chain" as data.originalError.code.
+    const e = err as { code?: number; data?: { originalError?: { code?: number } } };
+    if (e?.code !== 4902 && e?.data?.originalError?.code !== 4902) throw err;
     await eth.request({ method: "wallet_addEthereumChain", params: [ADD_CHAIN] });
   }
 }
