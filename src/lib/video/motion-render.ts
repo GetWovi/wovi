@@ -1,7 +1,9 @@
 /**
  * SERVER ONLY. Renders minimal motion scenes into an MP4: every frame is the
  * scene's SVG at that moment (motion.ts), rasterised by resvg and piped into
- * ffmpeg, with each scene's voice clip padded to the scene's length. The
+ * ffmpeg, with each scene's voice clip padded to the scene's length. With
+ * captions on, the drawing leaves them room; they are laid over after, in
+ * the finish pass (finish.ts), as for a picture video. The
  * fonts are the brand's own files in assets/fonts; system fonts are never
  * read, so a frame looks the same on every server.
  */
@@ -33,7 +35,7 @@ export function renderFrame(svg: string, width: number): Buffer {
   return new Resvg(svg, { fitTo: { mode: "width", value: width }, font: { fontFiles: FONTS, loadSystemFonts: false, defaultFontFamily: "Outfit" } }).render().asPng();
 }
 
-export async function renderMotion(scenes: (MotionScene & { audio: Uint8Array | null })[], look: MotionLook, signal: AbortSignal): Promise<Uint8Array> {
+export async function renderMotion(scenes: (MotionScene & { audio: Uint8Array | null })[], look: MotionLook, signal: AbortSignal, opts: { captions?: boolean } = {}): Promise<Uint8Array> {
   if (!scenes.length) throw new MediaFailure("There are no scenes to animate.");
   const dir = mkdtempSync(join(tmpdir(), "wovi-motion-"));
   try {
@@ -69,7 +71,7 @@ export async function renderMotion(scenes: (MotionScene & { audio: Uint8Array | 
         const row = [...new Set(scenes.map((x) => x.shape).filter((x) => x !== "row"))].slice(-3);
         for (const [i, s] of scenes.entries()) {
           const frames = Math.max(1, Math.round(s.seconds * FPS));
-          const ctx = { prev: scenes[i - 1] ?? null, next: scenes[i + 1] ?? null, row };
+          const ctx = { prev: scenes[i - 1] ?? null, next: scenes[i + 1] ?? null, row, captions: opts.captions };
           for (let f = 0; f < frames; f++) {
             if (signal.aborted) throw new MediaFailure("The video was stopped.");
             const png = renderFrame(sceneSvg(s, f / (frames - 1 || 1), look, ctx), look.width);

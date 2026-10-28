@@ -1,100 +1,129 @@
 "use server";
 
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { AccountError } from "@/lib/accounts/errors";
 import { AppError } from "@/lib/app/api";
 import { appAction } from "@/lib/app/server";
 import { appBrands } from "@/lib/brand/server";
-import type { Voice } from "@/lib/video/media";
-import { appVideo, videoAllowed } from "@/lib/video/server";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import type { BrainBody } from "@/lib/brand/types";
 import { ffmpegMedia } from "@/lib/clips/media";
 import { RIGHTS_REFUSAL, recordRights, rightsGiven } from "@/lib/safety/rights";
 import { appSafetyStore } from "@/lib/safety/server";
-import { ASPECTS, KINDS, LENGTHS, VIBES, type Brief, type Reference } from "@/lib/video/planner";
+import type { Voice } from "@/lib/video/media";
+import { startPostPack } from "@/lib/video/pack";
+import { normalizeBrief, type Brief, type Reference } from "@/lib/video/planner";
+import type { Proposal } from "@/lib/video/proposal";
 import { REFERENCE_ESTIMATE_MICRO_USD, readReference } from "@/lib/video/reference";
-import { VideoError, type Scene, type VideoProject } from "@/lib/video/studio";
+import { appVideo, videoAllowed } from "@/lib/video/server";
+import { VideoError, type Scene, type VideoPrices, type VideoProject } from "@/lib/video/studio";
+import type { BrandLook, Captions, VideoStyle } from "@/lib/video/styles";
 
-export type VideoResult = { ok: true; video: VideoProject } | { ok: false; error: string };
+/** The video after a change, with every price the storyboard shows worked out again for it. */
+export type VideoResult = { ok: true; video: VideoProject; prices: VideoPrices } | { ok: false; error: string };
 
 async function ctx(csrf: string) {
   const c = await appAction(csrf);
   if (!videoAllowed(c.info.user)) throw new VideoError("not_found", "Make a video is not open yet.");
   return c;
 }
+type Ctx = Awaited<ReturnType<typeof ctx>>;
 
-async function call(csrf: string, fn: (c: Awaited<ReturnType<typeof ctx>>) => Promise<VideoProject>): Promise<VideoResult> {
+const known = (err: unknown) => err instanceof VideoError || err instanceof AccountError || err instanceof AppError;
+
+async function call(csrf: string, fn: (c: Ctx) => Promise<VideoProject>): Promise<VideoResult> {
   try {
-    return { ok: true, video: await fn(await ctx(csrf)) };
+    const video = await fn(await ctx(csrf));
+    return { ok: true, video, prices: appVideo().prices(video) };
   } catch (err) {
-    if (err instanceof VideoError || err instanceof AccountError || err instanceof AppError) return { ok: false, error: err.message };
+    if (known(err)) return { ok: false, error: (err as Error).message };
     throw err;
   }
 }
 
+/** The default Brand Brain's body, when the workspace has one. */
+async function brainOf(c: Ctx): Promise<{ id: string; body: BrainBody } | null> {
+  try {
+    const brains = await appBrands().list(c.me, c.workspaceId);
+    const b = brains.find((x) => x.isDefault) ?? brains[0];
+    if (!b) return null;
+    return { id: b.id, body: (await appBrands().get(c.me, c.workspaceId, b.id)).body };
+  } catch {
+    return null;
+  }
+}
+
 /** The look the pictures follow: the default Brand Brain's niche and mood board, when there is one. */
-async function lookOf(c: Awaited<ReturnType<typeof ctx>>): Promise<string> {
-  try {
-    const brains = await appBrands().list(c.me, c.workspaceId);
-    const b = brains.find((x) => x.isDefault) ?? brains[0];
-    if (!b) return "";
-    const body = (await appBrands().get(c.me, c.workspaceId, b.id)).body;
-    const board = body.moodBoard.map((m) => [m.text, m.note, m.color].filter(Boolean).join(" ")).filter(Boolean);
-    return [body.niche, ...board].filter(Boolean).join("; ").slice(0, 600);
-  } catch {
-    return "";
-  }
+async function lookOf(c: Ctx): Promise<string> {
+  const body = (await brainOf(c))?.body;
+  if (!body) return "";
+  const board = body.moodBoard.map((m) => [m.text, m.note, m.color].filter(Boolean).join(" ")).filter(Boolean);
+  return [body.niche, ...board].filter(Boolean).join("; ").slice(0, 600);
 }
 
-/** The brand's own colour for the glowing dot: the first colour swatch on the default Brand Brain's mood board. */
-async function accentOf(c: Awaited<ReturnType<typeof ctx>>): Promise<string | undefined> {
-  try {
-    const brains = await appBrands().list(c.me, c.workspaceId);
-    const b = brains.find((x) => x.isDefault) ?? brains[0];
-    if (!b) return undefined;
-    const swatch = (await appBrands().get(c.me, c.workspaceId, b.id)).body.moodBoard.find((m) => m.kind === "swatch" && /^#[0-9a-f]{6}$/i.test(m.color ?? ""));
-    return swatch?.color ?? undefined;
-  } catch {
-    return undefined;
-  }
+/** The brand as material for the plan and the proposal: the default Brand Brain's name, niche, voice and topics. */
+async function brandOf(c: Ctx): Promise<string> {
+  const body = (await brainOf(c))?.body;
+  if (!body) return "";
+  return [`Name: ${body.name}`, body.niche ? `What they do: ${body.niche}` : "", body.voice.description ? `Voice: ${body.voice.description}` : "", body.topics.length ? `Topics: ${body.topics.join(", ")}` : "", body.dos.length ? `Do: ${body.dos.join(" ")}` : "", body.donts.length ? `Don't: ${body.donts.join(" ")}` : ""]
+    .filter(Boolean)
+    .join("\n")
+    .slice(0, 2000);
 }
 
-/** Stage 1 from a pasted script. */
+/**
+ * The brand for the video itself: its name, its colour swatches (on the
+ * words and the shapes) and its logo for the end card: a mood board image
+ * whose note or file name says "logo".
+ */
+async function brandLookOf(c: Ctx): Promise<BrandLook | null> {
+  const body = (await brainOf(c))?.body;
+  if (!body) return null;
+  const colors = body.moodBoard.filter((m) => m.kind === "swatch" && /^#[0-9a-f]{6}$/i.test(m.color ?? "")).map((m) => m.color!);
+  const item = body.moodBoard.find((m) => m.kind === "image" && m.file && /logo/i.test(`${m.note} ${m.text ?? ""} ${m.file.name}`));
+  let logo: BrandLook["logo"] = null;
+  if (item?.file && ["image/png", "image/jpeg", "image/webp"].includes(item.file.mimeType)) {
+    const f = await appBrands().getFile(c.me, c.workspaceId, item.file.id).catch(() => null);
+    if (f) logo = { bytes: f.bytes, mimeType: f.meta.mimeType };
+  }
+  return { name: body.name, colors, logo };
+}
+
+/** From a pasted script. */
 export async function createVideo(csrf: string, input: { title: string; script: string }): Promise<VideoResult> {
   const r = await call(csrf, (c) => appVideo().create(c.me, c.workspaceId, { title: input.title, script: input.script }));
   if (r.ok) redirect(`/app/video/${r.video.id}`);
   return r;
 }
 
-/** The brand as material for the plan: the default Brand Brain's name, niche, voice and topics. */
-async function brandOf(c: Awaited<ReturnType<typeof ctx>>): Promise<string> {
+/** The AI's proposal for an idea: the settings, one sentence, why, and at most two questions. Free. */
+export async function proposeVideo(csrf: string, input: { idea: string; reference: Reference | null }): Promise<{ ok: true; proposal: Proposal; fallback: boolean; hasBrand: boolean } | { ok: false; error: string }> {
   try {
-    const brains = await appBrands().list(c.me, c.workspaceId);
-    const b = brains.find((x) => x.isDefault) ?? brains[0];
-    if (!b) return "";
-    const body = (await appBrands().get(c.me, c.workspaceId, b.id)).body;
-    return [`Name: ${body.name}`, body.niche ? `What they do: ${body.niche}` : "", body.voice.description ? `Voice: ${body.voice.description}` : "", body.topics.length ? `Topics: ${body.topics.join(", ")}` : "", body.dos.length ? `Do: ${body.dos.join(" ")}` : "", body.donts.length ? `Don't: ${body.donts.join(" ")}` : ""]
-      .filter(Boolean)
-      .join("\n")
-      .slice(0, 2000);
-  } catch {
-    return "";
+    const c = await ctx(csrf);
+    const reference = input.reference ? normalizeBrief({ reference: input.reference })?.reference ?? null : null;
+    const brand = await brandOf(c);
+    const r = await appVideo().propose(c.me, c.workspaceId, { idea: String(input.idea ?? ""), reference, brand });
+    return { ok: true, proposal: r.proposal, fallback: r.fallback, hasBrand: Boolean(brand) };
+  } catch (err) {
+    if (known(err)) return { ok: false, error: (err as Error).message };
+    throw err;
   }
 }
 
-/** Stage 1 from the guided start: the idea and the answers become a scene plan, then the studio opens on it. */
-export async function planVideo(csrf: string, brief: Brief): Promise<VideoResult> {
-  const r = await call(csrf, async (c) => {
-    const ok = KINDS.some((k) => k.value === brief.kind) || brief.kind === "custom";
-    if (!ok || !VIBES.some((v) => v.value === brief.vibe) || !(LENGTHS as readonly number[]).includes(brief.seconds) || !ASPECTS.some((a) => a.value === brief.aspect)) throw new VideoError("invalid_request", "Pick the kind, vibe, length and format.");
-    const ref = brief.reference;
-    const reference = ref && typeof ref.style === "string" ? { ...ref, style: ref.style.slice(0, 400) } : null;
-    return appVideo().plan(c.me, c.workspaceId, { ...brief, reference }, await brandOf(c));
+/** The plan from the idea and the confirmed settings. The screen opens the storyboard after placing any own photos. */
+export async function planVideo(csrf: string, raw: Brief): Promise<VideoResult> {
+  return call(csrf, async (c) => {
+    const brief = normalizeBrief(raw);
+    if (!brief) throw new VideoError("invalid_request", "Pick the settings first.");
+    if (brief.reference) brief.reference.style = brief.reference.style.slice(0, 400);
+    // Version 2 never sends a kind; an old one is not taken from a form.
+    delete brief.kind;
+    delete brief.customKind;
+    return appVideo().plan(c.me, c.workspaceId, brief, await brandOf(c));
   });
-  if (r.ok) redirect(`/app/video/${r.video.id}`);
-  return r;
 }
 
 const OWN_IMAGES = ["image/jpeg", "image/png", "image/webp"];
@@ -161,7 +190,7 @@ export async function readReferenceVideo(csrf: string, form: FormData): Promise<
     });
     return { ok: true, reference };
   } catch (err) {
-    if (err instanceof VideoError || err instanceof AccountError || err instanceof AppError) return { ok: false, error: err.message };
+    if (known(err)) return { ok: false, error: (err as Error).message };
     throw err;
   }
 }
@@ -171,15 +200,60 @@ export async function drawScene(csrf: string, id: string, index: number): Promis
   return call(csrf, async (c) => appVideo().drawScene(c.me, c.workspaceId, id, index, await lookOf(c)));
 }
 
-export async function addScene(csrf: string, id: string, after: number): Promise<VideoResult> {
-  return call(csrf, (c) => appVideo().addScene(c.me, c.workspaceId, id, after));
+/** "Draw again": two new pictures to pick from. */
+export async function drawOptions(csrf: string, id: string, index: number): Promise<VideoResult> {
+  return call(csrf, async (c) => appVideo().drawOptions(c.me, c.workspaceId, id, index, await lookOf(c)));
 }
 
-export async function removeScene(csrf: string, id: string, index: number): Promise<VideoResult> {
-  return call(csrf, (c) => appVideo().removeScene(c.me, c.workspaceId, id, index));
+export async function pickOption(csrf: string, id: string, index: number, which: number): Promise<VideoResult> {
+  return call(csrf, (c) => appVideo().pickOption(c.me, c.workspaceId, id, index, which));
 }
 
-/** Stage 1 from a Script Writer result: its sections become the scenes. */
+/** Another style for the whole video, or for one scene when `index` is given. */
+export async function restyleVideo(csrf: string, id: string, style: VideoStyle, index?: number): Promise<VideoResult> {
+  return call(csrf, async (c) => appVideo().restyle(c.me, c.workspaceId, id, style, await lookOf(c), index));
+}
+
+/** The storyboard's arrange actions, each one undoable. */
+export async function arrangeScene(csrf: string, id: string, action: "add" | "remove" | "duplicate" | "split" | "merge" | "lock" | "unlock" | "move", index: number, to = 0): Promise<VideoResult> {
+  return call(csrf, (c) => {
+    const s = appVideo();
+    switch (action) {
+      case "add":
+        return s.addScene(c.me, c.workspaceId, id, index);
+      case "remove":
+        return s.removeScene(c.me, c.workspaceId, id, index);
+      case "duplicate":
+        return s.duplicateScene(c.me, c.workspaceId, id, index);
+      case "split":
+        return s.splitScene(c.me, c.workspaceId, id, index);
+      case "merge":
+        return s.mergeScenes(c.me, c.workspaceId, id, index);
+      case "lock":
+      case "unlock":
+        return s.lockScene(c.me, c.workspaceId, id, index, action === "lock");
+      case "move":
+        return s.moveScene(c.me, c.workspaceId, id, index, to);
+      default:
+        throw new VideoError("invalid_request", "No such change.");
+    }
+  });
+}
+
+export async function undoChange(csrf: string, id: string): Promise<VideoResult> {
+  return call(csrf, (c) => appVideo().undo(c.me, c.workspaceId, id));
+}
+
+export async function editScene(csrf: string, id: string, index: number, edit: Partial<Pick<Scene, "spoken" | "onScreen" | "text" | "bottom" | "shape" | "seconds">>): Promise<VideoResult> {
+  return call(csrf, (c) => appVideo().editScene(c.me, c.workspaceId, id, index, edit));
+}
+
+/** The voice, the captions and the Brand Brain switch, from the storyboard. */
+export async function updateVideoSettings(csrf: string, id: string, patch: { voice?: Voice; captions?: Partial<Captions>; brand?: boolean }): Promise<VideoResult> {
+  return call(csrf, (c) => appVideo().updateSettings(c.me, c.workspaceId, id, patch));
+}
+
+/** From a Script Writer result: its sections become the scenes. */
 export async function videoFromRun(csrf: string, runId: string): Promise<VideoResult> {
   const r = await call(csrf, async (c) => {
     const view = await c.api.run(c.me, c.workspaceId, runId);
@@ -193,21 +267,32 @@ export async function videoFromRun(csrf: string, runId: string): Promise<VideoRe
   return r;
 }
 
-export async function editScene(csrf: string, id: string, index: number, edit: Partial<Pick<Scene, "spoken" | "onScreen" | "text" | "bottom" | "shape" | "seconds">>): Promise<VideoResult> {
-  return call(csrf, (c) => appVideo().editScene(c.me, c.workspaceId, id, index, edit));
+/**
+ * Starts making the video and answers at once: the voice, the scenes and the
+ * captions run after the answer, and the screen follows them on the status
+ * route (status/route.ts).
+ */
+export async function renderVideo(csrf: string, id: string, voice?: Voice): Promise<VideoResult> {
+  return call(csrf, async (c) => {
+    const { video, done } = await appVideo().beginRender(c.me, c.workspaceId, id, { voice, brand: await brandLookOf(c) });
+    after(() => done.catch(() => undefined));
+    return video;
+  });
 }
 
-/** Stage 2. */
-export async function drawStoryboard(csrf: string, id: string): Promise<VideoResult> {
-  return call(csrf, async (c) => appVideo().storyboard(c.me, c.workspaceId, id, await lookOf(c)));
-}
-
-/** Stage 3: one picture again. */
-export async function redrawScene(csrf: string, id: string, index: number): Promise<VideoResult> {
-  return call(csrf, async (c) => appVideo().redraw(c.me, c.workspaceId, id, index, await lookOf(c)));
-}
-
-/** Stage 4. */
-export async function renderVideo(csrf: string, id: string, voice: Voice): Promise<VideoResult> {
-  return call(csrf, async (c) => appVideo().render(c.me, c.workspaceId, id, voice, await accentOf(c)));
+/**
+ * The ready-to-post pack: Caption Writer and Hashtag Optimizer runs from the
+ * script, through the normal app API, never charged more than the prices the
+ * button showed.
+ */
+export async function makePostPack(csrf: string, id: string, quoted: { captions?: number; hashtags?: number }): Promise<VideoResult> {
+  return call(csrf, async (c) => {
+    const v = await appVideo().get(c.me, c.workspaceId, id);
+    if (v.stage !== "done" || !v.video) throw new VideoError("invalid_request", "Make the video first.");
+    const brain = v.brief?.brand === false ? null : await brainOf(c);
+    const r = await startPostPack(c.api, c.me, c.workspaceId, v, { brandBrainId: brain?.id ?? null, quoted });
+    const saved = await appVideo().setPack(c.me, c.workspaceId, id, { captionRunId: r.captionRunId, hashtagRunId: r.hashtagRunId, platform: r.platform });
+    if (r.error) throw new VideoError("media", `The captions are on their way, but the tags could not start: ${r.error}`);
+    return saved;
+  });
 }

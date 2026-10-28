@@ -11,12 +11,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { findModelRoute } from "@/lib/agents/catalog";
 import { ffmpegPath } from "@/lib/clips/media";
+import { ffmpegFinish } from "./finish";
 import { OPENROUTER_BASE_URL } from "@/lib/runs/providers/openrouter";
+import type { CaptionCue } from "./captions";
+import type { CaptionLook, CaptionPosition, Motion } from "./styles";
 
 export type Bytes = { bytes: Uint8Array; mimeType: string; costMicroUsd: number };
-/** How the cut looks: the format, how much the pictures move, and which words go on screen. */
-export type CutLook = { aspect: string; motion: "slow" | "lively" | "punchy"; headline: boolean; subtitles: boolean };
-export const DEFAULT_LOOK: CutLook = { aspect: "9:16", motion: "slow", headline: false, subtitles: true };
+/** How the cut looks: the format, how the pictures move, and whether the scene's few words show as a headline (in the brand's colour when it is on). */
+export type CutLook = { aspect: string; motion: Motion; headline: boolean; headlineColor?: string };
+export const DEFAULT_LOOK: CutLook = { aspect: "9:16", motion: "slow", headline: false };
 /** Output size per format. */
 export const SIZES: Record<string, [number, number]> = { "9:16": [1080, 1920], "1:1": [1080, 1080], "16:9": [1920, 1080] };
 
@@ -24,14 +27,24 @@ export type CutScene = {
   image: Uint8Array;
   seconds: number;
   audio: Uint8Array | null;
-  /** The spoken words, burned in as subtitles. */
-  words?: string;
   /** A few big words for the screen (the headline), when the look shows them. */
   headline?: string;
-  /** How long the voice speaks, so the subtitles follow it. */
-  speechSeconds?: number;
   /** A moving clip for the scene, used instead of the still picture when there is one. */
   clip?: Uint8Array | null;
+};
+
+/**
+ * The last pass over a made video: the captions laid over it as a track of
+ * transparent frames (one per caption cue) and the brand's end card added
+ * after it. Either may be left out.
+ */
+export type FinishOptions = {
+  width: number;
+  height: number;
+  cues: CaptionCue[];
+  captions: { look: CaptionLook; position: CaptionPosition; highlight: string } | null;
+  /** The end card as a PNG of the video's size, and how long it shows. */
+  card: { png: Uint8Array; seconds: number } | null;
 };
 
 /** The voices on offer, as the doc's Voice and Cut agent names them, and the model voice behind each. */
@@ -54,6 +67,8 @@ export interface VideoMedia {
   duration(audio: Uint8Array, signal: AbortSignal): Promise<number>;
   /** Each image shown for its seconds with its own voice clip (silence when none), as one MP4 in the format asked. */
   cut(scenes: CutScene[], signal: AbortSignal, look?: CutLook): Promise<Uint8Array>;
+  /** The captions over a made video and the end card after it. */
+  finish(video: Uint8Array, opts: FinishOptions, signal: AbortSignal): Promise<Uint8Array>;
   /** The most one image and one second of voice may cost, in micro-dollars, for estimates. */
   estimate: { imageMicroUsd: number; speechMicroUsdPerChar: number };
 }
@@ -91,23 +106,8 @@ function ffmpeg(args: string[], signal: AbortSignal): Promise<void> {
 }
 
 const clampSec = (n: number) => Math.max(1, Math.min(60, n));
-/** The brand font the subtitles are drawn in (assets/fonts, SIL Open Font License). */
+/** The brand font the headline is drawn in (assets/fonts, SIL Open Font License). */
 const FONT = join(process.cwd(), "assets", "fonts", "Outfit-ExtraBold.ttf");
-/** Subtitle lines: a few words each, short enough to fit the width at the size drawn. */
-export function subtitleChunks(words: string, maxWords = 4, maxChars = 22): string[] {
-  const out: string[] = [];
-  let cur: string[] = [];
-  for (const w of words.split(/\s+/).filter(Boolean)) {
-    if (cur.length && (cur.length >= maxWords || [...cur, w].join(" ").length > maxChars)) {
-      out.push(cur.join(" "));
-      cur = [];
-    }
-    cur.push(w);
-  }
-  if (cur.length) out.push(cur.join(" "));
-  return out;
-}
-
 /** Motion on a still picture, a different move per scene: in, out, a drift left, a drift right. Lively and punchy move more. */
 function moveFor(i: number, frames: number, motion: CutLook["motion"]): string {
   const amount = motion === "punchy" ? 0.25 : motion === "lively" ? 0.18 : 0.12;
@@ -132,10 +132,11 @@ function moveFor(i: number, frames: number, motion: CutLook["motion"]): string {
 }
 
 /**
- * The cut. Each scene becomes its own clip first: the picture with a slow move
- * (or a moving clip, when one was made), a short fade in and out, its words as
- * subtitles timed across its voice, and its voice padded to the same length.
- * Then the clips are joined end to end into one MP4 in the format asked.
+ * The cut. Each scene becomes its own clip first: the picture with the
+ * style's move (or a moving clip, when one was made), a short fade in and
+ * out, its headline, and its voice padded to the same length. Then the clips
+ * are joined end to end into one MP4 in the format asked. The captions come
+ * after, in the finish pass, so the progress can show them as their own step.
  */
 export async function ffmpegCut(scenes: CutScene[], signal: AbortSignal, look: CutLook = DEFAULT_LOOK): Promise<Uint8Array> {
   if (!scenes.length) throw new MediaFailure("There are no scenes to cut.");
@@ -154,6 +155,11 @@ export async function ffmpegCut(scenes: CutScene[], signal: AbortSignal, look: C
         writeFileSync(join(dir, `c${i}.mp4`), s.clip);
         inputs.push("-stream_loop", "-1", "-i", join(dir, `c${i}.mp4`));
         picture = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=${fps}`;
+      } else if (look.motion === "still") {
+        // Pixel art holds still and stays crisp: scaled by whole pixels, never smoothed.
+        writeFileSync(join(dir, `s${i}.img`), s.image);
+        inputs.push("-loop", "1", "-i", join(dir, `s${i}.img`));
+        picture = `scale=${W}:${H}:force_original_aspect_ratio=increase:flags=neighbor,crop=${W}:${H},setsar=1,fps=${fps}`;
       } else {
         writeFileSync(join(dir, `s${i}.img`), s.image);
         inputs.push("-i", join(dir, `s${i}.img`));
@@ -166,30 +172,16 @@ export async function ffmpegCut(scenes: CutScene[], signal: AbortSignal, look: C
       } else {
         inputs.push("-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono");
       }
-      const fade = Math.min(look.motion === "punchy" ? 0.12 : 0.25, sec / 4);
+      const fade = Math.min(look.motion === "punchy" ? 0.12 : look.motion === "still" ? 0.06 : 0.25, sec / 4);
       const filters = [picture, `fade=t=in:st=0:d=${fade.toFixed(2)}`, `fade=t=out:st=${(sec - fade).toFixed(2)}:d=${fade.toFixed(2)}`];
-      const small = Math.round(Math.min(W, H) * 0.072);
-      // The headline: a few big words that fade in, high on the screen (in the middle for a teaser).
+      // The headline: a few big words that fade in, high on the screen (in the middle for a punchy cut).
       if (look.headline && s.headline?.trim()) {
         writeFileSync(join(dir, `h${i}.txt`), s.headline.trim());
-        const big = Math.round(Math.min(W, H) * (look.motion === "punchy" ? 0.11 : 0.09));
-        const y = look.motion === "punchy" ? "(h-text_h)/2" : "h*0.12";
-        filters.push(`drawtext=fontfile='${FONT}':textfile='${join(dir, `h${i}.txt`)}':expansion=none:fontsize=${big}:fontcolor=white:borderw=${Math.round(big / 10)}:bordercolor=black@0.85:x=(w-text_w)/2:y=${y}:alpha='if(lt(t,0.35),t/0.35,1)'`);
-      }
-      // Subtitles: the words in short lines, spread across the time the voice speaks.
-      const lines = look.subtitles && s.words ? subtitleChunks(s.words, 4, W > H ? 34 : 22) : [];
-      if (lines.length) {
-        const speak = Math.max(0.5, Math.min(sec, s.speechSeconds ?? sec));
-        const total = lines.reduce((n, l) => n + l.split(" ").length, 0);
-        let t = 0;
-        lines.forEach((line, j) => {
-          const len = (speak * line.split(" ").length) / total;
-          writeFileSync(join(dir, `t${i}_${j}.txt`), line);
-          filters.push(
-            `drawtext=fontfile='${FONT}':textfile='${join(dir, `t${i}_${j}.txt`)}':expansion=none:fontsize=${small}:fontcolor=white:borderw=${Math.round(small / 11)}:bordercolor=black@0.9:x=(w-text_w)/2:y=h*0.74:enable='between(t,${t.toFixed(2)},${(t + len).toFixed(2)})'`,
-          );
-          t += len;
-        });
+        // As big as the look asks, but never wider than the frame (Outfit ExtraBold is about 0.6 of its size a letter).
+        const big = Math.round(Math.min(Math.min(W, H) * (look.motion === "punchy" ? 0.1 : 0.085), (W * 0.9) / (s.headline.trim().length * 0.6)));
+        const y = look.motion === "punchy" ? "h*0.3-text_h/2" : "h*0.12";
+        const colour = /^#[0-9a-f]{6}$/i.test(look.headlineColor ?? "") ? `0x${look.headlineColor!.slice(1)}` : "white";
+        filters.push(`drawtext=fontfile='${FONT}':textfile='${join(dir, `h${i}.txt`)}':expansion=none:fontsize=${big}:fontcolor=${colour}:borderw=${Math.round(big / 10)}:bordercolor=black@0.85:x=(w-text_w)/2:y=${y}:alpha='if(lt(t,0.35),t/0.35,1)'`);
       }
       filters.push("format=yuv420p");
       const part = join(dir, `p${i}.mp4`);
@@ -312,6 +304,7 @@ export function openRouterMedia(opts: { apiKey: string; fetch?: typeof fetch; ap
     },
     duration: ffmpegDuration,
     cut: ffmpegCut,
+    finish: ffmpegFinish,
   };
 }
 
@@ -352,6 +345,10 @@ export function fakeVideoMedia(opts: { failImage?: boolean } = {}): VideoMedia &
     async cut(scenes, _signal, look) {
       calls.push(`cut:${scenes.length}:${scenes.filter((s) => s.audio).length} voiced${look ? `:${look.aspect}` : ""}`);
       return new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70]);
+    },
+    async finish(video, o) {
+      calls.push(`finish:${o.cues.length} cues${o.captions ? `:${o.captions.look}` : ""}${o.card ? ":card" : ""}`);
+      return video;
     },
   };
 }

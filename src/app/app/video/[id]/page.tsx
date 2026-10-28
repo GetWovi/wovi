@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/Icon";
 import { accounts } from "@/lib/accounts/server";
 import { can } from "@/lib/accounts/policy";
 import { appPage } from "@/lib/app/server";
+import { PACK_AGENTS } from "@/lib/video/pack";
 import { appVideo, videoAllowed } from "@/lib/video/server";
 
 export const metadata: Metadata = { title: "Make a video", robots: { index: false, follow: false } };
@@ -15,14 +16,15 @@ export const dynamic = "force-dynamic";
 
 export default async function VideoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { info, me, workspaceId, csrf } = await appPage(`/app/video/${id}`);
+  const { info, me, workspaceId, csrf, api } = await appPage(`/app/video/${id}`);
   if (!videoAllowed(info.user)) notFound();
   const studio = appVideo();
   const video = await studio.get(me, workspaceId, id).catch(() => null);
   if (!video) notFound();
   const role = await accounts().roleIn(me, workspaceId);
   const editor = role ? can(role, "run_agents") : false;
-  const prices = { redraw: studio.price(video, "redraw"), video: studio.price(video, "video") };
+  // The post pack's two runs, priced as the agents' own forms price them; null each when nothing is billed.
+  const [captions, hashtags] = await Promise.all([PACK_AGENTS.captions, PACK_AGENTS.hashtags].map((agent) => api.agentPrice(me, workspaceId, agent).catch(() => null)));
 
   return (
     <AppShell info={info} active="make">
@@ -34,7 +36,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
           <h1 className={styles.h1}>{video.title}</h1>
         </div>
       </div>
-      <VideoStudio csrf={csrf} initial={video} prices={prices} editor={editor} />
+      <VideoStudio csrf={csrf} initial={video} prices={studio.prices(video)} packPrice={{ captions: captions?.estimate ?? null, hashtags: hashtags?.estimate ?? null }} hasBrand={(await api.brains(me, workspaceId).catch(() => [])).length > 0} editor={editor} />
     </AppShell>
   );
 }

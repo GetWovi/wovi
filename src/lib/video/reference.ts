@@ -2,7 +2,7 @@
  * SERVER ONLY. "Make it like this": the person drops a reference video and
  * WOVI reads its style, so their video follows it. Six frames spread over the
  * clip go to the catalog's `text-standard` route (it reads images) with a
- * strict question; the answer is the closest kind, the vibe, three colours,
+ * strict question; the answer is the closest style, the mood, three colours,
  * the pace and one or two sentences on the look. The reference is never
  * copied: only its style is described, and the frames are not kept.
  */
@@ -14,14 +14,15 @@ import { ffmpegMedia } from "@/lib/clips/media";
 import { OPENROUTER_BASE_URL } from "@/lib/runs/providers/openrouter";
 import { VideoError } from "./studio";
 import type { Reference } from "./planner";
+import { STYLES } from "./styles";
 
 export const REFERENCE_ESTIMATE_MICRO_USD = 40_000;
 const FRAMES = 6;
 
 const RULES = [
   "You describe the visual style of a short social video from a few of its frames, so a new video can follow the same style. Never describe or copy its words, people, logos or brand.",
-  'Answer with one JSON object and nothing else: {"kind":"minimal|infographic|realistic|teaser|custom","vibe":"fun|calm|bold|premium","bg":"#rrggbb","fg":"#rrggbb","accent":"#rrggbb","pace":4,"style":"..."}',
-  "kind: minimal for line drawings and simple shapes on a plain background with small text; infographic for flat 2D illustration; realistic for photos or real footage; teaser for dark, dramatic, fast reveals; custom for anything else.",
+  `Answer with one JSON object and nothing else: {"look":"${STYLES.map((s) => s.value).join("|")}","vibe":"fun|calm|bold|premium","bg":"#rrggbb","fg":"#rrggbb","accent":"#rrggbb","pace":4,"style":"..."}`,
+  "look: motion for line drawings and simple shapes on a plain background with small text; 2d for flat illustration; 3d for 3D animation; realistic for everyday photos or phone footage; hyperrealistic for cinematic, dramatic footage; comic for ink lines and panels; pixel for pixel art.",
   "bg, fg and accent: the main background colour, the main line and text colour, and the highlight colour, as hex.",
   "pace: about how many seconds each scene lasts, a whole number from 2 to 8.",
   "style: one or two plain sentences on the look a picture maker can follow: medium, colours, light, framing, texture, how text sits on screen. No names.",
@@ -39,12 +40,11 @@ export function parseReference(text: string): Reference | null {
   } catch {
     return null;
   }
-  const kinds = ["minimal", "infographic", "realistic", "teaser", "custom"];
   const vibes = ["fun", "calm", "bold", "premium"];
   const style = typeof v.style === "string" ? v.style.trim().slice(0, 400) : "";
   if (!style) return null;
   return {
-    kind: (kinds.includes(v.kind as string) ? v.kind : "custom") as Reference["kind"],
+    look: STYLES.some((s) => s.value === v.look) ? (v.look as Reference["look"]) : "realistic",
     vibe: (vibes.includes(v.vibe as string) ? v.vibe : "calm") as Reference["vibe"],
     bg: HEX.test(String(v.bg)) ? String(v.bg) : undefined,
     fg: HEX.test(String(v.fg)) ? String(v.fg) : undefined,
@@ -89,7 +89,7 @@ export async function readReference(clip: Uint8Array, apiKey: string, signal: Ab
     const cost = typeof body?.usage?.cost === "number" ? Math.round(body.usage.cost * 1_000_000) : REFERENCE_ESTIMATE_MICRO_USD;
     if (!res.ok || body?.error) throw new VideoError("media", `The reference could not be read: ${body?.error?.message ?? res.statusText}`);
     const reference = parseReference(body?.choices?.[0]?.message?.content ?? "");
-    if (!reference) throw new VideoError("media", "The reference could not be read. Try another clip, or pick a kind.");
+    if (!reference) throw new VideoError("media", "The reference could not be read. Try another clip, or go on without one.");
     return { reference, costMicroUsd: cost };
   } finally {
     rmSync(dir, { recursive: true, force: true });

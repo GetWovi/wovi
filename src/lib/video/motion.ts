@@ -165,6 +165,8 @@ export type SceneContext = {
   row?: Shape[];
   /** False in the page's preview: the frame never fades. */
   fadeOut?: boolean;
+  /** Captions run along the bottom: on a square or wide frame the drawing moves up and shrinks a little to leave them room. */
+  captions?: boolean;
 };
 
 /**
@@ -177,9 +179,10 @@ export type SceneContext = {
 export function sceneSvg(scene: MotionScene, p: number, look: MotionLook, ctx: SceneContext = {}): string {
   const { width: W, height: H, bg, fg, accent, font } = look;
   const s = Math.min(W, H);
+  const roomy = ctx.captions && W >= H;
   const cx = W / 2;
-  const cy = H * 0.5;
-  const r = s * 0.2;
+  const cy = H * (roomy ? 0.42 : 0.5);
+  const r = s * (roomy ? 0.16 : 0.2);
   const stroke = Math.max(2, s * 0.0028);
   const fontSize = s * 0.038;
   const prev = ctx.prev ?? null;
@@ -265,6 +268,29 @@ ${parts.join("\n")}
 ${hand}
 ${text(scene.bottom, bottomY, bottomIn)}
 </g>
+</svg>`;
+}
+
+/**
+ * The brand's end card: its name large in its own light colour on its dark
+ * one, a short accent line under it, and its logo above when it has one. It
+ * fades in over the first fifth of its time (p from 0 to 1).
+ */
+export function endCardSvg(brand: { name: string; dark: string; light: string; accent: string }, width: number, height: number, p = 1, logo?: string | null): string {
+  const s = Math.min(width, height);
+  const o = span(p, 0, 0.2);
+  const name = brand.name.trim().slice(0, 40);
+  const size = Math.round(Math.min(s * 0.1, (width * 0.84) / Math.max(1, name.length * 0.56)));
+  const cy = height / 2 + (logo ? s * 0.12 : 0);
+  const box = s * 0.26;
+  // The logo fits a square above the name, whatever its own shape.
+  const img = logo ? `<image href="${escapeXml(logo)}" x="${((width - box) / 2).toFixed(1)}" y="${(cy - size - s * 0.06 - box).toFixed(1)}" width="${box.toFixed(1)}" height="${box.toFixed(1)}" preserveAspectRatio="xMidYMid meet" opacity="${o.toFixed(3)}"/>` : "";
+  const line = s * 0.16 * span(p, 0.1, 0.35);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+<rect width="${width}" height="${height}" fill="${brand.dark}"/>
+${img}
+<text x="${width / 2}" y="${cy.toFixed(1)}" text-anchor="middle" font-family="Outfit" font-weight="800" font-size="${size}" fill="${brand.light}" opacity="${o.toFixed(3)}">${escapeXml(name)}</text>
+<rect x="${(width / 2 - line / 2).toFixed(1)}" y="${(cy + s * 0.05).toFixed(1)}" width="${line.toFixed(1)}" height="${Math.max(3, s * 0.008).toFixed(1)}" rx="${Math.max(1.5, s * 0.004).toFixed(1)}" fill="${brand.accent}"/>
 </svg>`;
 }
 

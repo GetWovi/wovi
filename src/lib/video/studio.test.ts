@@ -4,7 +4,8 @@ import { memoryFileStorage } from "@/lib/builder/storage";
 import type { RunCredits } from "@/lib/credits/types";
 import { BillingRefusal } from "@/lib/runs/billing";
 import { fakeVideoMedia } from "./media";
-import { VideoStudio, imagePrompt, memoryVideoStore, scenesFromText, videoAccess, type VideoBilling } from "./studio";
+import { normalizeBrief, picturePrompt, type Brief } from "./planner";
+import { VideoStudio, memoryVideoStore, scenesFromText, videoAccess, type VideoBilling } from "./studio";
 
 async function setup(opts: { failImage?: boolean; billing?: VideoBilling | null } = {}) {
   const t = testAccounts();
@@ -16,6 +17,11 @@ async function setup(opts: { failImage?: boolean; billing?: VideoBilling | null 
   const files = memoryFileStorage();
   const studio = new VideoStudio({ accounts: t.accounts, store: memoryVideoStore(), files, media, billing: opts.billing ?? null });
   return { studio, media, files, me, eve: { kind: "user" as const, userId: eve.id }, ws: ws.id };
+}
+
+/** A version 2 brief with sensible defaults, for tests. */
+function brief2(over: Partial<Brief> = {}): Brief {
+  return normalizeBrief({ idea: "Our new chilli oil", type: "explainer", style: "2d", vibe: "fun", seconds: 15, aspect: "9:16", voiceover: true, voice: "warm", captions: { on: true, look: "clean", position: "bottom" }, brand: true, ...over })!;
 }
 
 const SCENES = [
@@ -46,7 +52,8 @@ describe("Make a video", () => {
     expect(v.video).toMatchObject({ voice: "calm" });
     expect(media.calls.filter((c) => c.startsWith("image"))).toHaveLength(3);
     expect(media.calls.filter((c) => c.startsWith("speech:calm"))).toHaveLength(2);
-    expect(media.calls.at(-1)).toBe("cut:2:2 voiced");
+    expect(media.calls.at(-2)).toBe("cut:2:2 voiced:9:16");
+    expect(media.calls.at(-1)).toMatch(/^finish:\d+ cues:clean$/);
     expect(v.charges.map((c) => c.stage)).toEqual(["storyboard", "redraw", "video"]);
   });
 
@@ -84,8 +91,8 @@ describe("Make a video", () => {
   });
 
   it("asks for pictures with no text and no real people, in the brand's look", () => {
-    const p = imagePrompt({ spoken: "Hi", onScreen: "A tray of croissants" }, "warm wood");
-    expect(p).toContain("9:16");
+    const p = picturePrompt({ spoken: "Hi", onScreen: "A tray of croissants" }, "A natural, realistic photo.", "warm wood");
+    expect(p).toContain("realistic photo");
     expect(p).toContain("A tray of croissants");
     expect(p).toContain("warm wood");
     expect(p).toContain("No text");
@@ -96,15 +103,6 @@ describe("Make a video", () => {
     expect(videoAccess({})).toBe("builders");
     expect(videoAccess({ WOVI_VIDEO: "on" })).toBe("on");
     expect(videoAccess({ WOVI_VIDEO: "OFF" })).toBe("off");
-  });
-});
-
-describe("subtitles", () => {
-  it("splits the words into short lines that fit the width", async () => {
-    const { subtitleChunks } = await import("./media");
-    expect(subtitleChunks("Every croissant on this counter started three days ago.")).toEqual(["Every croissant on", "this counter started", "three days ago."]);
-    expect(subtitleChunks("")).toEqual([]);
-    expect(subtitleChunks("Supercalifragilisticexpialidocious word")).toEqual(["Supercalifragilisticexpialidocious", "word"]);
   });
 });
 
@@ -120,12 +118,13 @@ describe("the guided start", () => {
     expect(parsePlan('{"scenes":[]}', 30)).toBeNull();
   });
 
-  it("gives every kind its own look, voice and cut", async () => {
-    const { styleFor } = await import("./planner");
-    expect(styleFor({ kind: "infographic", customKind: "", vibe: "fun" })).toMatchObject({ motion: "lively", headline: true, subtitles: true, voice: "bright" });
-    expect(styleFor({ kind: "realistic", customKind: "", vibe: "calm" })).toMatchObject({ motion: "slow", headline: false, voice: "calm" });
-    expect(styleFor({ kind: "teaser", customKind: "", vibe: "bold" })).toMatchObject({ motion: "punchy", subtitles: false });
-    expect(styleFor({ kind: "custom", customKind: "claymation", vibe: "premium" }).picture).toContain("claymation");
+  it("still reads a version 1 kind as its look and cut", async () => {
+    const { normalizeBrief, styleFor } = await import("./planner");
+    const old = (kind: string, vibe = "fun", customKind = "") => normalizeBrief({ idea: "x", kind, customKind, vibe, seconds: 15, aspect: "9:16" })!;
+    expect(styleFor(old("infographic"))).toMatchObject({ motion: "lively", headline: true });
+    expect(styleFor(old("realistic", "calm"))).toMatchObject({ motion: "slow", headline: false });
+    expect(old("teaser", "bold").captions.on).toBe(false);
+    expect(styleFor(old("custom", "premium", "claymation")).picture).toContain("claymation");
   });
 
   it("plans from an idea, then draws scene by scene without losing a picture, then cuts in the format asked", async () => {
@@ -136,7 +135,7 @@ describe("the guided start", () => {
     const ws = (await t.accounts.workspaces.create(me, "Team")).id;
     const media = fakeVideoMedia();
     const studio = new VideoStudio({ accounts: t.accounts, store: memoryVideoStore(), files: memoryFileStorage(), media, planner: fakePlanner() });
-    const brief = { idea: "Our new chilli oil", kind: "infographic" as const, customKind: "", vibe: "bold" as const, seconds: 15 as const, aspect: "1:1" as const };
+    const brief = brief2({ idea: "Our new chilli oil", style: "2d", vibe: "bold", seconds: 15, aspect: "1:1" });
     let v = await studio.plan(me, ws, brief);
     expect(v.scenes).toHaveLength(4);
     expect(v.brief).toMatchObject({ aspect: "1:1" });
@@ -153,7 +152,7 @@ describe("the guided start", () => {
     v = await studio.removeScene(me, ws, v.id, 1);
     expect(v.stage).toBe("storyboard");
     v = await studio.render(me, ws, v.id, "warm");
-    expect(media.calls.at(-1)).toBe("cut:4:4 voiced:1:1");
+    expect(media.calls.filter((c) => c.startsWith("cut")).at(-1)).toBe("cut:4:4 voiced:1:1");
     await expect(studio.plan(me, ws, { ...brief, idea: "x" })).rejects.toThrow("Write your idea");
   });
 });
@@ -195,7 +194,7 @@ describe("minimal motion", () => {
       planner: fakePlanner(),
       animate: async (scenes, look) => (animated.push({ scenes: scenes.length, voiced: scenes.filter((s) => s.audio).length, width: look.width }), new Uint8Array([0, 0, 0, 0x18])),
     });
-    let v = await studio.plan(me, ws, { idea: "Plan your week", kind: "minimal", customKind: "", vibe: "calm", seconds: 15, aspect: "16:9" });
+    let v = await studio.plan(me, ws, brief2({ idea: "Plan your week", style: "motion", vibe: "calm", seconds: 15, aspect: "16:9" }));
     expect(v.stage).toBe("storyboard");
     expect(v.scenes.every((s) => s.shape && s.text && !s.imageFileId)).toBe(true);
     v = await studio.editScene(me, ws, v.id, 0, { shape: "wave", bottom: "one step at a time" });
@@ -243,10 +242,10 @@ describe("own photos and clips", () => {
 describe("make it like this", () => {
   it("reads a reference's style strictly, with safe fallbacks", async () => {
     const { parseReference } = await import("./reference");
-    expect(parseReference('{"kind":"minimal","vibe":"calm","bg":"#000000","fg":"#FFFFFF","accent":"#ffaa00","pace":4,"style":"White line drawings on black."}')).toEqual({ kind: "minimal", vibe: "calm", bg: "#000000", fg: "#FFFFFF", accent: "#ffaa00", pace: 4, style: "White line drawings on black." });
-    expect(parseReference('{"kind":"anime","vibe":"loud","bg":"black","pace":99,"style":"x"}')).toMatchObject({ kind: "custom", vibe: "calm", bg: undefined, pace: 8 });
-    expect(parseReference('{"kind":"minimal"}')).toBeNull();
+    expect(parseReference('{"look":"motion","vibe":"calm","bg":"#000000","fg":"#FFFFFF","accent":"#ffaa00","pace":4,"style":"White line drawings on black."}')).toEqual({ look: "motion", vibe: "calm", bg: "#000000", fg: "#FFFFFF", accent: "#ffaa00", pace: 4, style: "White line drawings on black." });
+    expect(parseReference('{"look":"anime","vibe":"loud","bg":"black","pace":99,"style":"x"}')).toMatchObject({ look: "realistic", vibe: "calm", bg: undefined, pace: 8 });
+    expect(parseReference('{"look":"motion"}')).toBeNull();
     const { styleFor } = await import("./planner");
-    expect(styleFor({ kind: "realistic", customKind: "", vibe: "calm", reference: { kind: "realistic", vibe: "calm", pace: 3, style: "Grainy film look." } }).picture).toContain("Grainy film look.");
+    expect(styleFor(brief2({ style: "realistic", reference: { look: "realistic", vibe: "calm", pace: 3, style: "Grainy film look." } })).picture).toContain("Grainy film look.");
   });
 });
