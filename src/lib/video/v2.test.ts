@@ -434,3 +434,14 @@ describe("the plan's length", () => {
     expect(r.costMicroUsd).toBe(200);
   });
 });
+
+describe("the end card counts inside the length", () => {
+  it("gives the scenes the length less the card when the brand's card closes the video", async () => {
+    const { sceneSeconds, END_CARD_SECONDS, plannerPrompt } = await import("./planner");
+    expect(sceneSeconds(brief({ seconds: 30, brand: true }), "Crumb and Co, a bakery")).toBe(Math.round(30 - END_CARD_SECONDS));
+    expect(sceneSeconds(brief({ seconds: 30, brand: false }), "Crumb and Co, a bakery")).toBe(30);
+    expect(sceneSeconds(brief({ seconds: 30, brand: true }), "")).toBe(30);
+    const msgs = plannerPrompt(brief({ seconds: 15, brand: true }), "Crumb and Co, a bakery");
+    expect(msgs[1]!.content).toContain(`Length: ${Math.round(15 - END_CARD_SECONDS)} seconds`);
+  });
+});

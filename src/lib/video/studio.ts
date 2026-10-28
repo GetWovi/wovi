@@ -33,17 +33,17 @@ import { BillingRefusal } from "@/lib/runs/billing";
 import { readingSeconds, videoCues } from "./captions";
 import { MediaFailure, SIZES, VOICES, type FinishOptions, type VideoMedia, type Voice } from "./media";
 import { motionLook, SHAPES, type MotionLook, type MotionScene, type Shape } from "./motion";
-import { PLAN_ESTIMATE_MICRO_USD, normalizeBrief, picturePrompt, styleFor, type Brief, type Planner } from "./planner";
+import { END_CARD_SECONDS, PLAN_ESTIMATE_MICRO_USD, normalizeBrief, picturePrompt, styleFor, type Brief, type Planner } from "./planner";
 import { PROPOSAL_MICRO_USD, defaultProposal, type Proposer, type ProposalInput } from "./proposal";
 import { PICTURE_STYLES, brandPalette, styleOf, type BrandLook, type Captions, type VideoStyle } from "./styles";
 
 export const VIDEO_LIMITS = { scenes: { min: 1, max: 8 }, spoken: 400, onScreen: 300, title: 80, seconds: { min: 1, max: 20 }, pastedScript: 4000, history: 10 } as const;
 /** Media jobs per person per hour and per workspace per day, so nobody can run up a bill by clicking. */
-export const VIDEO_RATE = { perUserHour: { max: 30, windowMs: 3_600_000 }, perWorkspaceDay: { max: 120, windowMs: 86_400_000 }, proposalsPerUserHour: { max: 40, windowMs: 3_600_000 } } as const;
+export const VIDEO_RATE = { perUserHour: { max: 60, windowMs: 3_600_000 }, perWorkspaceDay: { max: 120, windowMs: 86_400_000 }, proposalsPerUserHour: { max: 40, windowMs: 3_600_000 } } as const;
 /** A render that has not moved for this long is taken as stopped (a server restart), so the video can be made again. */
 const RENDER_STALE_MS = 15 * 60_000;
 /** How long the brand's end card shows. */
-export const END_CARD_SECONDS = 2.5;
+export { END_CARD_SECONDS } from "./planner";
 
 /**
  * One scene. `text` is the few big words on screen (the headline). `imageFileId` is the scene's picture: drawn by

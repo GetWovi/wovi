@@ -187,20 +187,27 @@ function extras(brief: Brief): string[] {
   ].filter(Boolean);
 }
 
+/** The brand's end card, in seconds. It counts inside the length the person chose. */
+export const END_CARD_SECONDS = 2.5;
+
+/** The seconds the scenes get: the length chosen, less the end card when the brand's card closes the video. */
+export const sceneSeconds = (brief: Brief, brand: string) => Math.max(5, Math.round(brief.seconds - (brief.brand && brand ? END_CARD_SECONDS : 0)));
+
 export function plannerPrompt(brief: Brief, brand: string) {
   const n = scenesFor(brief.seconds);
+  const secs = sceneSeconds(brief, brand);
   const kind = typeOf(brief.type).words;
   const voice = brief.voiceover ? "" : " There is no voiceover: spoken is shown as captions only, so keep it short and easy to read.";
   // Read aloud, a script runs about 2.5 words a second: the budget keeps the video near the length asked.
-  const budget = ` Word budget: at most ${wordBudget(brief.seconds)} spoken words in all, so it lasts ${brief.seconds} seconds read aloud.`;
+  const budget = ` Word budget: at most ${wordBudget(secs)} spoken words in all, so it lasts ${secs} seconds read aloud.`;
   if (brief.style === "motion") {
     return [
       { role: "system" as const, content: MINIMAL_RULES },
-      { role: "user" as const, content: [`Plan ${kind}, as a minimal motion video. Mood: ${brief.vibe}. Length: ${brief.seconds} seconds in exactly ${n} scenes.${budget}${voice}`, dataBlock("idea", brief.idea), brand ? dataBlock("brand", brand) : "", ...extras(brief)].filter(Boolean).join("\n\n") },
+      { role: "user" as const, content: [`Plan ${kind}, as a minimal motion video. Mood: ${brief.vibe}. Length: ${secs} seconds in exactly ${n} scenes.${budget}${voice}`, dataBlock("idea", brief.idea), brand ? dataBlock("brand", brand) : "", ...extras(brief)].filter(Boolean).join("\n\n") },
     ];
   }
   const style = styleOf(brief.style);
-  const ask = `Plan ${kind}. The look is ${style.label}: ${style.hint} So every "shows" is a scene that works in that look. Mood: ${brief.vibe}. Length: ${brief.seconds} seconds in exactly ${n} scenes. Format: ${brief.aspect}.${budget}${voice}`;
+  const ask = `Plan ${kind}. The look is ${style.label}: ${style.hint} So every "shows" is a scene that works in that look. Mood: ${brief.vibe}. Length: ${secs} seconds in exactly ${n} scenes. Format: ${brief.aspect}.${budget}${voice}`;
   return [
     { role: "system" as const, content: PLANNER_RULES },
     { role: "user" as const, content: [ask, dataBlock("idea", brief.idea), brand ? dataBlock("brand", brand) : "", ...extras(brief)].filter(Boolean).join("\n\n") },
@@ -256,16 +263,17 @@ export function modelPlanner(provider: ModelProvider): Planner {
   return async (brief, brand, signal) => {
     let cost = 0;
     const messages: { role: "system" | "user" | "assistant"; content: string }[] = plannerPrompt(brief, brand);
+    const secs = sceneSeconds(brief, brand);
     let best: PlannedScene[] | null = null;
     for (let attempt = 0; attempt < 2; attempt++) {
       const r = await provider.complete({ model, messages, temperature: 0.7, maxOutputTokens: 2500, ...(route?.reasoning ? { reasoning: route.reasoning } : {}), signal });
       cost += r.costMicroUsd ?? costMicroUsd(model, r.tokensIn, r.tokensOut);
-      const scenes = parsePlan(r.text, brief.seconds);
+      const scenes = parsePlan(r.text, secs);
       if (!scenes) continue;
       best = scenes;
       const words = scenes.reduce((n, x) => n + x.spoken.split(/\s+/).filter(Boolean).length, 0);
-      if (words <= wordBudget(brief.seconds) * 1.25 || attempt > 0) break;
-      messages.push({ role: "assistant", content: r.text }, { role: "user", content: `Too long to say in ${brief.seconds} seconds: ${words} spoken words. Cut the spoken lines to at most ${wordBudget(brief.seconds)} words in all, same scenes, same JSON shape.` });
+      if (words <= wordBudget(secs) * 1.25 || attempt > 0) break;
+      messages.push({ role: "assistant", content: r.text }, { role: "user", content: `Too long to say in ${secs} seconds: ${words} spoken words. Cut the spoken lines to at most ${wordBudget(secs)} words in all, same scenes, same JSON shape.` });
     }
     if (best) return { scenes: best, costMicroUsd: cost };
     throw Object.assign(new Error("The plan could not be read. Try again."), { costMicroUsd: cost });
